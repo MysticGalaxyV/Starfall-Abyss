@@ -47,6 +47,22 @@ STARTER_CLASSES = {
 
 # Advanced classes unlockable through progression
 ADVANCED_CLASSES = {
+    "Archmage": {
+        "role": "Mage+",
+        "stats": {
+            "power": 30,
+            "defense": 12,
+            "speed": 15,
+            "hp": 110
+        },
+        "abilities": {
+            "active": "Arcane Mastery",
+            "passive": "Mana Efficiency"
+        },
+        "requirements": {
+            "level": 50
+        }
+    },
     "Cursed Specialist": {
         "role": "Balanced+",
         "stats": {
