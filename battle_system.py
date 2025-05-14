@@ -9,15 +9,15 @@ from data_models import PlayerData, DataManager
 
 class BattleMove:
     def __init__(self, name: str, damage_multiplier: float, energy_cost: int, 
-                 effect: str = None, description: str = None):
+                 effect: Optional[str] = None, description: Optional[str] = None):
         self.name = name
         self.damage_multiplier = damage_multiplier
         self.energy_cost = energy_cost
-        self.effect = effect
+        self.effect = effect or ""
         self.description = description or f"Deal {int(damage_multiplier * 100)}% damage"
 
 class BattleEntity:
-    def __init__(self, name: str, stats: Dict[str, int], moves: List[BattleMove] = None, 
+    def __init__(self, name: str, stats: Dict[str, int], moves: Optional[List[BattleMove]] = None, 
                  is_player: bool = False, player_data: Optional[PlayerData] = None):
         self.name = name
         self.stats = stats.copy()
@@ -251,8 +251,10 @@ class BattleMoveButton(Button):
         
     async def callback(self, interaction: discord.Interaction):
         view = self.view
-        if hasattr(view, 'on_move_selected'):
+        if view is not None and hasattr(view, 'on_move_selected'):
             await view.on_move_selected(interaction, self.move)
+        else:
+            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
 
 class ItemButton(Button):
     def __init__(self, item_name: str, item_effect: str, row: int = 0):
@@ -278,16 +280,28 @@ class ItemButton(Button):
         
     async def callback(self, interaction: discord.Interaction):
         view = self.view
-        if hasattr(view, 'on_item_selected'):
+        if view is not None and hasattr(view, 'on_item_selected'):
             await view.on_item_selected(interaction, self.item_name, self.item_effect)
+        else:
+            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
 
 class BattleView(View):
     def __init__(self, player: BattleEntity, enemy: BattleEntity, timeout: int = 30):
         super().__init__(timeout=timeout)
         self.player = player
         self.enemy = enemy
-        self.data_manager = None  # Will be set by start_battle
+        self.data_manager: Optional[DataManager] = None  # Will be set by start_battle
         self.update_buttons()
+        
+    def get_safe_message_content(self, interaction: discord.Interaction) -> str:
+        """Safely extract message content from interaction, returning empty string if not possible"""
+        try:
+            if (hasattr(interaction, 'message') and interaction.message and 
+                hasattr(interaction.message, 'content') and interaction.message.content):
+                return interaction.message.content
+        except (AttributeError, TypeError):
+            pass
+        return ""
         
     def update_buttons(self):
         # Clear existing buttons
@@ -305,9 +319,10 @@ class BattleView(View):
         if self.player.is_player and self.player.player_data:
             # Check for usable items (consumables)
             usable_items = []
-            for inv_item in self.player.player_data.inventory:
-                if inv_item.item.item_type == "consumable" and inv_item.quantity > 0:
-                    usable_items.append((inv_item.item.name, inv_item.item.description))
+            if hasattr(self.player.player_data, 'inventory') and self.player.player_data.inventory:
+                for inv_item in self.player.player_data.inventory:
+                    if hasattr(inv_item, 'item') and inv_item.item and hasattr(inv_item.item, 'item_type') and inv_item.item.item_type == "consumable" and inv_item.quantity > 0:
+                        usable_items.append((inv_item.item.name, inv_item.item.description))
             
             # Add up to 3 item buttons
             for i, (item_name, item_effect) in enumerate(usable_items[:3]):
@@ -386,8 +401,9 @@ class BattleView(View):
             f"{player_status_msg}{enemy_status_msg}"
         )
         
+        message_content = self.get_safe_message_content(interaction)
         await interaction.edit_original_response(
-            content=interaction.message.content + f"\n\n{battle_stats}",
+            content=message_content + f"\n\n{battle_stats}",
             view=self
         )
     
@@ -397,11 +413,14 @@ class BattleView(View):
         
         # Find the item in inventory
         item_found = False
-        for inv_item in player_data.inventory:
-            if inv_item.item.name == item_name and inv_item.quantity > 0:
-                inv_item.quantity -= 1
-                item_found = True
-                break
+        if player_data and hasattr(player_data, 'inventory') and player_data.inventory:
+            for inv_item in player_data.inventory:
+                if (hasattr(inv_item, 'item') and inv_item.item and 
+                    hasattr(inv_item.item, 'name') and inv_item.item.name == item_name and 
+                    inv_item.quantity > 0):
+                    inv_item.quantity -= 1
+                    item_found = True
+                    break
                 
         if not item_found:
             await interaction.response.send_message("❌ Item not found or out of stock!", ephemeral=True)
@@ -446,7 +465,7 @@ class BattleView(View):
         )
         
         # Save player data
-        if player_data and hasattr(self.view, 'data_manager'):
+        if player_data and self.view is not None and hasattr(self.view, 'data_manager') and self.view.data_manager is not None:
             self.view.data_manager.save_data()
             
         # Enemy turn (items don't consume a turn, but enemy still attacks)
@@ -502,8 +521,9 @@ class BattleView(View):
             f"{player_status_msg}{enemy_status_msg}"
         )
         
+        message_content = self.get_safe_message_content(interaction)
         await interaction.edit_original_response(
-            content=interaction.message.content + f"\n\n{battle_stats}",
+            content=message_content + f"\n\n{battle_stats}",
             view=self
         )
 
@@ -694,8 +714,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
             inline=False
         )
         
-        # Show info about expired effects
-        if expired_effects:
+        # Show info about expired effects if any
+        if locals().get('expired_effects') and expired_effects:
             expired_text = "\n".join([f"• {effect_name}" for effect_name in expired_effects])
             result_embed.add_field(name="⏱️ Effects Expired", value=expired_text, inline=False)
         

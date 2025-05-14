@@ -1,0 +1,394 @@
+import discord
+from discord.ui import Button, View
+import random
+import asyncio
+import datetime
+from typing import Dict, List, Optional, Tuple
+
+from data_models import PlayerData, DataManager
+
+class BattleMove:
+    def __init__(self, name: str, damage_multiplier: float, energy_cost: int, 
+                 effect: Optional[str] = None, description: Optional[str] = None):
+        self.name = name
+        self.damage_multiplier = damage_multiplier
+        self.energy_cost = energy_cost
+        self.effect = effect or ""
+        self.description = description or f"Deal {int(damage_multiplier * 100)}% damage"
+
+class BattleEntity:
+    def __init__(self, name: str, stats: Dict[str, int], moves: Optional[List[BattleMove]] = None, 
+                 is_player: bool = False, player_data: Optional[PlayerData] = None):
+        self.name = name
+        self.stats = stats.copy()
+        self.current_hp = stats["hp"]
+        self.current_energy = player_data.cursed_energy if player_data else stats.get("energy", 100)
+        self.moves = moves or []
+        self.is_player = is_player
+        self.player_data = player_data
+        self.status_effects = {}  # Effect name -> (turns remaining, effect strength)
+        
+        # Process active effects from special items
+        if is_player and player_data and hasattr(player_data, "active_effects"):
+            # Apply any HP boosts from active effects
+            for effect_name, effect_data in player_data.active_effects.items():
+                if effect_data.get("effect") == "hp_boost":
+                    boost_amount = effect_data.get("boost_amount", 0)
+                    self.stats["hp"] += boost_amount
+                    self.current_hp += boost_amount
+                elif effect_data.get("effect") == "all_stats_boost":
+                    boost_amount = effect_data.get("boost_amount", 0)
+                    for stat in ["power", "defense", "speed", "hp"]:
+                        if stat in self.stats:
+                            self.stats[stat] += boost_amount
+                            if stat == "hp":
+                                self.current_hp += boost_amount
+        
+        # Activate special abilities for this battle
+        if is_player and player_data and hasattr(player_data, "special_abilities"):
+            for ability_name, ability_data in player_data.special_abilities.items():
+                # Check if ability has been used and is currently active
+                if ability_data.get("last_used"):
+                    try:
+                        last_used = datetime.datetime.fromisoformat(ability_data["last_used"])
+                        now = datetime.datetime.now()
+                        hours_passed = (now - last_used).total_seconds() / 3600
+                        
+                        # If ability is not on cooldown, mark it as active for this battle
+                        if hours_passed >= ability_data.get("cooldown", 0):
+                            ability_data["active_in_battle"] = True
+                            
+                            # Apply permanent stat boosts from special abilities
+                            if ability_data.get("effect") == "special_ability" and ability_name == "Infinity":
+                                self.stats["defense"] += 15  # Bonus defense from Infinity
+                    except (ValueError, TypeError):
+                        pass
+        
+    def is_alive(self) -> bool:
+        return self.current_hp > 0
+    
+    def calculate_damage(self, move: BattleMove, target: 'BattleEntity') -> int:
+        """Calculate damage for a move against a target"""
+        # Base damage is attacker's power * move's damage multiplier
+        base_damage = int(self.stats["power"] * move.damage_multiplier)
+        
+        # Defense reduces damage by a percentage (50 defense = 25% reduction)
+        defense_reduction = target.stats["defense"] / 200
+        reduced_damage = base_damage * (1 - defense_reduction)
+        
+        # Apply random variance (±10%)
+        variance = random.uniform(0.9, 1.1)
+        final_damage = max(1, int(reduced_damage * variance))
+        
+        # Apply status effects
+        if "weakness" in target.status_effects:
+            _, strength = target.status_effects["weakness"]
+            final_damage = int(final_damage * (1 + strength))
+            
+        if "strength" in self.status_effects:
+            _, strength = self.status_effects["strength"]
+            final_damage = int(final_damage * (1 + strength))
+            
+        if "shield" in target.status_effects:
+            _, strength = target.status_effects["shield"]
+            final_damage = int(final_damage * (1 - strength))
+        
+        return final_damage
+    
+    def apply_move(self, move: BattleMove, target: 'BattleEntity') -> Tuple[int, str]:
+        """Apply a move to a target and return damage dealt and effect message"""
+        # Check energy cost
+        if self.current_energy < move.energy_cost:
+            return 0, "❌ Not enough energy!"
+        
+        self.current_energy -= move.energy_cost
+        
+        # Calculate and apply damage
+        damage = self.calculate_damage(move, target)
+        effect_msg = ""
+        
+        # Check for active effects (special items) on attacker
+        if self.is_player and self.player_data and hasattr(self.player_data, "active_effects"):
+            for effect_name, effect_data in self.player_data.active_effects.items():
+                # Double attack chance
+                if effect_data.get("effect") == "double_attack":
+                    chance = effect_data.get("chance", 0)
+                    if random.random() * 100 < chance:
+                        extra_damage = self.calculate_damage(move, target)
+                        damage += extra_damage
+                        effect_msg += f"\n⚡ {effect_name} activated! Double attack for {extra_damage} bonus damage!"
+        
+        # Check for special abilities on attacker
+        if self.is_player and self.player_data and hasattr(self.player_data, "special_abilities"):
+            for ability_name, ability_data in self.player_data.special_abilities.items():
+                # Only check abilities marked as active in battle
+                if ability_data.get("active_in_battle", False):
+                    ability_effect = ability_data.get("effect")
+                    
+                    # Critical hit ability (Black Flash)
+                    if ability_effect == "critical" and random.random() < 0.25:  # 25% chance
+                        crit_bonus = int(damage * 1.5)
+                        damage += crit_bonus
+                        effect_msg += f"\n✨ {ability_name} activated! Critical hit for {crit_bonus} bonus damage!"
+                    
+                    # Domain Expansion damage boost
+                    elif ability_effect == "special_ability" and ability_name == "Domain Expansion":
+                        domain_bonus = int(damage * 0.4)
+                        damage += domain_bonus
+                        effect_msg += f"\n🌌 {ability_name} is active! {domain_bonus} bonus damage!"
+                    
+                    # Ten Shadows summon
+                    elif ability_effect == "summon" and ability_name == "Ten Shadows Technique":
+                        summon_damage = int(self.stats["power"] * 0.3)
+                        damage += summon_damage
+                        effect_msg += f"\n🐺 Shadow Beast attacks for {summon_damage} bonus damage!"
+        
+        # Apply dodge chance from effects
+        dodge_chance = 0
+        active_dodge_effect = None
+        if target.is_player and target.player_data and hasattr(target.player_data, "active_effects"):
+            for effect_name, effect_data in target.player_data.active_effects.items():
+                if effect_data.get("effect") == "dodge_boost":
+                    dodge_chance = effect_data.get("boost_amount", 0)
+                    active_dodge_effect = effect_name
+                    break
+        
+        # Check for dodge
+        if dodge_chance > 0 and random.random() * 100 < dodge_chance:
+            effect_msg += f"\n👁️ {target.name} dodged the attack with {active_dodge_effect}!"
+            damage = 0
+        # Check for Infinity special ability on target (damage reduction)
+        elif target.is_player and target.player_data and hasattr(target.player_data, "special_abilities"):
+            for ability_name, ability_data in target.player_data.special_abilities.items():
+                if ability_data.get("active_in_battle", False) and ability_name == "Infinity" and ability_data.get("effect") == "special_ability":
+                    # Infinity reduces damage by 30%
+                    reduced = int(damage * 0.3)
+                    damage -= reduced
+                    effect_msg += f"\n♾️ {target.name}'s {ability_name} stopped {reduced} damage!"
+        
+        # Apply damage to target
+        target.current_hp = max(0, target.current_hp - damage)
+        
+        # Apply move effects
+        if move.effect:
+            if move.effect == "heal":
+                heal_amount = int(self.stats["hp"] * 0.2)
+                
+                # Check for healing boost from Reverse Cursed Technique
+                if self.is_player and self.player_data and hasattr(self.player_data, "special_abilities"):
+                    for ability_name, ability_data in self.player_data.special_abilities.items():
+                        if ability_data.get("active_in_battle", False) and ability_name == "Reverse Cursed Technique" and ability_data.get("effect") == "healing":
+                            heal_amount = int(heal_amount * 1.5)
+                            effect_msg += f"\n💚 {ability_name} boosted healing effect!"
+                
+                self.current_hp = min(self.stats["hp"], self.current_hp + heal_amount)
+                effect_msg += f"\n💚 {self.name} healed for {heal_amount} HP!"
+            elif move.effect == "energy_restore":
+                energy_amount = int(30)
+                self.current_energy = min(self.stats.get("energy", 100), self.current_energy + energy_amount)
+                effect_msg += f"\n✨ {self.name} restored {energy_amount} energy!"
+            elif move.effect == "weakness":
+                target.status_effects["weakness"] = (2, 0.25)  # 2 turns, 25% more damage
+                effect_msg += f"\n🟣 {target.name} is weakened for 2 turns!"
+            elif move.effect == "strength":
+                self.status_effects["strength"] = (2, 0.25)  # 2 turns, 25% more damage
+                effect_msg += f"\n💪 {self.name} is strengthened for 2 turns!"
+            elif move.effect == "shield":
+                self.status_effects["shield"] = (2, 0.3)  # 2 turns, 30% less damage
+                effect_msg += f"\n🛡️ {self.name} is shielded for 2 turns!"
+        
+        # Check for summoned ally from consumables
+        if self.is_player and self.player_data and hasattr(self.player_data, "active_effects"):
+            for effect_name, effect_data in self.player_data.active_effects.items():
+                if effect_data.get("effect") == "summon_ally":
+                    ally_power = effect_data.get("ally_power", 0)
+                    ally_damage = int(self.stats["power"] * ally_power)
+                    target.current_hp = max(0, target.current_hp - ally_damage)
+                    effect_msg += f"\n👥 Summoned ally attacks for {ally_damage} additional damage!"
+                
+        return damage, effect_msg
+    
+    def update_status_effects(self) -> str:
+        """Update status effects at the end of turn. Return status message."""
+        status_msg = ""
+        expired_effects = []
+        
+        for effect, (turns, strength) in self.status_effects.items():
+            if turns <= 1:
+                expired_effects.append(effect)
+                status_msg += f"\n❌ {effect.title()} effect expired for {self.name}!"
+            else:
+                self.status_effects[effect] = (turns - 1, strength)
+                
+        for effect in expired_effects:
+            del self.status_effects[effect]
+            
+        return status_msg
+
+class BattleMoveButton(Button):
+    def __init__(self, move: BattleMove, row: int = 0):
+        # Choose button style based on move type
+        if "heal" in (move.effect or ""):
+            style = discord.ButtonStyle.green
+            emoji = "💚"
+        elif "energy" in (move.effect or ""):
+            style = discord.ButtonStyle.blurple
+            emoji = "✨"
+        elif "shield" in (move.effect or ""):
+            style = discord.ButtonStyle.gray
+            emoji = "🛡️"
+        else:
+            style = discord.ButtonStyle.red
+            emoji = "⚔️"
+            
+        super().__init__(
+            label=f"{move.name} ({move.energy_cost} ✨)", 
+            style=style,
+            emoji=emoji,
+            row=row
+        )
+        self.move = move
+        
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        if view is not None and hasattr(view, 'on_move_selected'):
+            await view.on_move_selected(interaction, self.move)
+        else:
+            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
+
+class ItemButton(Button):
+    def __init__(self, item_name: str, item_effect: str, row: int = 0):
+        # Choose emoji based on item effect
+        if "heal" in item_effect.lower():
+            emoji = "💊"
+            style = discord.ButtonStyle.green
+        elif "energy" in item_effect.lower():
+            emoji = "🔋"
+            style = discord.ButtonStyle.blurple
+        else:
+            emoji = "🧪"
+            style = discord.ButtonStyle.gray
+            
+        super().__init__(
+            label=item_name,
+            style=style,
+            emoji=emoji,
+            row=row
+        )
+        self.item_name = item_name
+        self.item_effect = item_effect
+        
+    async def callback(self, interaction: discord.Interaction):
+        view = self.view
+        if view is not None and hasattr(view, 'on_item_selected'):
+            await view.on_item_selected(interaction, self.item_name, self.item_effect)
+        else:
+            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
+
+class BattleView(View):
+    def __init__(self, player: BattleEntity, enemy: BattleEntity, timeout: int = 30):
+        super().__init__(timeout=timeout)
+        self.player = player
+        self.enemy = enemy
+        self.data_manager: Optional[DataManager] = None  # Will be set by start_battle
+        self.update_buttons()
+        
+    def update_buttons(self):
+        # Clear existing buttons
+        self.clear_items()
+        
+        # Add move buttons
+        for i, move in enumerate(self.player.moves):
+            # Disable buttons if not enough energy
+            disabled = self.player.current_energy < move.energy_cost
+            btn = BattleMoveButton(move, row=i//2)
+            btn.disabled = disabled
+            self.add_item(btn)
+            
+        # Add item button if player
+        if self.player.is_player and self.player.player_data:
+            # Check for usable items (consumables)
+            usable_items = []
+            if hasattr(self.player.player_data, 'inventory') and self.player.player_data.inventory:
+                for inv_item in self.player.player_data.inventory:
+                    if hasattr(inv_item, 'item') and inv_item.item and hasattr(inv_item.item, 'item_type') and inv_item.item.item_type == "consumable" and inv_item.quantity > 0:
+                        usable_items.append((inv_item.item.name, inv_item.item.description))
+            
+            # Add up to 3 item buttons
+            for i, (item_name, item_effect) in enumerate(usable_items[:3]):
+                self.add_item(ItemButton(item_name, item_effect, row=2))
+        
+    async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
+        # Apply player move
+        damage, effect_msg = self.player.apply_move(move, self.enemy)
+        await interaction.response.edit_message(
+            content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                   f"Waiting for enemy move...",
+            view=self
+        )
+        
+        # Check if enemy is defeated
+        if not self.enemy.is_alive():
+            # Battle won
+            self.stop()
+            await asyncio.sleep(1)
+            await interaction.edit_original_response(
+                content=f"🎉 Victory! You defeated {self.enemy.name}!\n"
+                       f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+                       f"Energy: {self.player.current_energy}/100 ✨",
+                view=None
+            )
+            return
+        
+        # Enemy turn
+        await asyncio.sleep(1)
+        
+        # Choose enemy move (prioritize moves they have energy for)
+        available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
+        if not available_moves:
+            # If no moves available, enemy skips turn to regain energy
+            self.enemy.current_energy = min(self.enemy.stats.get("energy", 100), 
+                                           self.enemy.current_energy + 30)
+            await interaction.edit_original_response(
+                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                       f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
+                view=self
+            )
+        else:
+            enemy_move = random.choice(available_moves)
+            enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
+            
+            await interaction.edit_original_response(
+                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                       f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
+                view=self
+            )
+            
+            # Check if player is defeated
+            if not self.player.is_alive():
+                # Battle lost
+                self.stop()
+                await asyncio.sleep(1)
+                await interaction.edit_original_response(
+                    content=f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                    view=None
+                )
+                return
+                
+        # Update status effects
+        player_status_msg = self.player.update_status_effects()
+        enemy_status_msg = self.enemy.update_status_effects()
+        
+        # Update buttons for next turn
+        self.update_buttons()
+        
+        # Show battle status
+        battle_stats = (
+            f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+            f"Energy: {self.player.current_energy}/100 ✨\n"
+            f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
+            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ✨"
+            f"{player_status_msg}{enemy_status_msg}"
+        )
+        
+        await interaction.edit_original_response(

@@ -97,7 +97,7 @@ class Skill:
 
 class PlayerClass:
     def __init__(self, name: str, role: str, base_stats: Dict[str, int], 
-                 abilities: Dict[str, str], skills: List[Skill] = None):
+                 abilities: Dict[str, str], skills: Optional[List[Skill]] = None):
         self.name = name
         self.role = role
         self.base_stats = base_stats
@@ -178,6 +178,8 @@ class PlayerData:
         self.training_cooldowns = {}  # Dict[str, str] (training_name: iso_datetime)
         self.skill_points = 0
         self.allocated_stats = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
+        self.skill_tree = {}  # Dict[str, Dict[str, int]] (tree_name: {node_name: level})
+        self.skill_points_spent = {}  # Dict[str, int] (tree_name: points_spent)
         self.wins = 0
         self.losses = 0
         self.last_daily = None
@@ -189,8 +191,12 @@ class PlayerData:
         
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate total stats based on base class stats, allocated points and equipped items"""
-        # Get base stats from class
-        base_stats = class_data[self.class_name]["stats"].copy()
+        if not self.class_name or self.class_name not in class_data:
+            # Return default stats if no class chosen or class not found
+            base_stats = {"power": 10, "defense": 10, "speed": 10, "hp": 100}
+        else:
+            # Get base stats from class
+            base_stats = class_data[self.class_name]["stats"].copy()
         
         # Add allocated stat points
         for stat, points in self.allocated_stats.items():
@@ -211,16 +217,27 @@ class PlayerData:
         leveled_up = False
         self.class_exp += exp_amount
         
+        # Max level set to 1000
+        MAX_LEVEL = 1000
+        
+        # If already at max level, just accumulate XP but don't level up
+        if self.class_level >= MAX_LEVEL:
+            return False
+        
         # Calculate XP needed for next level: 100 * (current_level)^1.5
         xp_needed = int(100 * (self.class_level ** 1.5))
         
         # Check for level up
-        while self.class_exp >= xp_needed:
+        while self.class_exp >= xp_needed and self.class_level < MAX_LEVEL:
             self.class_exp -= xp_needed
             self.class_level += 1
             self.skill_points += 3  # Award skill points on level up
             leveled_up = True
             
+            # Stop if reached max level
+            if self.class_level >= MAX_LEVEL:
+                break
+                
             # Recalculate XP needed for next level
             xp_needed = int(100 * (self.class_level ** 1.5))
         
@@ -241,6 +258,8 @@ class PlayerData:
             "achievements": [achievement.to_dict() for achievement in self.achievements],
             "skill_points": self.skill_points,
             "allocated_stats": self.allocated_stats,
+            "skill_tree": self.skill_tree,
+            "skill_points_spent": self.skill_points_spent,
             "wins": self.wins,
             "losses": self.losses,
             "last_daily": self.last_daily.isoformat() if self.last_daily else None,
@@ -261,7 +280,7 @@ class PlayerData:
         # Set simple attributes
         for attr in ["class_name", "class_level", "class_exp", "user_level", "user_exp", 
                      "cursed_energy", "max_cursed_energy", "unlocked_classes", "equipped_items",
-                     "skill_points", "allocated_stats", "wins", "losses", "daily_streak",
+                     "skill_points", "allocated_stats", "skill_tree", "skill_points_spent", "wins", "losses", "daily_streak",
                      "dungeon_clears", "gold", "special_abilities", "active_effects", "training_cooldowns"]:
             if attr in data:
                 setattr(player, attr, data[attr])
