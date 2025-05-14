@@ -401,7 +401,7 @@ async def daily_command(ctx):
     
     await ctx.send(embed=embed)
 
-@bot.command(name="battle")
+@bot.command(name="battle", aliases=["b"])
 async def battle_command(ctx, enemy_name: str = None, enemy_level: int = None):
     """Battle an enemy or another player. Mention a user to start PvP"""
     player = data_manager.get_player(ctx.author.id)
@@ -490,7 +490,7 @@ async def pvp_history_command(ctx):
         
         if elapsed < cooldown_time:
             time_left = cooldown_time - elapsed
-            cooldown_msg = f"⏱️ On cooldown for {format_time_until(time_left)}"
+            cooldown_msg = f"⏱️ On cooldown for {format_time_remaining(time_left)}"
     
     embed.add_field(
         name="⏳ Battle Status",
@@ -555,85 +555,32 @@ def format_time_since(timestamp):
         return f"{delta.seconds // 60}m"
     else:
         return f"{delta.seconds}s"
-    
-    # Add PvP stats
-    embed.add_field(
-        name="Stats",
-        value=f"Wins: {player.wins} 🎖️\n"
-              f"Losses: {player.losses} 📉\n"
-              f"Win Rate: {(player.wins / max(1, player.wins + player.losses) * 100):.1f}% 📊\n"
-              f"Total Battles: {player.wins + player.losses} ⚔️",
-        inline=False
-    )
-    
-    # Current cooldown status
-    current_time = datetime.datetime.now()
-    pvp_cooldown_key = "pvp_cooldown"
-    
-    if pvp_cooldown_key in player.skill_cooldowns:
-        cooldown_time = player.skill_cooldowns[pvp_cooldown_key]
-        if cooldown_time > current_time:
-            time_left = (cooldown_time - current_time).total_seconds()
-            minutes = int(time_left // 60)
-            seconds = int(time_left % 60)
-            cooldown_status = f"On cooldown for {minutes}m {seconds}s ⏱️"
-        else:
-            cooldown_status = "Ready for battle! ✅"
+        
+def format_time_remaining(seconds):
+    """Format remaining seconds in a human-readable way"""
+    if seconds >= 3600:
+        return f"{int(seconds // 3600)}h {int((seconds % 3600) // 60)}m"
+    elif seconds >= 60:
+        return f"{int(seconds // 60)}m {int(seconds % 60)}s"
     else:
-        cooldown_status = "Ready for battle! ✅"
-        
-    embed.add_field(
-        name="Cooldown Status",
-        value=cooldown_status,
-        inline=False
-    )
-    
-    # Recent battles (last 5)
-    if player.pvp_history:
-        recent_battles = sorted(player.pvp_history, key=lambda x: x.get('timestamp', ''), reverse=True)[:5]
-        
-        battles_list = []
-        for i, battle in enumerate(recent_battles):
-            result_emoji = "🎖️" if battle.get('result') == 'win' else "📉"
-            opponent_name = battle.get('opponent_name', 'Unknown')
-            battle_time = datetime.datetime.fromisoformat(battle.get('timestamp', datetime.datetime.now().isoformat()))
-            time_ago = format_time_until(battle_time, current_time)
-            
-            if battle.get('result') == 'win':
-                reward_info = f"+{battle.get('exp_gained', 0)} EXP, +{battle.get('gold_gained', 0)} Gold"
-            else:
-                reward_info = f"-{battle.get('gold_lost', 0)} Gold"
-                
-            battles_list.append(f"{result_emoji} vs {opponent_name} (Lvl {battle.get('opponent_level', '?')}) - {time_ago} ago\n   {reward_info}")
-        
-        embed.add_field(
-            name="Recent Battles",
-            value="\n".join(battles_list) if battles_list else "No battles yet.",
-            inline=False
-        )
-    else:
-        embed.add_field(
-            name="Recent Battles",
-            value="No battles yet. Challenge someone with `!battle @player`!",
-            inline=False
-        )
-        
-    # Add tips
-    embed.set_footer(text=f"Use !battle @player to challenge someone to a PvP battle! | {GAME_NAME}")
-    
-    await ctx.send(embed=embed)
+        return f"{int(seconds)}s"
 
-@bot.command(name="dungeon")
+@bot.command(name="dungeon", aliases=["d"])
 async def dungeon_cmd(ctx):
     """Enter a dungeon"""
     await dungeon_command(ctx, data_manager)
 
-@bot.command(name="equipment")
+@bot.command(name="equipment", aliases=["e"])
 async def equipment_cmd(ctx):
     """View and manage your equipment"""
     await equipment_command(ctx, data_manager)
+    
+@bot.command(name="inventory", aliases=["i", "inv"])
+async def inventory_cmd(ctx):
+    """View your inventory and equipped items"""
+    await equipment_command(ctx, data_manager)
 
-@bot.command(name="shop")
+@bot.command(name="shop", aliases=["s"])
 async def shop_cmd(ctx):
     """Browse the item shop"""
     await shop_command(ctx, data_manager)
@@ -643,17 +590,17 @@ async def buy_cmd(ctx, *, item_name: str = None):
     """Buy an item from the shop"""
     await buy_command(ctx, item_name, data_manager)
 
-@bot.command(name="train")
+@bot.command(name="train", aliases=["t"])
 async def train_cmd(ctx):
     """Train to improve your stats"""
     await train_command(ctx, data_manager)
     
-@bot.command(name="advanced_training")
+@bot.command(name="advanced_training", aliases=["atrain"])
 async def advanced_training_cmd(ctx):
     """Participate in advanced training exercises"""
     await advanced_training_command(ctx, data_manager)
 
-@bot.command(name="skills")
+@bot.command(name="skills", aliases=["sk"])
 async def skills_cmd(ctx):
     """Allocate skill points"""
     await skills_command(ctx, data_manager)
@@ -663,7 +610,7 @@ async def skill_tree_cmd(ctx):
     """View and allocate points in your skill tree"""
     await skill_tree_command(ctx, data_manager)
 
-@bot.command(name="change_class")
+@bot.command(name="change_class", aliases=["cc", "class"])
 async def change_class_cmd(ctx):
     """Change your character's class to another unlocked class"""
     await class_change_command(ctx, data_manager)
@@ -673,7 +620,7 @@ async def special_items_cmd(ctx):
     """View and use your special items and abilities"""
     await special_items_command(ctx, data_manager)
     
-@bot.command(name="trade", aliases=["t"])
+@bot.command(name="trade", aliases=["tr"])
 async def trade_cmd(ctx, target_member: discord.Member):
     """Trade items and gold with another player"""
     await trade_command(ctx, target_member, data_manager)
@@ -787,6 +734,11 @@ async def slash_dungeon(interaction: discord.Interaction):
 
 @bot.tree.command(name="equipment", description="View and manage your equipment")
 async def slash_equipment(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await equipment_command(ctx, data_manager)
+    
+@bot.tree.command(name="inventory", description="View your inventory and equipped items")
+async def slash_inventory(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await equipment_command(ctx, data_manager)
 
@@ -975,7 +927,7 @@ async def _show_help(ctx, category: str = None):
         "Battle": {
             "Battle": {
                 "description": "Battle an enemy or another player",
-                "usage": "!battle [@player] OR !battle [enemy_name] [enemy_level] or /battle",
+                "usage": "!battle [@player] OR !battle [enemy_name] [enemy_level] (alias: !b) or /battle",
                 "notes": "PvE and PvP combat with special abilities and effects"
             },
             "PvP History": {
@@ -995,8 +947,13 @@ async def _show_help(ctx, category: str = None):
             },
             "Skills": {
                 "description": "Allocate skill points",
-                "usage": "!skills or /skills",
+                "usage": "!skills (alias: !sk) or /skills",
                 "notes": "Spend skill points earned from leveling up"
+            },
+            "Skill Tree": {
+                "description": "View and allocate points in your skill tree",
+                "usage": "!skilltree (aliases: !skt, !tree) or /skilltree",
+                "notes": "Advanced skill progression system"
             }
         },
         "Equipment": {
@@ -1004,6 +961,11 @@ async def _show_help(ctx, category: str = None):
                 "description": "View and manage your equipment",
                 "usage": "!equipment (alias: !e) or /equipment",
                 "notes": "Equip, unequip, and sell items in your inventory"
+            },
+            "Inventory": {
+                "description": "View your inventory and equipped items",
+                "usage": "!inventory (aliases: !i, !inv) or /inventory",
+                "notes": "Alternate way to access equipment management"
             },
             "Shop": {
                 "description": "Browse the item shop",
