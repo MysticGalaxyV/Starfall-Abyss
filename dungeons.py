@@ -1,0 +1,748 @@
+import discord
+from discord.ui import Button, View, Select
+import random
+import asyncio
+import datetime
+from typing import Dict, List, Optional, Tuple, Any
+
+from data_models import PlayerData, DataManager, Item
+from battle_system import BattleEntity, BattleMove, BattleView, generate_enemy_stats, generate_enemy_moves
+
+# Dungeon definitions
+DUNGEONS = {
+    "Ancient Forest": {
+        "description": "A mysterious forest home to cursed beasts and hidden treasures.",
+        "level_req": 1,
+        "floors": 3,
+        "enemies": ["Cursed Wolf", "Forest Specter", "Ancient Treefolk"],
+        "boss": "Elder Treant",
+        "max_rewards": 100,
+        "exp": 50,
+        "rare_drop": 10,  # % chance
+        "style": discord.ButtonStyle.green,
+        "item_level": 1
+    },
+    "Forgotten Cave": {
+        "description": "Dark caverns filled with dangerous creatures and lost relics.",
+        "level_req": 3,
+        "floors": 4,
+        "enemies": ["Cave Crawler", "Armored Golem", "Crystal Spider"],
+        "boss": "Cave Warden",
+        "max_rewards": 200,
+        "exp": 120,
+        "rare_drop": 15,
+        "style": discord.ButtonStyle.gray,
+        "item_level": 3
+    },
+    "Cursed Shrine": {
+        "description": "An abandoned shrine corrupted by dark energies and vengeful spirits.",
+        "level_req": 5,
+        "floors": 5,
+        "enemies": ["Shrine Guardian", "Cursed Monk", "Vengeful Spirit"],
+        "boss": "Shrine Deity",
+        "max_rewards": 350,
+        "exp": 200,
+        "rare_drop": 20,
+        "style": discord.ButtonStyle.red,
+        "item_level": 5
+    },
+    "Abyssal Depths": {
+        "description": "The deepest part of the ocean, home to nightmarish creatures.",
+        "level_req": 8,
+        "floors": 6,
+        "enemies": ["Deep One", "Abyssal Hunter", "Giant Squid"],
+        "boss": "Kraken Lord",
+        "max_rewards": 500,
+        "exp": 350,
+        "rare_drop": 25,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 8
+    },
+    "Infernal Citadel": {
+        "description": "A fortress forged in hellfire where only the strongest survive.",
+        "level_req": 12,
+        "floors": 7,
+        "enemies": ["Flame Knight", "Lava Golem", "Fire Drake"],
+        "boss": "Infernal Overlord",
+        "max_rewards": 750,
+        "exp": 500,
+        "rare_drop": 30,
+        "style": discord.ButtonStyle.red,
+        "item_level": 12
+    }
+}
+
+class DungeonProgressView(View):
+    def __init__(self, player_data: PlayerData, dungeon_data: Dict[str, Any], data_manager: DataManager):
+        super().__init__(timeout=180)
+        self.player_data = player_data
+        self.dungeon_data = dungeon_data
+        self.data_manager = data_manager
+        self.current_floor = 0
+        self.max_floors = dungeon_data["floors"]
+        self.dungeon_name = dungeon_data["name"]
+        self.enemies_defeated = 0
+        self.battles_won = True  # Track if player has won all battles
+        self.messages = []  # Store message references for cleanup
+        
+        # Add continue button
+        self.continue_btn = Button(
+            label="Proceed to Next Floor", 
+            style=discord.ButtonStyle.green,
+            emoji="➡️"
+        )
+        self.continue_btn.callback = self.next_floor_callback
+        self.add_item(self.continue_btn)
+        
+        # Add retreat button
+        self.retreat_btn = Button(
+            label="Retreat",
+            style=discord.ButtonStyle.red,
+            emoji="🏃"
+        )
+        self.retreat_btn.callback = self.retreat_callback
+        self.add_item(self.retreat_btn)
+    
+    async def next_floor_callback(self, interaction: discord.Interaction):
+        """Handle moving to the next floor"""
+        # Increment floor
+        self.current_floor += 1
+        
+        await interaction.response.defer()
+        
+        # Clear previous message content
+        if hasattr(interaction, 'message'):
+            try:
+                await interaction.message.edit(content=f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...", view=None)
+            except:
+                pass
+        
+        # Check if we've reached the boss floor
+        if self.current_floor == self.max_floors:
+            # Boss encounter
+            await self.boss_encounter(interaction)
+        else:
+            # Regular floor encounter
+            await self.floor_encounter(interaction)
+    
+    async def retreat_callback(self, interaction: discord.Interaction):
+        """Handle player retreat from dungeon"""
+        self.battles_won = False
+        
+        # Calculate partial rewards
+        progress_percent = (self.current_floor / self.max_floors) * 0.5  # Max 50% of rewards for retreat
+        gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+        exp_reward = int(self.dungeon_data["exp"] * progress_percent)
+        
+        await interaction.response.send_message(
+            f"🏃 You retreat from the {self.dungeon_name} dungeon!\n"
+            f"Made it to floor {self.current_floor}/{self.max_floors}\n"
+            f"Partial rewards: {gold_reward} 🌀 and {exp_reward} EXP",
+            ephemeral=True
+        )
+        
+        # Award partial rewards
+        self.player_data.gold += gold_reward
+        self.player_data.add_exp(exp_reward)
+        
+        # Save player data
+        self.data_manager.save_data()
+        
+        # Close this view
+        self.stop()
+    
+    async def floor_encounter(self, interaction: discord.Interaction):
+        """Handle a regular floor encounter"""
+        channel = interaction.channel
+        
+        # Determine if floor has combat, trap, or treasure
+        encounter_type = random.choices(
+            ["combat", "trap", "treasure"],
+            weights=[0.7, 0.15, 0.15],
+            k=1
+        )[0]
+        
+        if encounter_type == "combat":
+            # Combat encounter
+            enemy_pool = self.dungeon_data["enemies"]
+            enemy_name = random.choice(enemy_pool)
+            enemy_level = self.dungeon_data["level_req"] + random.randint(0, 2)
+            
+            # Create enemy
+            enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
+            enemy_moves = generate_enemy_moves(enemy_name)
+            
+            enemy_entity = BattleEntity(
+                enemy_name,
+                enemy_stats,
+                enemy_moves
+            )
+            
+            # Create embed for encounter
+            embed = discord.Embed(
+                title=f"⚔️ Combat Encounter - Floor {self.current_floor}",
+                description=f"A {enemy_name} (Level {enemy_level}) blocks your path!",
+                color=discord.Color.red()
+            )
+            
+            # Start battle
+            from battle_system import start_battle
+            battle_result = await self.battle_encounter(interaction, enemy_name, enemy_level)
+            
+            if not battle_result:
+                # Player lost the battle
+                self.battles_won = False
+                
+                # Calculate partial rewards
+                progress_percent = ((self.current_floor - 1) / self.max_floors) * 0.4  # Max 40% of rewards for defeat
+                gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+                exp_reward = int(self.dungeon_data["exp"] * progress_percent)
+                
+                # Award partial rewards
+                self.player_data.gold += gold_reward
+                self.player_data.add_exp(exp_reward)
+                
+                # Send defeat message
+                defeat_embed = discord.Embed(
+                    title="💀 Dungeon Defeat",
+                    description=f"You were defeated by {enemy_name} on floor {self.current_floor}!",
+                    color=discord.Color.red()
+                )
+                
+                defeat_embed.add_field(
+                    name="Partial Rewards",
+                    value=f"EXP: +{exp_reward} 📊\n"
+                          f"Gold: +{gold_reward} 🌀",
+                    inline=False
+                )
+                
+                await channel.send(embed=defeat_embed)
+                
+                # Save player data
+                self.data_manager.save_data()
+                
+                # Close this view
+                self.stop()
+                return
+            
+            # Increment enemies defeated counter
+            self.enemies_defeated += 1
+            
+        elif encounter_type == "trap":
+            # Trap encounter
+            trap_types = [
+                {"name": "Poison Darts", "damage": 0.15, "color": discord.Color.purple()},
+                {"name": "Floor Spikes", "damage": 0.2, "color": discord.Color.red()},
+                {"name": "Cave-in", "damage": 0.25, "color": discord.Color.dark_grey()},
+                {"name": "Flame Jets", "damage": 0.18, "color": discord.Color.orange()}
+            ]
+            
+            trap = random.choice(trap_types)
+            
+            # Calculate damage based on player's max HP
+            from utils import GAME_CLASSES
+            player_stats = self.player_data.get_stats(GAME_CLASSES)
+            max_hp = player_stats["hp"]
+            damage = int(max_hp * trap["damage"])
+            
+            # Create embed for trap
+            embed = discord.Embed(
+                title=f"⚠️ Trap Encountered - Floor {self.current_floor}",
+                description=f"You triggered a {trap['name']} trap!",
+                color=trap["color"]
+            )
+            
+            embed.add_field(
+                name="Damage",
+                value=f"You took {damage} damage! 💥",
+                inline=False
+            )
+            
+            # Update player HP (will be restored after dungeon)
+            # This is just for narrative purposes
+            
+            await channel.send(embed=embed)
+            await asyncio.sleep(2)
+            
+        else:  # treasure
+            # Treasure encounter
+            treasure_types = [
+                {"name": "Gold Chest", "gold": 0.3, "exp": 0.1, "color": discord.Color.gold()},
+                {"name": "Experience Shrine", "gold": 0.1, "exp": 0.3, "color": discord.Color.blue()},
+                {"name": "Ancient Relic", "gold": 0.2, "exp": 0.2, "color": discord.Color.teal()}
+            ]
+            
+            treasure = random.choice(treasure_types)
+            
+            # Calculate rewards
+            bonus_gold = int(self.dungeon_data["max_rewards"] * treasure["gold"])
+            bonus_exp = int(self.dungeon_data["exp"] * treasure["exp"])
+            
+            # Award bonuses
+            self.player_data.gold += bonus_gold
+            self.player_data.add_exp(bonus_exp)
+            
+            # Create embed for treasure
+            embed = discord.Embed(
+                title=f"💎 Treasure Found - Floor {self.current_floor}",
+                description=f"You discovered a {treasure['name']}!",
+                color=treasure["color"]
+            )
+            
+            embed.add_field(
+                name="Rewards",
+                value=f"Gold: +{bonus_gold} 🌀\n"
+                      f"EXP: +{bonus_exp} 📊",
+                inline=False
+            )
+            
+            # Check for item find
+            if random.random() < 0.3:  # 30% chance
+                from equipment import generate_random_item
+                
+                # Generate item with level appropriate to dungeon
+                item_level = min(self.player_data.class_level, self.dungeon_data["item_level"])
+                new_item = generate_random_item(item_level)
+                
+                # Add to inventory
+                from equipment import add_item_to_inventory
+                add_item_to_inventory(self.player_data, new_item)
+                
+                embed.add_field(
+                    name="Item Found!",
+                    value=f"You found: **{new_item.name}**\n"
+                          f"{new_item.description}",
+                    inline=False
+                )
+            
+            await channel.send(embed=embed)
+            await asyncio.sleep(2)
+        
+        # Show the continue/retreat buttons
+        continue_view = View()
+        continue_view.add_item(self.continue_btn)
+        continue_view.add_item(self.retreat_btn)
+        
+        status_msg = await channel.send(
+            f"🗺️ You are on floor {self.current_floor}/{self.max_floors} of {self.dungeon_name}.\n"
+            f"What would you like to do?",
+            view=continue_view
+        )
+        
+        self.messages.append(status_msg)
+    
+    async def battle_encounter(self, interaction: discord.Interaction, enemy_name: str, enemy_level: int) -> bool:
+        """Handle a battle encounter, returns True if player won, False if lost"""
+        from utils import GAME_CLASSES
+        ctx = await interaction.client.get_context(interaction.message)
+        
+        # Get player class data
+        if self.player_data.class_name not in GAME_CLASSES:
+            await ctx.send("❌ Invalid player class. Please use !start to choose a class.")
+            return False
+            
+        class_data = GAME_CLASSES[self.player_data.class_name]
+        
+        # Calculate player stats including equipment and level
+        player_stats = self.player_data.get_stats(GAME_CLASSES)
+        
+        # Get player moves based on class
+        player_moves = []
+        
+        # Basic moves for everyone
+        player_moves.append(BattleMove("Basic Attack", 1.0, 10))
+        player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
+        
+        # Class-specific special moves
+        if self.player_data.class_name == "Spirit Striker":
+            player_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
+            player_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
+        elif self.player_data.class_name == "Domain Tactician":
+            player_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
+            player_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
+        elif self.player_data.class_name == "Flash Rogue":
+            player_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
+            player_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
+        
+        # Create player entity
+        player_entity = BattleEntity(
+            interaction.user.display_name,
+            player_stats,
+            player_moves,
+            is_player=True,
+            player_data=self.player_data
+        )
+        
+        # Create enemy entity
+        enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
+        enemy_moves = generate_enemy_moves(enemy_name)
+        
+        enemy_entity = BattleEntity(
+            enemy_name,
+            enemy_stats,
+            enemy_moves
+        )
+        
+        # Create battle embed
+        embed = discord.Embed(
+            title=f"⚔️ Dungeon Battle: {interaction.user.display_name} vs {enemy_name}",
+            description=f"A {enemy_name} (Level {enemy_level}) appears!",
+            color=discord.Color.red()
+        )
+        
+        # Add player stats
+        embed.add_field(
+            name=f"{interaction.user.display_name} (Level {self.player_data.class_level})",
+            value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
+                  f"Energy: {player_entity.current_energy}/{self.player_data.max_cursed_energy} ✨\n"
+                  f"Power: {player_entity.stats['power']} ⚔️\n"
+                  f"Defense: {player_entity.stats['defense']} 🛡️",
+            inline=True
+        )
+        
+        # Add enemy stats
+        embed.add_field(
+            name=f"{enemy_name} (Level {enemy_level})",
+            value=f"HP: {enemy_entity.current_hp}/{enemy_entity.stats['hp']} ❤️\n"
+                  f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ✨\n"
+                  f"Power: {enemy_entity.stats['power']} ⚔️\n"
+                  f"Defense: {enemy_entity.stats['defense']} 🛡️",
+            inline=True
+        )
+        
+        # Create battle view
+        battle_view = BattleView(player_entity, enemy_entity, timeout=180)
+        battle_view.data_manager = self.data_manager
+        
+        battle_msg = await interaction.channel.send(embed=embed, view=battle_view)
+        self.messages.append(battle_msg)
+        
+        # Wait for battle to end
+        await battle_view.wait()
+        
+        # Process battle results
+        if not enemy_entity.is_alive():
+            # Player won
+            # Small reward for each enemy defeated
+            minor_gold = int(self.dungeon_data["max_rewards"] * 0.1)
+            minor_exp = int(self.dungeon_data["exp"] * 0.1)
+            
+            self.player_data.gold += minor_gold
+            self.player_data.add_exp(minor_exp)
+            
+            win_embed = discord.Embed(
+                title="✅ Enemy Defeated",
+                description=f"You defeated the {enemy_name}!",
+                color=discord.Color.green()
+            )
+            
+            win_embed.add_field(
+                name="Minor Rewards",
+                value=f"Gold: +{minor_gold} 🌀\n"
+                      f"EXP: +{minor_exp} 📊",
+                inline=False
+            )
+            
+            await interaction.channel.send(embed=win_embed)
+            return True
+        else:
+            # Player lost
+            return False
+    
+    async def boss_encounter(self, interaction: discord.Interaction):
+        """Handle the boss encounter"""
+        channel = interaction.channel
+        
+        boss_name = self.dungeon_data["boss"]
+        boss_level = self.dungeon_data["level_req"] + 3  # Boss is harder
+        
+        # Show boss intro
+        boss_intro = discord.Embed(
+            title=f"🔥 BOSS FLOOR - {boss_name}",
+            description=f"You've reached the final floor of {self.dungeon_name}!\n"
+                       f"The dungeon boss, {boss_name} (Level {boss_level}), awaits you!",
+            color=discord.Color.dark_red()
+        )
+        
+        intro_msg = await channel.send(embed=boss_intro)
+        self.messages.append(intro_msg)
+        
+        await asyncio.sleep(2)
+        
+        # Start boss battle
+        boss_result = await self.battle_encounter(interaction, boss_name, boss_level)
+        
+        if not boss_result:
+            # Player lost to boss
+            self.battles_won = False
+            
+            # Calculate partial rewards (higher for making it to boss)
+            progress_percent = 0.6  # 60% of rewards for reaching but losing to boss
+            gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+            exp_reward = int(self.dungeon_data["exp"] * progress_percent)
+            
+            # Award partial rewards
+            self.player_data.gold += gold_reward
+            self.player_data.add_exp(exp_reward)
+            
+            # Send defeat message
+            defeat_embed = discord.Embed(
+                title="💀 Dungeon Defeat",
+                description=f"You were defeated by {boss_name}, the dungeon boss!",
+                color=discord.Color.red()
+            )
+            
+            defeat_embed.add_field(
+                name="Partial Rewards",
+                value=f"EXP: +{exp_reward} 📊\n"
+                      f"Gold: +{gold_reward} 🌀",
+                inline=False
+            )
+            
+            await channel.send(embed=defeat_embed)
+            
+            # Save player data
+            self.data_manager.save_data()
+        else:
+            # Player defeated boss - complete the dungeon!
+            
+            # Calculate full rewards
+            gold_reward = self.dungeon_data["max_rewards"]
+            exp_reward = self.dungeon_data["exp"]
+            
+            # Add bonus based on enemies defeated
+            bonus_percent = min(0.3, self.enemies_defeated * 0.05)  # Max 30% bonus
+            bonus_gold = int(gold_reward * bonus_percent)
+            bonus_exp = int(exp_reward * bonus_percent)
+            
+            total_gold = gold_reward + bonus_gold
+            total_exp = exp_reward + bonus_exp
+            
+            # Award rewards
+            self.player_data.gold += total_gold
+            leveled_up = self.player_data.add_exp(total_exp)
+            
+            # Update dungeon clear count
+            if self.dungeon_name not in self.player_data.dungeon_clears:
+                self.player_data.dungeon_clears[self.dungeon_name] = 1
+            else:
+                self.player_data.dungeon_clears[self.dungeon_name] += 1
+            
+            # Send victory message
+            victory_embed = discord.Embed(
+                title="🎉 Dungeon Completed!",
+                description=f"You defeated {boss_name} and completed the {self.dungeon_name} dungeon!",
+                color=discord.Color.gold()
+            )
+            
+            victory_embed.add_field(
+                name="Rewards",
+                value=f"Base Gold: {gold_reward} 🌀\n"
+                      f"Bonus Gold: +{bonus_gold} 🌀\n"
+                      f"Base EXP: {exp_reward} 📊\n"
+                      f"Bonus EXP: +{bonus_exp} 📊\n"
+                      f"Total: {total_gold} 🌀 and {total_exp} EXP",
+                inline=False
+            )
+            
+            # Check for level up
+            if leveled_up:
+                victory_embed.add_field(
+                    name="Level Up!",
+                    value=f"🆙 You reached Level {self.player_data.class_level}!\n"
+                          f"You gained 3 skill points! Use !skills to allocate them.",
+                    inline=False
+                )
+            
+            # Check for special item drop (rare equipment, transformation items, etc.)
+            special_drop = False
+            special_drop_msg = ""
+            
+            # First check for rare equipment drop
+            if random.random() < (self.dungeon_data["rare_drop"] / 100):
+                from equipment import generate_rare_item
+                
+                # Generate rare item appropriate to dungeon
+                rare_item = generate_rare_item(self.dungeon_data["item_level"])
+                
+                # Add to inventory
+                from equipment import add_item_to_inventory
+                add_item_to_inventory(self.player_data, rare_item)
+                
+                special_drop = True
+                special_drop_msg = f"The boss dropped: **{rare_item.name}**\n{rare_item.description}"
+                
+                victory_embed.add_field(
+                    name="✨ Rare Item Found! ✨",
+                    value=special_drop_msg,
+                    inline=False
+                )
+            
+            # Check for special transformation item (lower chance, but increases with dungeon level)
+            special_item_chance = (self.dungeon_data["item_level"] * 0.5) / 100  # 0.5% per dungeon level
+            if random.random() < special_item_chance:
+                from special_items import create_transformation_item, get_random_special_drop
+                
+                # Get special item based on player level
+                special_item = await get_random_special_drop(self.player_data.class_level)
+                
+                if special_item:
+                    # Add to inventory
+                    from equipment import add_item_to_inventory
+                    add_item_to_inventory(self.player_data, special_item)
+                    
+                    special_drop = True
+                    spec_msg = f"You found a mythical item: **{special_item.name}**\n{special_item.description}"
+                    
+                    # If we already have a special drop, add this as a separate field
+                    if special_drop_msg:
+                        victory_embed.add_field(
+                            name="🌟 Mythical Item Found! 🌟",
+                            value=spec_msg,
+                            inline=False
+                        )
+                    else:
+                        special_drop_msg = spec_msg
+                        victory_embed.add_field(
+                            name="🌟 Mythical Item Found! 🌟",
+                            value=special_drop_msg,
+                            inline=False
+                        )
+            
+            # If no special drops, give regular item
+            if not special_drop:
+                # Regular item drop
+                from equipment import generate_random_item
+                
+                item_level = self.dungeon_data["item_level"]
+                new_item = generate_random_item(item_level)
+                
+                # Add to inventory
+                from equipment import add_item_to_inventory
+                add_item_to_inventory(self.player_data, new_item)
+                
+                victory_embed.add_field(
+                    name="Item Found!",
+                    value=f"The boss dropped: **{new_item.name}**\n"
+                          f"{new_item.description}",
+                    inline=False
+                )
+            
+            await channel.send(embed=victory_embed)
+            
+            # Save player data
+            self.data_manager.save_data()
+        
+        # Close this view
+        self.stop()
+
+class DungeonSelectView(View):
+    def __init__(self, player_data: PlayerData, data_manager: DataManager):
+        super().__init__(timeout=60)
+        self.player_data = player_data
+        self.data_manager = data_manager
+        self.selected_dungeon = None
+        
+        # Add dungeon buttons
+        for name, data in DUNGEONS.items():
+            dungeon_data = data.copy()
+            dungeon_data["name"] = name
+            
+            # Check if player meets level requirement
+            meets_req = player_data.class_level >= data["level_req"]
+            
+            btn = Button(
+                label=f"{name} (Lvl {data['level_req']})",
+                style=data["style"] if meets_req else discord.ButtonStyle.gray,
+                emoji="⚔️" if meets_req else "🔒",
+                disabled=not meets_req,
+                row=0 if meets_req else 1
+            )
+            
+            # Store the dungeon data in the button for access in callback
+            btn.dungeon_data = dungeon_data
+            
+            # Set the callback
+            btn.callback = self.dungeon_callback
+            
+            self.add_item(btn)
+    
+    async def dungeon_callback(self, interaction: discord.Interaction):
+        # Get the dungeon data from the clicked button
+        for item in self.children:
+            if isinstance(item, Button) and item.custom_id == interaction.data["custom_id"]:
+                dungeon_data = item.dungeon_data
+                break
+        else:
+            await interaction.response.send_message("❌ Error: Dungeon not found!", ephemeral=True)
+            return
+        
+        # Check level requirement again (redundant but safe)
+        if self.player_data.class_level < dungeon_data["level_req"]:
+            await interaction.response.send_message(
+                f"❌ You need to be level {dungeon_data['level_req']} to enter this dungeon!", 
+                ephemeral=True
+            )
+            return
+        
+        # Start the dungeon
+        await interaction.response.send_message(
+            f"⚔️ Entering {dungeon_data['name']}...\n"
+            f"This dungeon has {dungeon_data['floors']} floors with increasingly difficult challenges.\n"
+            f"Prepare yourself!"
+        )
+        
+        # Create progress view for the dungeon
+        progress_view = DungeonProgressView(self.player_data, dungeon_data, self.data_manager)
+        
+        # Start at floor 0 (entrance)
+        await interaction.followup.send(
+            f"🗺️ You are at the entrance of {dungeon_data['name']}.\n"
+            f"{dungeon_data['description']}\n"
+            f"Are you ready to proceed?",
+            view=progress_view
+        )
+        
+        # Stop this view since we're starting the dungeon
+        self.stop()
+
+async def dungeon_command(ctx, data_manager: DataManager):
+    """Handle the dungeon command - shows available dungeons and lets player select one"""
+    player_data = data_manager.get_player(ctx.author.id)
+    
+    # Check if player has a class
+    if not player_data.class_name:
+        await ctx.send("❌ You need to choose a class first! Use `!start` to begin your journey.")
+        return
+    
+    # Create dungeon select embed
+    embed = discord.Embed(
+        title="🗺️ Available Dungeons",
+        description="Choose a dungeon to explore. Higher level dungeons offer better rewards but are more challenging.",
+        color=discord.Color.dark_purple()
+    )
+    
+    # Add dungeon info
+    for name, data in DUNGEONS.items():
+        # Check if player meets level requirement
+        meets_req = player_data.class_level >= data["level_req"]
+        status = "✅ Available" if meets_req else f"🔒 Locked (Requires Level {data['level_req']})"
+        
+        # Add clear count if player has cleared this dungeon
+        clears = player_data.dungeon_clears.get(name, 0)
+        clear_text = f"\nTimes cleared: {clears}" if clears > 0 else ""
+        
+        embed.add_field(
+            name=f"{name} {status}",
+            value=f"{data['description']}\n"
+                  f"Floors: {data['floors']}\n"
+                  f"Rewards: Up to {data['max_rewards']} Gold and {data['exp']} EXP{clear_text}",
+            inline=False
+        )
+    
+    # Create and send the view
+    dungeon_view = DungeonSelectView(player_data, data_manager)
+    await ctx.send(embed=embed, view=dungeon_view)
+    
+    # Wait for selection
+    await dungeon_view.wait()
