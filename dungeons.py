@@ -322,11 +322,11 @@ class DungeonProgressView(View):
                 
                 # Calculate partial rewards
                 progress_percent = ((self.current_floor - 1) / self.max_floors) * 0.4  # Max 40% of rewards for defeat
-                gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+                cursed_energy_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
                 exp_reward = int(self.dungeon_data["exp"] * progress_percent)
                 
                 # Award partial rewards
-                self.player_data.gold += gold_reward
+                self.player_data.add_cursed_energy(cursed_energy_reward)
                 self.player_data.add_exp(exp_reward)
                 
                 # Send defeat message
@@ -339,7 +339,7 @@ class DungeonProgressView(View):
                 defeat_embed.add_field(
                     name="Partial Rewards",
                     value=f"EXP: +{exp_reward} 📊\n"
-                          f"Gold: +{gold_reward} 🌀",
+                          f"Cursed Energy: +{cursed_energy_reward} 🔮",
                     inline=False
                 )
                 
@@ -394,19 +394,19 @@ class DungeonProgressView(View):
         else:  # treasure
             # Treasure encounter
             treasure_types = [
-                {"name": "Gold Chest", "gold": 0.3, "exp": 0.1, "color": discord.Color.gold()},
-                {"name": "Experience Shrine", "gold": 0.1, "exp": 0.3, "color": discord.Color.blue()},
-                {"name": "Ancient Relic", "gold": 0.2, "exp": 0.2, "color": discord.Color.teal()}
+                {"name": "Cursed Energy Vessel", "cursed_energy": 0.3, "exp": 0.1, "color": discord.Color.dark_purple()},
+                {"name": "Experience Shrine", "cursed_energy": 0.1, "exp": 0.3, "color": discord.Color.blue()},
+                {"name": "Ancient Relic", "cursed_energy": 0.2, "exp": 0.2, "color": discord.Color.teal()}
             ]
             
             treasure = random.choice(treasure_types)
             
             # Calculate rewards
-            bonus_gold = int(self.dungeon_data["max_rewards"] * treasure["gold"])
+            bonus_cursed_energy = int(self.dungeon_data["max_rewards"] * treasure["cursed_energy"])
             bonus_exp = int(self.dungeon_data["exp"] * treasure["exp"])
             
             # Award bonuses
-            self.player_data.gold += bonus_gold
+            self.player_data.cursed_energy += bonus_cursed_energy
             self.player_data.add_exp(bonus_exp)
             
             # Create embed for treasure
@@ -418,7 +418,7 @@ class DungeonProgressView(View):
             
             embed.add_field(
                 name="Rewards",
-                value=f"Gold: +{bonus_gold} 🌀\n"
+                value=f"Cursed Energy: +{bonus_cursed_energy} 🔮\n"
                       f"EXP: +{bonus_exp} 📊",
                 inline=False
             )
@@ -605,11 +605,11 @@ class DungeonProgressView(View):
             
             # Calculate partial rewards (higher for making it to boss)
             progress_percent = 0.6  # 60% of rewards for reaching but losing to boss
-            gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+            cursed_energy_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
             exp_reward = int(self.dungeon_data["exp"] * progress_percent)
             
             # Award partial rewards
-            self.player_data.gold += gold_reward
+            self.player_data.add_cursed_energy(cursed_energy_reward)
             self.player_data.add_exp(exp_reward)
             
             # Send defeat message
@@ -622,7 +622,7 @@ class DungeonProgressView(View):
             defeat_embed.add_field(
                 name="Partial Rewards",
                 value=f"EXP: +{exp_reward} 📊\n"
-                      f"Gold: +{gold_reward} 🌀",
+                      f"Cursed Energy: +{cursed_energy_reward} 🔮",
                 inline=False
             )
             
@@ -634,19 +634,19 @@ class DungeonProgressView(View):
             # Player defeated boss - complete the dungeon!
             
             # Calculate full rewards
-            gold_reward = self.dungeon_data["max_rewards"]
+            cursed_energy_reward = self.dungeon_data["max_rewards"]
             exp_reward = self.dungeon_data["exp"]
             
             # Add bonus based on enemies defeated
             bonus_percent = min(0.3, self.enemies_defeated * 0.05)  # Max 30% bonus
-            bonus_gold = int(gold_reward * bonus_percent)
+            bonus_cursed_energy = int(cursed_energy_reward * bonus_percent)
             bonus_exp = int(exp_reward * bonus_percent)
             
-            total_gold = gold_reward + bonus_gold
+            total_cursed_energy = cursed_energy_reward + bonus_cursed_energy
             total_exp = exp_reward + bonus_exp
             
             # Award rewards
-            self.player_data.gold += total_gold
+            self.player_data.add_cursed_energy(total_cursed_energy)
             leveled_up = self.player_data.add_exp(total_exp)
             
             # Update dungeon clear count
@@ -664,11 +664,11 @@ class DungeonProgressView(View):
             
             victory_embed.add_field(
                 name="Rewards",
-                value=f"Base Gold: {gold_reward} 🌀\n"
-                      f"Bonus Gold: +{bonus_gold} 🌀\n"
+                value=f"Base Cursed Energy: {cursed_energy_reward} 🔮\n"
+                      f"Bonus Cursed Energy: +{bonus_cursed_energy} 🔮\n"
                       f"Base EXP: {exp_reward} 📊\n"
                       f"Bonus EXP: +{bonus_exp} 📊\n"
-                      f"Total: {total_gold} 🌀 and {total_exp} EXP",
+                      f"Total: {total_cursed_energy} 🔮 and {total_exp} EXP",
                 inline=False
             )
             
@@ -677,7 +677,7 @@ class DungeonProgressView(View):
                 victory_embed.add_field(
                     name="Level Up!",
                     value=f"🆙 You reached Level {self.player_data.class_level}!\n"
-                          f"You gained 3 skill points! Use !skills to allocate them.",
+                          f"You gained 2 skill points! Use !skills to allocate them.",
                     inline=False
                 )
             
@@ -770,26 +770,67 @@ class DungeonSelectView(View):
         self.data_manager = data_manager
         self.selected_dungeon = None
         
-        # Add dungeon buttons
-        for name, data in DUNGEONS.items():
+        # Collect dungeons and sort by requirements
+        available_dungeons = []
+        locked_dungeons = []
+        
+        for name, data in data_manager.dungeons.items():
             dungeon_data = data.copy()
             dungeon_data["name"] = name
             
             # Check if player meets level requirement
             meets_req = player_data.class_level >= data["level_req"]
             
+            if meets_req:
+                available_dungeons.append((name, dungeon_data))
+            else:
+                locked_dungeons.append((name, dungeon_data))
+        
+        # Sort by level requirement
+        available_dungeons.sort(key=lambda x: x[1]["level_req"])
+        locked_dungeons.sort(key=lambda x: x[1]["level_req"])
+        
+        # Limit to maximum number of buttons that can fit (5 buttons per row, 5 rows max = 25 buttons)
+        # We'll use 3 rows for available and 2 rows for locked
+        available_limit = min(len(available_dungeons), 15)  # 3 rows x 5 buttons
+        locked_limit = min(len(locked_dungeons), 10)        # 2 rows x 5 buttons
+        
+        # Add available dungeon buttons (first 3 rows)
+        for i, (name, data) in enumerate(available_dungeons[:available_limit]):
+            row = i // 5  # Calculate row (0-2)
+            
             btn = Button(
                 label=f"{name} (Lvl {data['level_req']})",
-                style=data["style"] if meets_req else discord.ButtonStyle.gray,
-                emoji="⚔️" if meets_req else "🔒",
-                disabled=not meets_req,
-                row=0 if meets_req else 1
+                style=data["style"],
+                emoji="⚔️",
+                disabled=False,
+                row=row
             )
             
             # Store the dungeon data in the button for access in callback
-            btn.dungeon_data = dungeon_data
+            btn.dungeon_data = data
             
             # Set the callback
+            btn.callback = self.dungeon_callback
+            
+            self.add_item(btn)
+        
+        # Add locked dungeon buttons (rows 3-4)
+        for i, (name, data) in enumerate(locked_dungeons[:locked_limit]):
+            row = 3 + (i // 5)  # Start from row 3
+            
+            btn = Button(
+                label=f"{name} (Lvl {data['level_req']})",
+                style=discord.ButtonStyle.gray,
+                emoji="🔒",
+                disabled=True,
+                row=row
+            )
+            
+            # Store the dungeon data in the button
+            btn.dungeon_data = data
+            
+            # Set the callback (won't be triggered due to disabled=True)
             btn.callback = self.dungeon_callback
             
             self.add_item(btn)
@@ -905,7 +946,7 @@ async def dungeon_command(ctx, data_manager: DataManager):
             name=f"{name} {status}",
             value=f"{data['description']}\n"
                   f"Floors: {data['floors']}\n"
-                  f"Rewards: Up to {data['max_rewards']} Gold and {data['exp']} EXP{clear_text}",
+                  f"Rewards: Up to {data['max_rewards']} Cursed Energy and {data['exp']} EXP{clear_text}",
             inline=False
         )
     

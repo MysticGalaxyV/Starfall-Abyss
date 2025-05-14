@@ -18,17 +18,17 @@ class Guild:
         self.max_members = 20  # Base max members
         self.members = [leader_id]  # Start with leader
         self.officers = []  # Officer IDs (can invite, kick, etc.)
-        self.bank = 0  # Guild bank gold
+        self.bank = 0  # Guild bank cursed energy
         self.motd = "Welcome to the guild!"  # Message of the day
         self.emblem = "⚔️"  # Default emblem
-        self.color = discord.Color.blue().value  # Guild color (stored as int)
+        self.color = discord.Color.dark_purple().value  # Guild color (stored as int)
         self.achievements = []  # Guild achievements
         self.achievements_progress = {}  # Progress tracking for achievements
         self.upgrades = {
             "bank_level": 1,
             "member_capacity": 1,
             "exp_boost": 1,
-            "gold_boost": 1
+            "cursed_energy_boost": 1  # Renamed from gold_boost
         }
         
         # Perks based on guild level
@@ -40,7 +40,7 @@ class Guild:
             # Level 3
             3: {"name": "Guild Tactics", "description": "Guild members deal +2% damage in dungeons"},
             # Level 5
-            5: {"name": "Brotherhood", "description": "Guild members gain +5% gold when adventuring together"},
+            5: {"name": "Brotherhood", "description": "Guild members gain +5% cursed energy when adventuring together"},
             # Level 10
             10: {"name": "Elite Force", "description": "Guild members gain +5% to all stats in guild raids"}
         }
@@ -277,18 +277,18 @@ GUILD_WEEKLY_CHALLENGES = [
     },
     {
         "id": "gold_collectors",
-        "name": "Gold Collectors",
-        "description": "Collect 10,000 gold as a guild",
+        "name": "Cursed Energy Collectors",
+        "description": "Collect 10,000 cursed energy as a guild",
         "target": 10000,
-        "reward": {"exp": 2000, "gold": 5000},
-        "type": "gold_collected"
+        "reward": {"exp": 2000, "cursed_energy": 5000},
+        "type": "cursed_energy_collected"
     },
     {
         "id": "item_finders",
         "name": "Item Finders",
         "description": "Find 50 items of uncommon or higher rarity",
         "target": 50,
-        "reward": {"exp": 1800, "gold": 4000},
+        "reward": {"exp": 1800, "cursed_energy": 4000},
         "type": "items_found"
     }
 ]
@@ -301,7 +301,7 @@ GUILD_RAIDS = {
         "level_req": 5,
         "members_req": 5,
         "stages": 3,
-        "reward": {"exp": 5000, "gold": 10000, "special_item": "Dragon Scale Armor"},
+        "reward": {"exp": 5000, "cursed_energy": 10000, "special_item": "Dragon Scale Armor"},
         "enemy_types": ["dragon"],
         "duration": 3  # days to complete
     },
@@ -311,7 +311,7 @@ GUILD_RAIDS = {
         "level_req": 10,
         "members_req": 8,
         "stages": 5,
-        "reward": {"exp": 10000, "gold": 20000, "special_item": "Shadow Lord's Crown"},
+        "reward": {"exp": 10000, "cursed_energy": 20000, "special_item": "Shadow Lord's Crown"},
         "enemy_types": ["undead", "shadow"],
         "duration": 5  # days to complete
     },
@@ -360,8 +360,8 @@ class GuildManager:
         self.data_manager.member_guild_map = self.member_guild_map.copy()
         self.data_manager.save_data()
     
-    def create_guild(self, name: str, leader_id: int) -> Tuple[bool, str]:
-        """Create a new guild if name is available"""
+    def create_guild(self, name: str, leader_id: int, player_data: PlayerData) -> Tuple[bool, str]:
+        """Create a new guild if name is available and player meets requirements"""
         # Check if name is already taken
         if name in self.guilds:
             return False, "A guild with that name already exists."
@@ -369,6 +369,20 @@ class GuildManager:
         # Check if player is already in a guild
         if leader_id in self.member_guild_map:
             return False, "You are already in a guild. Leave your current guild first."
+            
+        # Check if player meets level requirement (level 20)
+        if player_data.class_level < 20:
+            return False, f"You must be at least level 20 to create a guild. You are currently level {player_data.class_level}."
+            
+        # Check if player has Guild Charter
+        has_charter = False
+        for inv_item in player_data.inventory:
+            if inv_item.item.name == "Guild Charter":
+                has_charter = True
+                break
+                
+        if not has_charter:
+            return False, "You need a Guild Charter to create a guild. Purchase one from the shop with `!shop`."
         
         # Create new guild
         new_guild = Guild(name, leader_id)
@@ -632,7 +646,7 @@ class GuildInfoView(View):
             contribute_btn = Button(
                 label="Contribute",
                 style=discord.ButtonStyle.success,
-                emoji="💰"
+                emoji="🌀"
             )
             contribute_btn.callback = self.contribute_callback
             self.add_item(contribute_btn)
@@ -2052,7 +2066,7 @@ async def guild_command(ctx, action: str = None, *args):
             return
         
         # Try to create guild
-        success, message = guild_manager.create_guild(guild_name, ctx.author.id)
+        success, message = guild_manager.create_guild(guild_name, ctx.author.id, player_data)
         
         if success:
             # Remove charter from inventory

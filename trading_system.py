@@ -13,15 +13,15 @@ class TradeOffer:
                  sender_id: int, 
                  receiver_id: int, 
                  offered_items: List[str] = None, 
-                 offered_gold: int = 0,
+                 offered_cursed_energy: int = 0,
                  requested_items: List[str] = None,
-                 requested_gold: int = 0):
+                 requested_cursed_energy: int = 0):
         self.sender_id = sender_id
         self.receiver_id = receiver_id
         self.offered_items = offered_items or []  # List of item IDs
-        self.offered_gold = offered_gold
+        self.offered_cursed_energy = offered_cursed_energy
         self.requested_items = requested_items or []  # List of item IDs
-        self.requested_gold = requested_gold
+        self.requested_cursed_energy = requested_cursed_energy
         self.status = "pending"  # pending, accepted, declined, cancelled
         
     def to_dict(self) -> Dict[str, Any]:
@@ -29,9 +29,9 @@ class TradeOffer:
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "offered_items": self.offered_items,
-            "offered_gold": self.offered_gold,
+            "offered_cursed_energy": self.offered_cursed_energy,
             "requested_items": self.requested_items,
-            "requested_gold": self.requested_gold,
+            "requested_cursed_energy": self.requested_cursed_energy,
             "status": self.status
         }
         
@@ -41,9 +41,9 @@ class TradeOffer:
             sender_id=data["sender_id"],
             receiver_id=data["receiver_id"],
             offered_items=data.get("offered_items", []),
-            offered_gold=data.get("offered_gold", 0),
+            offered_cursed_energy=data.get("offered_cursed_energy", data.get("offered_gold", 0)),  # Support legacy data
             requested_items=data.get("requested_items", []),
-            requested_gold=data.get("requested_gold", 0)
+            requested_cursed_energy=data.get("requested_cursed_energy", data.get("requested_gold", 0))  # Support legacy data
         )
         trade.status = data.get("status", "pending")
         return trade
@@ -99,8 +99,8 @@ class TradeManager:
             if item_id not in receiver_items or receiver_items[item_id].equipped:
                 return False
                 
-        # Verify gold amounts
-        if sender.gold < trade.offered_gold or receiver.gold < trade.requested_gold:
+        # Verify cursed energy amounts
+        if sender.cursed_energy < trade.offered_cursed_energy or receiver.cursed_energy < trade.requested_cursed_energy:
             return False
             
         # All verifications passed, execute the trade
@@ -117,12 +117,12 @@ class TradeManager:
             receiver.inventory.remove(item)
             sender.inventory.append(item)
             
-        # Transfer gold
-        sender.gold -= trade.offered_gold
-        receiver.gold += trade.offered_gold
+        # Transfer cursed energy
+        sender.cursed_energy -= trade.offered_cursed_energy
+        receiver.cursed_energy += trade.offered_cursed_energy
         
-        receiver.gold -= trade.requested_gold
-        sender.gold += trade.requested_gold
+        receiver.cursed_energy -= trade.requested_cursed_energy
+        sender.cursed_energy += trade.requested_cursed_energy
         
         # Save data
         self.data_manager.save_data()
@@ -147,13 +147,13 @@ class ItemSelectView(View):
         self.player_data = player_data
         self.is_offering = is_offering
         self.selected_items = []
-        self.gold_amount = 0
+        self.cursed_energy_amount = 0
         
         # Add item selection dropdown
         self.add_item_select()
         
-        # Add gold input button
-        self.add_gold_button()
+        # Add cursed energy input button
+        self.add_cursed_energy_button()
         
         # Add control buttons
         self.add_control_buttons()
@@ -197,63 +197,63 @@ class ItemSelectView(View):
         # Update the view
         self.clear_items()
         self.add_item_select()
-        self.add_gold_button()
+        self.add_cursed_energy_button()
         self.add_control_buttons()
         
         action_type = "offering" if self.is_offering else "requesting"
         await interaction.response.edit_message(
-            content=f"Currently {action_type}: {len(self.selected_items)} items and {self.gold_amount} gold",
+            content=f"Currently {action_type}: {len(self.selected_items)} items and {self.cursed_energy_amount} cursed energy",
             view=self
         )
         
-    def add_gold_button(self):
-        """Add button for gold input"""
-        gold_button = Button(
+    def add_cursed_energy_button(self):
+        """Add button for cursed energy input"""
+        ce_button = Button(
             style=discord.ButtonStyle.primary,
-            label=f"Set Gold: {self.gold_amount}",
-            custom_id="set_gold"
+            label=f"Set Cursed Energy: {self.cursed_energy_amount}",
+            custom_id="set_cursed_energy"
         )
-        gold_button.callback = self.gold_button_callback
-        self.add_item(gold_button)
+        ce_button.callback = self.cursed_energy_button_callback
+        self.add_item(ce_button)
         
-    async def gold_button_callback(self, interaction: discord.Interaction):
-        """Handle gold button click"""
-        # Create a modal for gold input
-        class GoldInputModal(discord.ui.Modal, title="Enter Gold Amount"):
-            gold_input = discord.ui.TextInput(
-                label="Gold Amount",
-                placeholder="Enter amount of gold",
-                default=str(self.gold_amount),
+    async def cursed_energy_button_callback(self, interaction: discord.Interaction):
+        """Handle cursed energy button click"""
+        # Create a modal for cursed energy input
+        class CursedEnergyInputModal(discord.ui.Modal, title="Enter Cursed Energy Amount"):
+            ce_input = discord.ui.TextInput(
+                label="Cursed Energy Amount",
+                placeholder="Enter amount of cursed energy",
+                default=str(self.cursed_energy_amount),
                 required=True
             )
             
             async def on_submit(self, modal_interaction: discord.Interaction):
                 try:
-                    gold_amount = int(self.gold_input.value)
+                    ce_amount = int(self.ce_input.value)
                     
-                    # Validate gold amount
-                    if gold_amount < 0:
-                        await modal_interaction.response.send_message("Gold amount cannot be negative.", ephemeral=True)
+                    # Validate cursed energy amount
+                    if ce_amount < 0:
+                        await modal_interaction.response.send_message("Cursed energy amount cannot be negative.", ephemeral=True)
                         return
                         
-                    if gold_amount > self.parent.player_data.gold and self.parent.is_offering:
+                    if ce_amount > self.parent.player_data.cursed_energy and self.parent.is_offering:
                         await modal_interaction.response.send_message(
-                            f"You don't have enough gold. You have {self.parent.player_data.gold} gold.", 
+                            f"You don't have enough cursed energy. You have {self.parent.player_data.cursed_energy} cursed energy.", 
                             ephemeral=True
                         )
                         return
                         
-                    self.parent.gold_amount = gold_amount
+                    self.parent.cursed_energy_amount = ce_amount
                     
                     # Update the view
                     self.parent.clear_items()
                     self.parent.add_item_select()
-                    self.parent.add_gold_button()
+                    self.parent.add_cursed_energy_button()
                     self.parent.add_control_buttons()
                     
                     action_type = "offering" if self.parent.is_offering else "requesting"
                     await modal_interaction.response.edit_message(
-                        content=f"Currently {action_type}: {len(self.parent.selected_items)} items and {self.parent.gold_amount} gold",
+                        content=f"Currently {action_type}: {len(self.parent.selected_items)} items and {self.parent.cursed_energy_amount} cursed energy",
                         view=self.parent
                     )
                 except ValueError:
@@ -292,7 +292,7 @@ class ItemSelectView(View):
     async def cancel_callback(self, interaction: discord.Interaction):
         """Handle cancel button click"""
         self.selected_items = []
-        self.gold_amount = 0
+        self.cursed_energy_amount = 0
         self.stop()
         await interaction.response.defer()
 
@@ -370,13 +370,13 @@ class TradeView(View):
             
             embed.add_field(
                 name=f"{interaction.client.get_user(self.trade.sender_id)} sent:",
-                value=f"{offered_items_text}\n{self.trade.offered_gold} gold",
+                value=f"{offered_items_text}\n{self.trade.offered_cursed_energy} cursed energy",
                 inline=True
             )
             
             embed.add_field(
                 name=f"{interaction.client.get_user(self.trade.receiver_id)} sent:",
-                value=f"{requested_items_text}\n{self.trade.requested_gold} gold",
+                value=f"{requested_items_text}\n{self.trade.requested_cursed_energy} cursed energy",
                 inline=True
             )
             
@@ -463,7 +463,7 @@ class TradeView(View):
         
         embed.add_field(
             name=f"{sender_name} is offering:",
-            value=f"{offered_items_text}\n{self.trade.offered_gold} gold",
+            value=f"{offered_items_text}\n{self.trade.offered_cursed_energy} cursed energy",
             inline=False
         )
         
@@ -474,7 +474,7 @@ class TradeView(View):
         
         embed.add_field(
             name=f"{sender_name} is requesting:",
-            value=f"{requested_items_text}\n{self.trade.requested_gold} gold",
+            value=f"{requested_items_text}\n{self.trade.requested_cursed_energy} cursed energy",
             inline=False
         )
         
@@ -557,9 +557,9 @@ async def trade_command(ctx, target_member: discord.Member, data_manager: DataMa
     
     # Set trade details
     trade.offered_items = offer_view.selected_items
-    trade.offered_gold = offer_view.gold_amount
+    trade.offered_cursed_energy = offer_view.cursed_energy_amount
     trade.requested_items = request_view.selected_items
-    trade.requested_gold = request_view.gold_amount
+    trade.requested_cursed_energy = request_view.cursed_energy_amount
     
     # Send trade offer to receiver
     trade_view = TradeView(data_manager.trade_manager, trade_id)

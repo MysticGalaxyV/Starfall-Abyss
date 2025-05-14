@@ -652,10 +652,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.cursed_energy += cursed_energy_reward
-        # Make sure not to exceed max cursed energy
-        if player_data.cursed_energy > player_data.max_cursed_energy:
-            player_data.cursed_energy = player_data.max_cursed_energy
+        player_data.add_cursed_energy(cursed_energy_reward)  # Using new method that handles limits
         
         # Update stats
         player_data.wins += 1
@@ -726,7 +723,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
             result_embed.add_field(
                 name="Level Up!",
                 value=f"🆙 You reached Level {player_data.class_level}!\n"
-                      f"You gained 3 skill points! Use !skills to allocate them.",
+                      f"You gained 2 skill points! Use !skills to allocate them.",
                 inline=False
             )
         
@@ -1024,14 +1021,11 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.cursed_energy += cursed_energy_reward
-        # Make sure not to exceed max cursed energy
-        if player_data.cursed_energy > player_data.max_cursed_energy:
-            player_data.cursed_energy = player_data.max_cursed_energy
+        player_data.add_cursed_energy(cursed_energy_reward)  # Using new method that handles limits
         
         # Deduct some cursed energy from loser (but not too much)
         cursed_energy_penalty = min(cursed_energy_reward // 3, target_data.cursed_energy // 10)  # Reduced to be less punishing
-        target_data.cursed_energy = max(0, target_data.cursed_energy - cursed_energy_penalty)
+        target_data.remove_cursed_energy(cursed_energy_penalty)  # Using new method that handles validation
         
         # Set cooldowns
         current_time = datetime.datetime.now()
@@ -1099,7 +1093,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             result_embed.add_field(
                 name="Level Up!",
                 value=f"🆙 You reached Level {player_data.class_level}!\n"
-                      f"You gained 3 skill points! Use !skills to allocate them.",
+                      f"You gained 2 skill points! Use !skills to allocate them.",
                 inline=False
             )
         

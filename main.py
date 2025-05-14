@@ -520,9 +520,9 @@ async def pvp_history_command(ctx):
             
             # Format reward info
             if battle.get("result") == "win":
-                reward_info = f"Won {battle.get('gold_reward', 0)} gold, {battle.get('exp_reward', 0)} XP"
+                reward_info = f"Won {battle.get('cursed_energy_reward', 0)} cursed energy, {battle.get('exp_reward', 0)} XP"
             else:
-                reward_info = f"Lost {battle.get('gold_penalty', 0)} gold"
+                reward_info = f"Lost {battle.get('cursed_energy_lost', 0)} cursed energy"
                 
             battles_list.append(f"vs {battle.get('opponent_name', 'Unknown')} (Lvl {battle.get('opponent_level', '?')}) - {time_ago} ago\n   {reward_info}")
         
@@ -919,12 +919,12 @@ async def _show_help(ctx, category: str = None):
             "Daily": {
                 "description": "Claim your daily rewards",
                 "usage": "!daily or /daily",
-                "notes": "Claim gold and items every 24 hours"
+                "notes": "Claim cursed energy and items every 24 hours"
             },
             "Balance": {
-                "description": "Check your current gold balance",
-                "usage": "!balance (aliases: !bal, !gold, !money) or /balance",
-                "notes": "View your current gold and achievement points"
+                "description": "Check your current cursed energy balance",
+                "usage": "!balance (aliases: !bal, !ce, !energy) or /balance",
+                "notes": "View your current cursed energy and achievement points"
             },
             "Help": {
                 "description": "Show this help message",
@@ -988,7 +988,7 @@ async def _show_help(ctx, category: str = None):
             "Buy": {
                 "description": "Buy an item from the shop",
                 "usage": "!buy <item_name>",
-                "notes": "Purchase items with gold to improve your character"
+                "notes": "Purchase items with cursed energy to improve your character"
             }
         },
         "Exploration": {

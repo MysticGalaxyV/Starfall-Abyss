@@ -8,6 +8,37 @@ from data_models import PlayerData, DataManager, Item, InventoryItem
 
 # Shop items database - organized by level tiers
 SHOP_ITEMS = {
+    # Special non-equipment items
+    "special": [
+        {
+            "name": "Guild Charter",
+            "description": "An official document required to establish a guild. Provides legal recognition and basic privileges.",
+            "item_type": "consumable",
+            "rarity": "rare",
+            "stats": {},
+            "level_req": 20,
+            "value": 5000
+        },
+        {
+            "name": "Domain Expansion Scroll",
+            "description": "A rare scroll containing ancient knowledge to unlock your domain expansion technique.",
+            "item_type": "consumable",
+            "rarity": "epic",
+            "stats": {},
+            "level_req": 40,
+            "value": 10000
+        },
+        {
+            "name": "Technique Reset Crystal",
+            "description": "A mysterious crystal that allows reallocation of skill points and stats.",
+            "item_type": "consumable",
+            "rarity": "uncommon",
+            "stats": {},
+            "level_req": 15,
+            "value": 2000
+        }
+    ],
+    
     # Level 1-3 Shop Items
     "beginner": [
         {

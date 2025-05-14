@@ -219,6 +219,30 @@ class PlayerData:
         
         return base_stats
     
+    def add_cursed_energy(self, amount: int) -> int:
+        """Add cursed energy up to the maximum limit. Returns the amount actually added."""
+        if amount <= 0:
+            return 0
+            
+        # Check if we're already at max
+        if self.cursed_energy >= self.max_cursed_energy:
+            return 0
+            
+        # Calculate how much we can add without exceeding max
+        can_add = min(amount, self.max_cursed_energy - self.cursed_energy)
+        self.cursed_energy += can_add
+        return can_add
+        
+    def remove_cursed_energy(self, amount: int) -> bool:
+        """Remove cursed energy if available. Returns True if successful."""
+        if amount <= 0:
+            return True
+            
+        if self.cursed_energy >= amount:
+            self.cursed_energy -= amount
+            return True
+        return False
+    
     def add_exp(self, exp_amount: int) -> bool:
         """Add experience points and handle level ups. Returns True if leveled up."""
         leveled_up = False
@@ -240,6 +264,14 @@ class PlayerData:
             self.class_exp -= xp_needed
             self.class_level += 1
             self.skill_points += 2  # Reduced from 3 to slow down character progression
+            
+            # Increase max cursed energy on level up
+            old_max = self.max_cursed_energy
+            self.max_cursed_energy = 100 + (self.class_level * 50)  # Scales with level
+            
+            # Also increase current cursed energy by the same amount
+            self.cursed_energy += (self.max_cursed_energy - old_max)
+            
             leveled_up = True
             
             # Stop if reached max level
@@ -330,10 +362,12 @@ class PlayerData:
 class DataManager:
     def __init__(self):
         self.players: Dict[int, PlayerData] = {}
+        self.dungeons = {}  # Will be populated with dungeon data
         if not os.path.exists('player_data.json'):
             with open('player_data.json', 'w') as f:
                 json.dump({}, f)
         self.load_data()
+        self.load_dungeons()
 
     def save_data(self):
         try:
@@ -360,3 +394,8 @@ class DataManager:
             self.players[user_id] = PlayerData(user_id)
             self.save_data()
         return self.players[user_id]
+        
+    def load_dungeons(self):
+        """Load dungeon data from the DUNGEONS dictionary in dungeons.py"""
+        from dungeons import DUNGEONS
+        self.dungeons = DUNGEONS.copy()
