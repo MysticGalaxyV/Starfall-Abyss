@@ -557,7 +557,9 @@ async def encyclopedia_command(ctx, data_manager: DataManager, category: str = N
             )
     
     # Add player info
-    embed.set_footer(text=f"Player: {player.name} | Level: {player.level}")
+    # Using user_id to get Discord username and player.user_level for level
+    username = ctx.author.name if ctx.author else "Unknown"
+    embed.set_footer(text=f"Player: {username} | Level: {player.user_level}")
     
     await ctx.send(embed=embed, view=view)
 

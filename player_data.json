@@ -1,210 +1,41 @@
 {
     "759434349069860945": {
-        "class_name": "Archmage",
-        "class_level": 100,
-        "class_exp": 50410,
-        "user_level": 100,
-        "user_exp": 50000,
-        "cursed_energy": 500,
-        "max_cursed_energy": 500,
+        "class_name": "Flash Rogue",
+        "class_level": 1,
+        "class_exp": 31,
+        "user_level": 1,
+        "user_exp": 0,
+        "cursed_energy": 100,
+        "max_cursed_energy": 100,
         "unlocked_classes": [
-            "Warrior",
-            "Mage",
-            "Archmage",
-            "Elementalist",
-            "Rogue",
-            "Ranger"
+            "Flash Rogue"
         ],
-        "inventory": [
-            {
-                "item": {
-                    "item_id": "staff001",
-                    "name": "Legendary Staff of the Cosmos",
-                    "description": "A powerful staff that channels cosmic energy.",
-                    "item_type": "Weapon:Staff",
-                    "rarity": "Legendary",
-                    "stats": {
-                        "power": 100,
-                        "intelligence": 30
-                    },
-                    "level_req": 75,
-                    "value": 25000
-                },
-                "quantity": 1,
-                "equipped": true
-            },
-            {
-                "item": {
-                    "item_id": "robe001",
-                    "name": "Epic Archmage Robes",
-                    "description": "Elegant robes that enhance magical abilities.",
-                    "item_type": "Armor:Robe",
-                    "rarity": "Epic",
-                    "stats": {
-                        "defense": 80,
-                        "intelligence": 25
-                    },
-                    "level_req": 70,
-                    "value": 18000
-                },
-                "quantity": 1,
-                "equipped": true
-            },
-            {
-                "item": {
-                    "item_id": "charter001",
-                    "name": "Guild Charter",
-                    "description": "A formal document that allows you to create a guild.",
-                    "item_type": "Special:GuildItem",
-                    "rarity": "Rare",
-                    "stats": {},
-                    "level_req": 20,
-                    "value": 10000
-                },
-                "quantity": 1,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "ore001",
-                    "name": "Rare Mithril Ore",
-                    "description": "A rare mithril ore used in crafting.",
-                    "item_type": "Material:Mining",
-                    "rarity": "Rare",
-                    "stats": {},
-                    "level_req": 50,
-                    "value": 2000
-                },
-                "quantity": 5,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "wood001",
-                    "name": "Uncommon Elder Wood",
-                    "description": "A sturdy elder wood used in crafting.",
-                    "item_type": "Material:Foraging",
-                    "rarity": "Uncommon",
-                    "stats": {},
-                    "level_req": 30,
-                    "value": 500
-                },
-                "quantity": 10,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "herb001",
-                    "name": "Rare Golden Lotus",
-                    "description": "A rare magical herb with healing properties.",
-                    "item_type": "Material:Herbs",
-                    "rarity": "Rare",
-                    "stats": {},
-                    "level_req": 40,
-                    "value": 1500
-                },
-                "quantity": 3,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "gem001",
-                    "name": "Epic Star Ruby",
-                    "description": "A brilliant star ruby with magical properties.",
-                    "item_type": "Material:Gems",
-                    "rarity": "Epic",
-                    "stats": {},
-                    "level_req": 60,
-                    "value": 8000
-                },
-                "quantity": 2,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "fSCI8RMu",
-                    "name": "Leather Boots",
-                    "description": "Light boots for better mobility.",
-                    "item_type": "accessory",
-                    "rarity": "common",
-                    "stats": {
-                        "speed": 3
-                    },
-                    "level_req": 1,
-                    "value": 50
-                },
-                "quantity": 1,
-                "equipped": false
-            }
-        ],
+        "inventory": [],
         "equipped_items": {
-            "weapon": "staff001",
-            "armor": "robe001",
+            "weapon": null,
+            "armor": null,
             "accessory": null
         },
         "achievements": [],
-        "skill_points": 50,
+        "skill_points": 0,
         "allocated_stats": {
-            "power": 20,
-            "defense": 15,
-            "speed": 10,
-            "hp": 15
+            "power": 0,
+            "defense": 0,
+            "speed": 0,
+            "hp": 0
         },
-        "skill_tree": {
-            "intelligence": {
-                "Arcane Mind": 5,
-                "Spell Mastery": 3,
-                "Elemental Affinity": 2,
-                "Counterspell": 1
-            },
-            "wisdom": {
-                "Healing Touch": 2,
-                "Spirit Link": 1
-            }
-        },
-        "skill_points_spent": {
-            "intelligence": 11,
-            "wisdom": 3
-        },
-        "wins": 45,
-        "losses": 13,
-        "last_daily": "2023-05-13T12:00:00+00:00",
-        "daily_streak": 5,
+        "skill_tree": {},
+        "skill_points_spent": {},
+        "wins": 0,
+        "losses": 0,
+        "last_daily": "2025-05-14T15:37:53.317600",
+        "daily_streak": 1,
         "last_train": null,
-        "dungeon_clears": {
-            "Forest of Shadows": 10,
-            "Cavern of Despair": 5,
-            "Ancient Forest": 1
-        },
+        "dungeon_clears": {},
         "skill_cooldowns": {},
-        "special_abilities": {
-            "fireball": {
-                "name": "Fireball",
-                "level": 5,
-                "description": "Launch a powerful ball of fire at your enemies",
-                "damage_multiplier": 1.5,
-                "energy_cost": 30,
-                "cooldown": 2
-            },
-            "ice_lance": {
-                "name": "Ice Lance",
-                "level": 4,
-                "description": "Pierce your enemies with a freezing lance of ice",
-                "damage_multiplier": 1.3,
-                "energy_cost": 25,
-                "cooldown": 1
-            },
-            "thunder_storm": {
-                "name": "Thunder Storm",
-                "level": 3,
-                "description": "Call down lightning to strike multiple enemies",
-                "damage_multiplier": 2.0,
-                "energy_cost": 50,
-                "cooldown": 4
-            }
-        },
+        "special_abilities": {},
         "active_effects": {},
         "training_cooldowns": {},
-        "gold": 100140
+        "gold": 151
     }
 }

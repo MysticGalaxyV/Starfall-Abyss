@@ -883,11 +883,35 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         await ctx.send("❌ Both players need to have selected a class to battle!")
         return
         
-    # Check if players are within reasonable level range
+    # Check if players are within reasonable level range - making it a bit wider for more PvP opportunities
     level_diff = abs(player_data.class_level - target_data.class_level)
-    if level_diff > 3:
-        await ctx.send(f"❌ Level difference too high! You can only battle players within 3 levels of your own (difference: {level_diff}).")
+    max_allowed_diff = 5  # Increased from 3 to 5 for more battle opportunities
+    
+    if level_diff > max_allowed_diff:
+        await ctx.send(f"❌ Level difference too high! You can only battle players within {max_allowed_diff} levels of your own (current difference: {level_diff}).")
         return
+    
+    # Check if either player is currently in a cooldown
+    current_time = datetime.datetime.now()
+    pvp_cooldown_key = "pvp_cooldown"
+    
+    if pvp_cooldown_key in player_data.skill_cooldowns:
+        cooldown_time = player_data.skill_cooldowns[pvp_cooldown_key]
+        if cooldown_time > current_time:
+            time_left = (cooldown_time - current_time).total_seconds()
+            minutes = int(time_left // 60)
+            seconds = int(time_left % 60)
+            await ctx.send(f"❌ You're on PvP cooldown! Try again in {minutes}m {seconds}s.")
+            return
+            
+    if pvp_cooldown_key in target_data.skill_cooldowns:
+        cooldown_time = target_data.skill_cooldowns[pvp_cooldown_key]
+        if cooldown_time > current_time:
+            time_left = (cooldown_time - current_time).total_seconds()
+            minutes = int(time_left // 60)
+            seconds = int(time_left % 60)
+            await ctx.send(f"❌ {target_member.display_name} is on PvP cooldown! Try again in {minutes}m {seconds}s.")
+            return
     
     # Get player stats
     player_stats = player_data.get_stats(GAME_CLASSES)
@@ -982,20 +1006,67 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
     # Process battle results
     if not target_entity.is_alive():
         # Player won
-        # Calculate rewards
-        exp_reward = int(15 + (target_data.class_level * 5))
-        gold_reward = int(10 + (target_data.class_level * 3))
+        # Calculate rewards - scaling with both player levels and making it more rewarding
+        base_exp = 20
+        base_gold = 15
+        level_multiplier = 1.0 + (target_data.class_level / 50.0)  # Higher level opponents give better rewards
+        challenge_bonus = 1.0 + (max(0, target_data.class_level - player_data.class_level) * 0.1)  # Bonus for defeating higher level players
+        
+        exp_reward = int(base_exp * target_data.class_level * level_multiplier * challenge_bonus)
+        gold_reward = int(base_gold * target_data.class_level * level_multiplier * challenge_bonus)
         
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
         player_data.gold += gold_reward
         
         # Deduct some gold from loser (but not too much)
-        target_data.gold = max(0, target_data.gold - (gold_reward // 2))
+        gold_penalty = min(gold_reward // 3, target_data.gold // 10)  # Reduced to be less punishing
+        target_data.gold = max(0, target_data.gold - gold_penalty)
+        
+        # Set cooldowns
+        current_time = datetime.datetime.now()
+        pvp_cooldown_key = "pvp_cooldown"
+        
+        # Winner gets a shorter cooldown
+        winner_cooldown_minutes = 30
+        player_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=winner_cooldown_minutes)
+        
+        # Loser gets a longer cooldown to avoid repeated targeting
+        loser_cooldown_minutes = 60
+        target_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=loser_cooldown_minutes)
         
         # Update stats
         player_data.wins += 1
         target_data.losses += 1
+        
+        # Record this battle in pvp_history if it doesn't exist yet
+        if not hasattr(player_data, 'pvp_history'):
+            player_data.pvp_history = []
+        if not hasattr(target_data, 'pvp_history'):
+            target_data.pvp_history = []
+            
+        # Add battle to history with timestamp
+        battle_record = {
+            "opponent_id": target_data.user_id,
+            "opponent_name": target_member.display_name,
+            "result": "win",
+            "timestamp": current_time.isoformat(),
+            "exp_gained": exp_reward,
+            "gold_gained": gold_reward,
+            "opponent_level": target_data.class_level
+        }
+        player_data.pvp_history.append(battle_record)
+        
+        # Add battle to target's history
+        battle_record = {
+            "opponent_id": player_data.user_id,
+            "opponent_name": ctx.author.display_name,
+            "result": "loss",
+            "timestamp": current_time.isoformat(),
+            "gold_lost": gold_penalty,
+            "opponent_level": player_data.class_level
+        }
+        target_data.pvp_history.append(battle_record)
         
         # Save data
         data_manager.save_data()
@@ -1026,20 +1097,67 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         
     elif not player_entity.is_alive():
         # Target won
-        # Calculate rewards
-        exp_reward = int(15 + (player_data.class_level * 5))
-        gold_reward = int(10 + (player_data.class_level * 3))
+        # Calculate rewards - scaling with both player levels and making it more rewarding
+        base_exp = 20
+        base_gold = 15
+        level_multiplier = 1.0 + (player_data.class_level / 50.0)  # Higher level opponents give better rewards
+        challenge_bonus = 1.0 + (max(0, player_data.class_level - target_data.class_level) * 0.1)  # Bonus for defeating higher level players
         
-        # Add rewards to target
+        exp_reward = int(base_exp * player_data.class_level * level_multiplier * challenge_bonus)
+        gold_reward = int(base_gold * player_data.class_level * level_multiplier * challenge_bonus)
+        
+        # Add rewards
         leveled_up = target_data.add_exp(exp_reward)
         target_data.gold += gold_reward
         
         # Deduct some gold from loser (but not too much)
-        player_data.gold = max(0, player_data.gold - (gold_reward // 2))
+        gold_penalty = min(gold_reward // 3, player_data.gold // 10)  # Reduced to be less punishing
+        player_data.gold = max(0, player_data.gold - gold_penalty)
+        
+        # Set cooldowns
+        current_time = datetime.datetime.now()
+        pvp_cooldown_key = "pvp_cooldown"
+        
+        # Winner gets a shorter cooldown
+        winner_cooldown_minutes = 30
+        target_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=winner_cooldown_minutes)
+        
+        # Loser gets a longer cooldown to avoid repeated targeting
+        loser_cooldown_minutes = 60
+        player_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=loser_cooldown_minutes)
         
         # Update stats
         target_data.wins += 1
         player_data.losses += 1
+        
+        # Record this battle in pvp_history if it doesn't exist yet
+        if not hasattr(player_data, 'pvp_history'):
+            player_data.pvp_history = []
+        if not hasattr(target_data, 'pvp_history'):
+            target_data.pvp_history = []
+            
+        # Add battle to history with timestamp
+        battle_record = {
+            "opponent_id": player_data.user_id,
+            "opponent_name": ctx.author.display_name,
+            "result": "win",
+            "timestamp": current_time.isoformat(),
+            "exp_gained": exp_reward,
+            "gold_gained": gold_reward,
+            "opponent_level": player_data.class_level
+        }
+        target_data.pvp_history.append(battle_record)
+        
+        # Add battle to target's history
+        battle_record = {
+            "opponent_id": target_data.user_id,
+            "opponent_name": target_member.display_name,
+            "result": "loss",
+            "timestamp": current_time.isoformat(),
+            "gold_lost": gold_penalty,
+            "opponent_level": target_data.class_level
+        }
+        player_data.pvp_history.append(battle_record)
         
         # Save data
         data_manager.save_data()

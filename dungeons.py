@@ -8,8 +8,9 @@ from typing import Dict, List, Optional, Tuple, Any
 from data_models import PlayerData, DataManager, Item
 from battle_system import BattleEntity, BattleMove, BattleView, generate_enemy_stats, generate_enemy_moves
 
-# Dungeon definitions
+# Dungeon definitions expanded to cover level 1-100 range
 DUNGEONS = {
+    # Beginner Dungeons (Levels 1-20)
     "Ancient Forest": {
         "description": "A mysterious forest home to cursed beasts and hidden treasures.",
         "level_req": 1,
@@ -24,7 +25,7 @@ DUNGEONS = {
     },
     "Forgotten Cave": {
         "description": "Dark caverns filled with dangerous creatures and lost relics.",
-        "level_req": 3,
+        "level_req": 5,
         "floors": 4,
         "enemies": ["Cave Crawler", "Armored Golem", "Crystal Spider"],
         "boss": "Cave Warden",
@@ -32,11 +33,11 @@ DUNGEONS = {
         "exp": 120,
         "rare_drop": 15,
         "style": discord.ButtonStyle.gray,
-        "item_level": 3
+        "item_level": 5
     },
     "Cursed Shrine": {
         "description": "An abandoned shrine corrupted by dark energies and vengeful spirits.",
-        "level_req": 5,
+        "level_req": 10,
         "floors": 5,
         "enemies": ["Shrine Guardian", "Cursed Monk", "Vengeful Spirit"],
         "boss": "Shrine Deity",
@@ -44,11 +45,11 @@ DUNGEONS = {
         "exp": 200,
         "rare_drop": 20,
         "style": discord.ButtonStyle.red,
-        "item_level": 5
+        "item_level": 10
     },
     "Abyssal Depths": {
         "description": "The deepest part of the ocean, home to nightmarish creatures.",
-        "level_req": 8,
+        "level_req": 15,
         "floors": 6,
         "enemies": ["Deep One", "Abyssal Hunter", "Giant Squid"],
         "boss": "Kraken Lord",
@@ -56,11 +57,11 @@ DUNGEONS = {
         "exp": 350,
         "rare_drop": 25,
         "style": discord.ButtonStyle.blurple,
-        "item_level": 8
+        "item_level": 15
     },
     "Infernal Citadel": {
         "description": "A fortress forged in hellfire where only the strongest survive.",
-        "level_req": 12,
+        "level_req": 20,
         "floors": 7,
         "enemies": ["Flame Knight", "Lava Golem", "Fire Drake"],
         "boss": "Infernal Overlord",
@@ -68,7 +69,133 @@ DUNGEONS = {
         "exp": 500,
         "rare_drop": 30,
         "style": discord.ButtonStyle.red,
-        "item_level": 12
+        "item_level": 20
+    },
+    
+    # Intermediate Dungeons (Levels 25-50)
+    "Crystal Caverns": {
+        "description": "Vast network of crystal caves filled with elementals and golems.",
+        "level_req": 25,
+        "floors": 8,
+        "enemies": ["Crystal Elemental", "Stone Guardian", "Gem Golem"],
+        "boss": "Crystal Colossus",
+        "max_rewards": 1000,
+        "exp": 750,
+        "rare_drop": 35,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 25
+    },
+    "Corrupted Sanctum": {
+        "description": "Once holy grounds now twisted by forbidden magic.",
+        "level_req": 30,
+        "floors": 9,
+        "enemies": ["Corrupted Cleric", "Shadow Fiend", "Void Walker"],
+        "boss": "The Defiled One",
+        "max_rewards": 1500,
+        "exp": 1000,
+        "rare_drop": 40,
+        "style": discord.ButtonStyle.red,
+        "item_level": 30
+    },
+    "Sunken Temple": {
+        "description": "Ancient temple sunken beneath the waves, harboring powerful relics.",
+        "level_req": 35,
+        "floors": 10,
+        "enemies": ["Temple Guardian", "Deep Cultist", "Abyssal Horror"],
+        "boss": "Tidal Ancient",
+        "max_rewards": 2000,
+        "exp": 1500,
+        "rare_drop": 45,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 35
+    },
+    "Forbidden Library": {
+        "description": "Repository of forbidden knowledge guarded by magical constructs.",
+        "level_req": 40,
+        "floors": 11,
+        "enemies": ["Living Tome", "Arcane Golem", "Knowledge Devourer"],
+        "boss": "The Grand Archivist",
+        "max_rewards": 2500,
+        "exp": 2000,
+        "rare_drop": 50,
+        "style": discord.ButtonStyle.gray,
+        "item_level": 40
+    },
+    "Astral Nexus": {
+        "description": "Convergence of multiple realms where reality itself is unstable.",
+        "level_req": 50,
+        "floors": 12,
+        "enemies": ["Reality Warper", "Star Spawn", "Cosmic Horror"],
+        "boss": "The Boundary Keeper",
+        "max_rewards": 3500,
+        "exp": 3000,
+        "rare_drop": 55,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 50
+    },
+    
+    # Advanced Dungeons (Levels 60-80)
+    "Shadow Realm": {
+        "description": "A dimension of pure darkness where nightmares manifest.",
+        "level_req": 60,
+        "floors": 13,
+        "enemies": ["Nightmare Entity", "Void Assassin", "Shadow Titan"],
+        "boss": "The Darkness Incarnate",
+        "max_rewards": 5000,
+        "exp": 4500,
+        "rare_drop": 60,
+        "style": discord.ButtonStyle.gray,
+        "item_level": 60
+    },
+    "Dragon's Lair": {
+        "description": "Volcanic caverns home to the most powerful dragons.",
+        "level_req": 70,
+        "floors": 14,
+        "enemies": ["Flame Dragonspawn", "Magma Drake", "Ancient Wyvern"],
+        "boss": "The Dragon Emperor",
+        "max_rewards": 7500,
+        "exp": 6000,
+        "rare_drop": 65,
+        "style": discord.ButtonStyle.red,
+        "item_level": 70
+    },
+    "Celestial Spire": {
+        "description": "A tower reaching the heavens, guarded by celestial beings.",
+        "level_req": 80,
+        "floors": 15,
+        "enemies": ["Celestial Guardian", "Astral Knight", "Divine Enforcer"],
+        "boss": "Archangel of Judgment",
+        "max_rewards": 10000,
+        "exp": 8000,
+        "rare_drop": 70,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 80
+    },
+    
+    # Endgame Dungeons (Levels 90-100)
+    "Void Citadel": {
+        "description": "Fortress at the edge of existence where reality falters.",
+        "level_req": 90,
+        "floors": 16,
+        "enemies": ["Void Monstrosity", "Reality Breaker", "Nullification Entity"],
+        "boss": "The Void Emperor",
+        "max_rewards": 15000,
+        "exp": 12000,
+        "rare_drop": 75,
+        "style": discord.ButtonStyle.gray,
+        "item_level": 90
+    },
+    "Realm of Eternity": {
+        "description": "The final challenge where time and space hold no meaning.",
+        "level_req": 95,
+        "floors": 20,
+        "enemies": ["Eternal Guardian", "Timeless Entity", "Primordial Being"],
+        "boss": "The First One",
+        "max_rewards": 25000,
+        "exp": 20000,
+        "rare_drop": 80,
+        "style": discord.ButtonStyle.blurple,
+        "item_level": 95
     }
 }
 
@@ -695,13 +822,55 @@ class DungeonSelectView(View):
         # Create progress view for the dungeon
         progress_view = DungeonProgressView(self.player_data, dungeon_data, self.data_manager)
         
-        # Start at floor 0 (entrance)
-        await interaction.followup.send(
-            f"🗺️ You are at the entrance of {dungeon_data['name']}.\n"
-            f"{dungeon_data['description']}\n"
-            f"Are you ready to proceed?",
-            view=progress_view
+        # Start at floor 0 (entrance) with a more detailed embed
+        entrance_embed = discord.Embed(
+            title=f"🗺️ Entering {dungeon_data['name']}",
+            description=f"{dungeon_data['description']}",
+            color=discord.Color.dark_purple()
         )
+        
+        # Add dungeon details
+        entrance_embed.add_field(
+            name="Dungeon Stats",
+            value=f"Level: {dungeon_data['level_req']}+\n"
+                  f"Floors: {dungeon_data['floors']}\n"
+                  f"Boss: {dungeon_data['boss']}",
+            inline=True
+        )
+        
+        entrance_embed.add_field(
+            name="Potential Rewards",
+            value=f"Gold: Up to {dungeon_data['max_rewards']}\n"
+                  f"EXP: Up to {dungeon_data['exp']}\n"
+                  f"Rare Drop Chance: {dungeon_data['rare_drop']}%",
+            inline=True
+        )
+        
+        # Add enemies information
+        enemies_list = ", ".join(dungeon_data['enemies'])
+        entrance_embed.add_field(
+            name="Enemies",
+            value=f"{enemies_list}",
+            inline=False
+        )
+        
+        # Add player information
+        from utils import GAME_CLASSES
+        player_stats = self.player_data.get_stats(GAME_CLASSES)
+        entrance_embed.add_field(
+            name="Your Stats",
+            value=f"Level: {self.player_data.class_level}\n"
+                  f"Class: {self.player_data.class_name}\n"
+                  f"HP: {player_stats.get('hp', 0)}\n"
+                  f"Power: {player_stats.get('power', 0)}\n"
+                  f"Defense: {player_stats.get('defense', 0)}\n"
+                  f"Speed: {player_stats.get('speed', 0)}",
+            inline=True
+        )
+        
+        entrance_embed.set_footer(text="Are you ready to proceed?")
+        
+        await interaction.followup.send(embed=entrance_embed, view=progress_view)
         
         # Stop this view since we're starting the dungeon
         self.stop()

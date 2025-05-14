@@ -188,6 +188,10 @@ class PlayerData:
         self.dungeon_clears = {}  # Map of dungeon name to count of clears
         self.skill_cooldowns = {}  # Map of skill_id to next available timestamp
         self.gold = 100
+        self.pvp_history = []  # List of PvP battle history
+        self.pvp_wins = 0
+        self.pvp_losses = 0
+        self.last_pvp_battle = None  # Timestamp of last PvP battle
         
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate total stats based on base class stats, allocated points and equipped items"""
@@ -217,21 +221,22 @@ class PlayerData:
         leveled_up = False
         self.class_exp += exp_amount
         
-        # Max level set to 1000
-        MAX_LEVEL = 1000
+        # Max level set to 100 (changed from 1000)
+        MAX_LEVEL = 100
         
         # If already at max level, just accumulate XP but don't level up
         if self.class_level >= MAX_LEVEL:
             return False
         
-        # Calculate XP needed for next level: 100 * (current_level)^1.5
-        xp_needed = int(100 * (self.class_level ** 1.5))
+        # Calculate XP needed for next level using a much steeper curve: 100 * (current_level)^2.5
+        # This makes each level significantly harder than the previous one
+        xp_needed = int(300 * (self.class_level ** 2.5))
         
         # Check for level up
         while self.class_exp >= xp_needed and self.class_level < MAX_LEVEL:
             self.class_exp -= xp_needed
             self.class_level += 1
-            self.skill_points += 3  # Award skill points on level up
+            self.skill_points += 2  # Reduced from 3 to slow down character progression
             leveled_up = True
             
             # Stop if reached max level
@@ -239,7 +244,7 @@ class PlayerData:
                 break
                 
             # Recalculate XP needed for next level
-            xp_needed = int(100 * (self.class_level ** 1.5))
+            xp_needed = int(300 * (self.class_level ** 2.5))
         
         return leveled_up
     
@@ -270,7 +275,11 @@ class PlayerData:
             "special_abilities": self.special_abilities,
             "active_effects": self.active_effects,
             "training_cooldowns": self.training_cooldowns,
-            "gold": self.gold
+            "gold": self.gold,
+            "pvp_history": self.pvp_history,
+            "pvp_wins": self.pvp_wins,
+            "pvp_losses": self.pvp_losses,
+            "last_pvp_battle": self.last_pvp_battle.isoformat() if self.last_pvp_battle else None
         }
     
     @classmethod
@@ -281,7 +290,8 @@ class PlayerData:
         for attr in ["class_name", "class_level", "class_exp", "user_level", "user_exp", 
                      "cursed_energy", "max_cursed_energy", "unlocked_classes", "equipped_items",
                      "skill_points", "allocated_stats", "skill_tree", "skill_points_spent", "wins", "losses", "daily_streak",
-                     "dungeon_clears", "gold", "special_abilities", "active_effects", "training_cooldowns"]:
+                     "dungeon_clears", "gold", "special_abilities", "active_effects", "training_cooldowns",
+                     "pvp_history", "pvp_wins", "pvp_losses"]:
             if attr in data:
                 setattr(player, attr, data[attr])
         
@@ -294,7 +304,7 @@ class PlayerData:
             player.achievements = [Achievement.from_dict(achievement_data) for achievement_data in data["achievements"]]
             
         # Convert datetime objects
-        for dt_attr in ["last_daily", "last_train"]:
+        for dt_attr in ["last_daily", "last_train", "last_pvp_battle"]:
             if dt_attr in data and data[dt_attr]:
                 try:
                     setattr(player, dt_attr, datetime.datetime.fromisoformat(data[dt_attr]))

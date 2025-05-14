@@ -403,7 +403,7 @@ async def daily_command(ctx):
 
 @bot.command(name="battle")
 async def battle_command(ctx, enemy_name: str = None, enemy_level: int = None):
-    """Battle an enemy or another player"""
+    """Battle an enemy or another player. Mention a user to start PvP"""
     player = data_manager.get_player(ctx.author.id)
     
     # Check if player has started
@@ -450,6 +450,178 @@ async def battle_command(ctx, enemy_name: str = None, enemy_level: int = None):
     
     # Start PvE battle
     await start_battle(ctx, player, enemy_name, enemy_level, data_manager)
+
+@bot.command(name="pvphistory", aliases=["pvp", "pvpstats"])
+async def pvp_history_command(ctx):
+    """View your PvP battle history and stats"""
+    player = data_manager.get_player(ctx.author.id)
+    
+    # Check if player has started
+    if not player.class_name:
+        await ctx.send("❌ You need to start your adventure first with `!start`")
+        return
+    
+    # Create an embed for PvP history
+    embed = discord.Embed(
+        title="⚔️ PvP Battle History",
+        description=f"Battle records for {ctx.author.display_name}",
+        color=discord.Color.blue()
+    )
+    
+    # Add overall stats
+    embed.add_field(
+        name="📊 Overall Stats",
+        value=f"**Wins:** {player.pvp_wins}\n**Losses:** {player.pvp_losses}\n**Win Rate:** {calculate_win_rate(player.pvp_wins, player.pvp_losses)}%",
+        inline=False
+    )
+    
+    # Check cooldown status
+    cooldown_msg = "Ready for battle"
+    if player.last_pvp_battle:
+        # Check if player is on cooldown
+        now = datetime.datetime.now()
+        # Winners have 30 min cooldown, losers have 60 min cooldown
+        if player.pvp_history and player.pvp_history[-1].get("result") == "win":
+            cooldown_time = 30 * 60  # 30 minutes in seconds
+        else:
+            cooldown_time = 60 * 60  # 60 minutes in seconds
+            
+        elapsed = (now - player.last_pvp_battle).total_seconds()
+        
+        if elapsed < cooldown_time:
+            time_left = cooldown_time - elapsed
+            cooldown_msg = f"⏱️ On cooldown for {format_time_until(time_left)}"
+    
+    embed.add_field(
+        name="⏳ Battle Status",
+        value=cooldown_msg,
+        inline=False
+    )
+    
+    # Show recent battle history
+    if hasattr(player, "pvp_history") and player.pvp_history:
+        battles_list = []
+        
+        # Get the most recent 5 battles (or fewer if there aren't 5)
+        recent_battles = player.pvp_history[-5:] if len(player.pvp_history) > 5 else player.pvp_history
+        
+        for battle in reversed(recent_battles):
+            # Calculate time ago
+            battle_time = datetime.datetime.fromisoformat(battle.get("timestamp", datetime.datetime.now().isoformat()))
+            time_ago = format_time_since(battle_time)
+            
+            # Format reward info
+            if battle.get("result") == "win":
+                reward_info = f"Won {battle.get('gold_reward', 0)} gold, {battle.get('exp_reward', 0)} XP"
+            else:
+                reward_info = f"Lost {battle.get('gold_penalty', 0)} gold"
+                
+            battles_list.append(f"vs {battle.get('opponent_name', 'Unknown')} (Lvl {battle.get('opponent_level', '?')}) - {time_ago} ago\n   {reward_info}")
+        
+        embed.add_field(
+            name="Recent Battles",
+            value="\n".join(battles_list) if battles_list else "No battles yet.",
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="Recent Battles",
+            value="No battles yet. Challenge someone with `!battle @player`!",
+            inline=False
+        )
+        
+    # Add tips
+    embed.set_footer(text="Tip: PvP battles have cooldowns - 30 min for winners, 60 min for losers.")
+    
+    await ctx.send(embed=embed)
+
+def calculate_win_rate(wins, losses):
+    """Calculate win rate as a percentage"""
+    total_battles = wins + losses
+    if total_battles == 0:
+        return 0
+    return round((wins / total_battles) * 100, 1)
+
+def format_time_since(timestamp):
+    """Format the time since a timestamp in a human-readable way"""
+    now = datetime.datetime.now()
+    delta = now - timestamp
+    
+    if delta.days > 0:
+        return f"{delta.days}d"
+    elif delta.seconds >= 3600:
+        return f"{delta.seconds // 3600}h"
+    elif delta.seconds >= 60:
+        return f"{delta.seconds // 60}m"
+    else:
+        return f"{delta.seconds}s"
+    
+    # Add PvP stats
+    embed.add_field(
+        name="Stats",
+        value=f"Wins: {player.wins} 🎖️\n"
+              f"Losses: {player.losses} 📉\n"
+              f"Win Rate: {(player.wins / max(1, player.wins + player.losses) * 100):.1f}% 📊\n"
+              f"Total Battles: {player.wins + player.losses} ⚔️",
+        inline=False
+    )
+    
+    # Current cooldown status
+    current_time = datetime.datetime.now()
+    pvp_cooldown_key = "pvp_cooldown"
+    
+    if pvp_cooldown_key in player.skill_cooldowns:
+        cooldown_time = player.skill_cooldowns[pvp_cooldown_key]
+        if cooldown_time > current_time:
+            time_left = (cooldown_time - current_time).total_seconds()
+            minutes = int(time_left // 60)
+            seconds = int(time_left % 60)
+            cooldown_status = f"On cooldown for {minutes}m {seconds}s ⏱️"
+        else:
+            cooldown_status = "Ready for battle! ✅"
+    else:
+        cooldown_status = "Ready for battle! ✅"
+        
+    embed.add_field(
+        name="Cooldown Status",
+        value=cooldown_status,
+        inline=False
+    )
+    
+    # Recent battles (last 5)
+    if player.pvp_history:
+        recent_battles = sorted(player.pvp_history, key=lambda x: x.get('timestamp', ''), reverse=True)[:5]
+        
+        battles_list = []
+        for i, battle in enumerate(recent_battles):
+            result_emoji = "🎖️" if battle.get('result') == 'win' else "📉"
+            opponent_name = battle.get('opponent_name', 'Unknown')
+            battle_time = datetime.datetime.fromisoformat(battle.get('timestamp', datetime.datetime.now().isoformat()))
+            time_ago = format_time_until(battle_time, current_time)
+            
+            if battle.get('result') == 'win':
+                reward_info = f"+{battle.get('exp_gained', 0)} EXP, +{battle.get('gold_gained', 0)} Gold"
+            else:
+                reward_info = f"-{battle.get('gold_lost', 0)} Gold"
+                
+            battles_list.append(f"{result_emoji} vs {opponent_name} (Lvl {battle.get('opponent_level', '?')}) - {time_ago} ago\n   {reward_info}")
+        
+        embed.add_field(
+            name="Recent Battles",
+            value="\n".join(battles_list) if battles_list else "No battles yet.",
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="Recent Battles",
+            value="No battles yet. Challenge someone with `!battle @player`!",
+            inline=False
+        )
+        
+    # Add tips
+    embed.set_footer(text=f"Use !battle @player to challenge someone to a PvP battle! | {GAME_NAME}")
+    
+    await ctx.send(embed=embed)
 
 @bot.command(name="dungeon")
 async def dungeon_cmd(ctx):
@@ -602,6 +774,11 @@ async def slash_daily(interaction: discord.Interaction):
 async def slash_battle(interaction: discord.Interaction, enemy_name: str = None, enemy_level: int = None):
     ctx = await bot.get_context(interaction)
     await battle_command(ctx, enemy_name, enemy_level)
+
+@bot.tree.command(name="pvphistory", description="View your PvP battle history and stats")
+async def slash_pvp_history(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await pvp_history_command(ctx)
 
 @bot.tree.command(name="dungeon", description="Enter a dungeon")
 async def slash_dungeon(interaction: discord.Interaction):
@@ -800,6 +977,11 @@ async def _show_help(ctx, category: str = None):
                 "description": "Battle an enemy or another player",
                 "usage": "!battle [@player] OR !battle [enemy_name] [enemy_level] or /battle",
                 "notes": "PvE and PvP combat with special abilities and effects"
+            },
+            "PvP History": {
+                "description": "View your PvP battle history and stats",
+                "usage": "!pvphistory (aliases: !pvp, !pvpstats) or /pvphistory",
+                "notes": "See your win/loss record, recent battles, and cooldown status"
             },
             "Train": {
                 "description": "Train to improve your stats",
