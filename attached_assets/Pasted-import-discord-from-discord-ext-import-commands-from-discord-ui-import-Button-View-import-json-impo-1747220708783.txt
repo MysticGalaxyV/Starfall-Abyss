@@ -1,0 +1,2371 @@
+import discord
+from discord.ext import commands
+from discord.ui import Button, View
+import json
+import datetime
+import random
+import os
+from typing import Dict
+import asyncio
+
+
+# Bot setup
+intents = discord.Intents.default()
+intents.message_content = True
+def get_prefix(bot, message):
+    prefixes = ['!', f'<@{bot.user.id}> ', f'<@!{bot.user.id}> ']  # The space after mentions is important
+    return prefixes
+bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+bot.remove_command('help')
+
+@bot.event
+async def on_message(message):
+    # Respond to just the bot mention
+    if message.content.strip() == f'<@{bot.user.id}>' or message.content.strip() == f'<@!{bot.user.id}>':
+        ctx = await bot.get_context(message)
+        await help_command(ctx)
+
+    await bot.process_commands(message)
+
+class EnterDungeonButton(discord.ui.Button):
+    def __init__(self, dungeon):
+        super().__init__(label=f"⚔️ Enter {dungeon['name']}", style=dungeon["style"], custom_id=dungeon["name"])
+        self.dungeon = dungeon
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"⚔️ Entering {self.dungeon['name']}...\nPreparing for battle...", ephemeral=True)
+
+        # Simulate dungeon progression
+        for floor in range(1, self.dungeon['floors'] + 1):
+            await asyncio.sleep(1)  # Delay per floor
+            await interaction.followup.send(f"🗺️ Cleared Floor {floor}/{self.dungeon['floors']}", ephemeral=True)
+
+        # Calculate rewards
+        max_gold = self.dungeon['max_rewards']
+        max_exp = self.dungeon['exp']
+        rare_drop_chance = self.dungeon['rare_drop']
+
+        gold = random.randint(int(max_gold * 0.8), max_gold)
+        exp = random.randint(int(max_exp * 0.8), max_exp)
+        rare = random.random() < (rare_drop_chance / 100)
+
+        reward_msg = f"🎉 Dungeon Cleared!\nYou earned {gold} 🌀 and {exp} EXP."
+        if rare:
+            reward_msg += "\n✨ You found a rare item!"
+
+        await interaction.followup.send(reward_msg, ephemeral=True)
+
+class DungeonView(View):
+    def __init__(self, player_stats, enemy, timeout=30):
+        super().__init__(timeout=timeout)
+        self.result = None
+
+        # Attack Button
+        attack_btn = Button(label="Attack", emoji="⚔️", style=discord.ButtonStyle.red, custom_id="attack")
+        attack_btn.callback = self.attack_callback
+        self.add_item(attack_btn)
+
+        # Defend Button
+        defend_btn = Button(label="Defend", emoji="🛡️", style=discord.ButtonStyle.blue, custom_id="defend")
+        defend_btn.callback = self.defend_callback
+        self.add_item(defend_btn)
+
+        # Item Button
+        item_btn = Button(label="Item", emoji="🎒", style=discord.ButtonStyle.green, custom_id="item")
+        item_btn.callback = self.item_callback
+        self.add_item(item_btn)
+
+        # Run Button
+        run_btn = Button(label="Run", emoji="💨", style=discord.ButtonStyle.gray, custom_id="run")
+        run_btn.callback = self.run_callback
+        self.add_item(run_btn)
+
+    async def attack_callback(self, interaction):
+        self.result = "attack"
+        self.stop()
+        await interaction.response.defer()
+
+    async def defend_callback(self, interaction):
+        self.result = "defend"
+        self.stop()
+        await interaction.response.defer()
+
+    async def item_callback(self, interaction):
+        self.result = "item"
+        self.stop()
+        await interaction.response.defer()
+
+    async def run_callback(self, interaction):
+        self.result = "run"
+        self.stop()
+        await interaction.response.defer()
+
+class DungeonSelectView(View):
+    def __init__(self, dungeons, timeout=60):
+        super().__init__(timeout=timeout)
+        for name, data in dungeons.items():
+            btn = Button(
+                label=f"Enter {name}", 
+                style=discord.ButtonStyle.primary if data['level_req'] <= 1 else discord.ButtonStyle.secondary,
+                custom_id=name,
+                emoji="⚔️",
+                disabled=False  # Enable all buttons, we'll check level in the callback
+            )
+            btn.callback = self.dungeon_callback
+            self.add_item(btn)
+        self.selected_dungeon = None
+
+    async def dungeon_callback(self, interaction):
+        dungeon_name = interaction.data["custom_id"]
+        player = data_manager.players.get(interaction.user.id)
+        dungeon = DUNGEONS[dungeon_name]
+
+        if player.class_level < dungeon["level_req"]:
+            await interaction.response.send_message(f"❌ You need to be level {dungeon['level_req']} to enter this dungeon!", ephemeral=True)
+            return
+
+        self.selected_dungeon = dungeon_name
+        self.stop()
+        await interaction.response.defer()
+
+
+
+
+class HelpView(View):
+    def __init__(self, help_embeds, timeout=60):
+        super().__init__(timeout=timeout)
+        self.help_embeds = help_embeds
+        self.current_page = 0
+
+        # Add buttons
+        self.add_item(Button(label="◀️", custom_id="prev", style=discord.ButtonStyle.gray))
+        self.add_item(Button(label="▶️", custom_id="next", style=discord.ButtonStyle.gray))
+
+    async def interaction_check(self, interaction):
+        if interaction.data["custom_id"] == "prev":
+            self.current_page = (self.current_page - 1) % len(self.help_embeds)
+        elif interaction.data["custom_id"] == "next":
+            self.current_page = (self.current_page + 1) % len(self.help_embeds)
+
+        await interaction.response.edit_message(embed=self.help_embeds[self.current_page])
+        return True
+
+HELP_PAGES = {
+    "Basic": {
+        "Start": {
+            "description": "Begin your journey and select your class",
+            "usage": "!start"
+        },
+        "Profile": {
+            "description": "View your stats and progress",
+            "usage": "!profile"
+        },
+        "Help": {
+            "description": "Show this help message",
+            "usage": "!help [category]"
+        }
+    },
+    "Battle": {
+        "Battle": {
+            "description": "Battle another player (±2 levels)",
+            "usage": "!battle @player"
+        },
+        "Train": {
+            "description": "Train to improve your stats",
+            "usage": "!train"
+        },
+        "Status": {
+            "description": "Check your battle status",
+            "usage": "!status"
+        }
+    },
+    "Equipment": {
+        "Equipment": {
+            "description": "View your equipped items",
+            "usage": "!equipment"
+        },
+        "Shop": {
+            "description": "Browse available items",
+            "usage": "!shop"
+        },
+        "Buy": {
+            "description": "Purchase an item",
+            "usage": "!buy <item_name>"
+        }
+    },
+    "Dungeons": {
+        "Dungeon": {
+            "description": "Enter a dungeon",
+            "usage": "!dungeon [name]"
+        },
+        "Rewards": {
+            "description": "View dungeon rewards",
+            "usage": "!rewards"
+        }
+    },
+    "Guild": {
+        "Create Guild": {
+            "description": "Create a new guild",
+            "usage": "!create_guild <name>"
+        },
+        "Guild Info": {
+            "description": "View guild information",
+            "usage": "!guild"
+        },
+        "Guild Join": {
+            "description": "Join a guild",
+            "usage": "!join_guild <name>"
+        }
+    },
+    "Trading": {
+        "Trade": {
+            "description": "Start a trade with player",
+            "usage": "!trade @player"
+        },
+        "Accept": {
+            "description": "Accept a trade",
+            "usage": "!accept"
+        },
+        "Decline": {
+            "description": "Decline a trade",
+            "usage": "!decline"
+        }
+    }
+}
+
+@bot.command(name="help")
+async def help_command(ctx, category: str = None):
+    help_embeds = []
+
+    if category:
+        if category.title() in HELP_PAGES:
+            embed = discord.Embed(
+                title=f"{category.title()} Commands",
+                color=discord.Color.purple()
+            )
+
+            for cmd, data in HELP_PAGES[category.title()].items():
+                embed.add_field(
+                    name=cmd,
+                    value=f"{data['description']}\nUsage: {data['usage']}",
+                    inline=False
+                )
+            help_embeds.append(embed)
+        else:
+            await ctx.send("❌ Invalid category! Use !help to see all categories.")
+            return
+    else:
+        # Create embeds for each category
+        for category, commands in HELP_PAGES.items():
+            embed = discord.Embed(
+                title=f"{category} Commands",
+                color=discord.Color.purple()
+            )
+
+            for cmd, data in commands.items():
+                embed.add_field(
+                    name=cmd,
+                    value=f"{data['description']}\nUsage: {data['usage']}",
+                    inline=False
+                )
+
+            embed.set_footer(text=f"Page {len(help_embeds) + 1}/{len(HELP_PAGES)}")
+            help_embeds.append(embed)
+
+    view = HelpView(help_embeds)
+    await ctx.send(embed=help_embeds[0], view=view)
+    
+# Game constants
+STARTER_CLASSES = {
+    "Spirit Striker": {
+        "role": "Balanced",
+        "stats": {
+            "power": 15,
+            "defense": 10,
+            "speed": 8,
+            "hp": 100
+        },
+        "abilities": {
+            "active": "Cursed Combo",
+            "passive": "Power Scaling"
+        }
+    },
+    "Domain Tactician": {
+        "role": "Tank",
+        "stats": {
+            "power": 10,
+            "defense": 20,
+            "speed": 6,
+            "hp": 120
+        },
+        "abilities": {
+            "active": "Barrier Pulse",
+            "passive": "Damage Resistance"
+        }
+    },
+    "Flash Rogue": {
+        "role": "Assassin",
+        "stats": {
+            "power": 18,
+            "defense": 6,
+            "speed": 15,
+            "hp": 90
+        },
+        "abilities": {
+            "active": "Shadowstep",
+            "passive": "First Strike"
+        }
+    }
+}
+
+class PlayerData:
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+        self.class_name = None
+        self.class_level = 1
+        self.class_exp = 0
+        self.user_level = 1
+        self.user_exp = 0
+        self.cursed_energy = 100
+        self.unlocked_classes = []
+        self.inventory = []
+        self.achievements = []
+        self.wins = 0
+        self.losses = 0
+        self.last_daily = None
+        self.daily_streak = 0
+
+class DataManager:
+    def __init__(self):
+        self.players: Dict[int, PlayerData] = {}
+        if not os.path.exists('player_data.json'):
+            with open('player_data.json', 'w') as f:
+                json.dump({}, f)
+        self.load_data()
+
+    def save_data(self):
+        try:
+            data = {}
+            for user_id, player in self.players.items():
+                data[str(user_id)] = {
+                    "class_name": player.class_name,
+                    "class_level": player.class_level,
+                    "class_exp": player.class_exp,
+                    "user_level": player.user_level,
+                    "user_exp": player.user_exp,
+                    "cursed_energy": player.cursed_energy,
+                    "unlocked_classes": player.unlocked_classes,
+                    "inventory": player.inventory,
+                    "achievements": player.achievements,
+                    "wins": player.wins,
+                    "losses": player.losses,
+                    "last_daily": player.last_daily.isoformat() if player.last_daily else None,
+                    "daily_streak": player.daily_streak
+                }
+            with open('player_data.json', 'w') as f:
+                json.dump(data, f, indent=4)
+        except Exception as e:
+            print(f"Error saving data: {e}")
+
+    def load_data(self):
+        try:
+            with open('player_data.json', 'r') as f:
+                data = json.load(f)
+            for user_id, player_data in data.items():
+                player = PlayerData(int(user_id))
+                for attr, value in player_data.items():
+                    if attr != "last_daily":
+                        setattr(player, attr, value)
+                try:
+                    last_daily = player_data.get("last_daily")
+                    player.last_daily = datetime.datetime.fromisoformat(last_daily) if last_daily else None
+                except (TypeError, ValueError):
+                    player.last_daily = None
+                self.players[int(user_id)] = player
+        except Exception as e:
+            print(f"Error loading data: {e}")
+            self.players = {}
+
+data_manager = DataManager()
+
+@bot.event
+async def on_ready():
+    print(f'{bot.user} is ready!')
+    print('-------------------')
+
+@bot.command(name="start")
+async def start(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if player and player.class_name:
+        await ctx.send("❌ You have already started your journey!")
+        return
+
+    embed = discord.Embed(
+        title="🎮 Spirit Brawl: Legends Unleashed",
+        description="Choose your starting class:",
+        color=discord.Color.purple()
+    )
+
+    for class_name, class_data in STARTER_CLASSES.items():
+        stats = class_data["stats"]
+        abilities = class_data["abilities"]
+        embed.add_field(
+            name=f"🔮 {class_name} - {class_data['role']}",
+            value=f"Stats:\n"
+                  f"Power: {stats['power']}\n"
+                  f"Defense: {stats['defense']}\n"
+                  f"Speed: {stats['speed']}\n"
+                  f"HP: {stats['hp']}\n"
+                  f"Active: {abilities['active']}\n"
+                  f"Passive: {abilities['passive']}",
+            inline=False
+        )
+
+    msg = await ctx.send(embed=embed)
+
+    # Add reactions for class selection
+    reactions = ["1️⃣", "2️⃣", "3️⃣"]
+    for reaction in reactions:
+        await msg.add_reaction(reaction)
+
+    def check(reaction, user):
+        return user == ctx.author and str(reaction.emoji) in reactions
+
+    try:
+        reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+        class_choice = list(STARTER_CLASSES.keys())[reactions.index(str(reaction.emoji))]
+
+        player = PlayerData(ctx.author.id)
+        player.class_name = class_choice
+        player.unlocked_classes = [class_choice]
+        data_manager.players[ctx.author.id] = player
+        data_manager.save_data()
+
+        embed = discord.Embed(
+            title="✨ Class Selected!",
+            description=f"You have chosen the {class_choice} class!",
+            color=discord.Color.purple()
+        )
+        await ctx.send(embed=embed)
+
+    except TimeoutError:
+        await ctx.send("❌ Class selection timed out!")
+
+
+
+@bot.command(name="profile", aliases=["p"])
+async def profile(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    class_data = STARTER_CLASSES[player.class_name]
+    current_stats = class_data["stats"]
+
+    embed = discord.Embed(
+        title=f"📊 {ctx.author.name}'s Profile",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Class Info",
+        value=f"Class: {player.class_name}\n"
+              f"Role: {class_data['role']}\n"
+              f"Level: {player.class_level}\n"
+              f"Experience: {player.class_exp}/100",
+        inline=False
+    )
+
+    embed.add_field(
+        name="Stats",
+        value=f"Power: {current_stats['power']}\n"
+              f"Defense: {current_stats['defense']}\n"
+              f"Speed: {current_stats['speed']}\n"
+              f"HP: {current_stats['hp']}",
+        inline=True
+    )
+
+    embed.add_field(
+        name="Battle Record",
+        value=f"Wins: {player.wins}\n"
+              f"Losses: {player.losses}\n"
+              f"Cursed Energy: {player.cursed_energy} 🌀",
+        inline=True
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="battle", aliases=["b"])
+async def battle(ctx, opponent: discord.Member):
+    if opponent.bot:
+        await ctx.send("❌ You can't battle with bots!")
+        return
+
+    if opponent.id == ctx.author.id:
+        await ctx.send("❌ You can't battle yourself!")
+        return
+
+    player1 = data_manager.players.get(ctx.author.id)
+    player2 = data_manager.players.get(opponent.id)
+
+    if not player1 or not player2:
+        await ctx.send("❌ Both players need to start their journey first!")
+        return
+
+    if abs(player1.class_level - player2.class_level) > 2:
+        await ctx.send("❌ Level difference is too high! (Max ±2 levels)")
+        return
+
+    # Battle mechanics
+    p1_stats = STARTER_CLASSES[player1.class_name]["stats"]
+    p2_stats = STARTER_CLASSES[player2.class_name]["stats"]
+
+    p1_power = p1_stats["power"] * (1 + random.uniform(-0.1, 0.1))
+    p2_power = p2_stats["power"] * (1 + random.uniform(-0.1, 0.1))
+
+    # Calculate battle outcome
+    p1_total = p1_power * (p1_stats["speed"] / 10)
+    p2_total = p2_power * (p2_stats["speed"] / 10)
+
+    embed = discord.Embed(
+        title="⚔️ Battle Results",
+        color=discord.Color.purple()
+    )
+
+    # Determine winner
+    if p1_total > p2_total:
+        winner = ctx.author
+        winner_player = player1
+        loser_player = player2
+    else:
+        winner = opponent
+        winner_player = player2
+        loser_player = player1
+
+    # Update stats
+    winner_player.wins += 1
+    loser_player.losses += 1
+
+    # Rewards
+    exp_gain = random.randint(10, 20)
+    energy_gain = random.randint(20, 40)
+
+    winner_player.class_exp += exp_gain
+    winner_player.cursed_energy += energy_gain
+
+    # Level up check
+    if winner_player.class_exp >= 100:
+        winner_player.class_level += 1
+        winner_player.class_exp -= 100
+        embed.add_field(
+            name="Level Up! 🎉",
+            value=f"{winner.mention} reached level {winner_player.class_level}!",
+            inline=False
+        )
+
+    embed.add_field(
+        name="Winner",
+        value=f"{winner.mention} with {winner_player.class_name}",
+        inline=False
+    )
+
+    embed.add_field(
+        name="Rewards",
+        value=f"Experience: +{exp_gain}\n"
+              f"Cursed Energy: +{energy_gain} 🌀",
+        inline=False
+    )
+
+    data_manager.save_data()
+    await ctx.send(embed=embed)
+
+@bot.command(name="daily")
+async def daily(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    now = datetime.datetime.now()
+
+    if player.last_daily:
+        time_since_last = now - player.last_daily
+        if time_since_last.days < 1:
+            next_daily = player.last_daily + datetime.timedelta(days=1)
+            time_until = next_daily - now
+            hours, remainder = divmod(time_until.seconds, 3600)
+            minutes, _ = divmod(remainder, 60)
+            await ctx.send(f"❌ Daily reward already claimed! Next reward in: {hours}h {minutes}m")
+            return
+
+    if player.last_daily and (now - player.last_daily).days >= 2:
+        player.daily_streak = 0
+
+    player.daily_streak += 1
+    base_energy = 50
+    streak_bonus = min(player.daily_streak * 10, 100)
+    total_energy = base_energy * (1 + streak_bonus / 100)
+
+    player.cursed_energy += total_energy
+    player.last_daily = now
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="🎁 Daily Reward Claimed!",
+        description=f"Streak: {player.daily_streak} days",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Rewards",
+        value=f"Base: {base_energy} 🌀\n"
+              f"Streak Bonus: +{streak_bonus}%\n"
+              f"Total: {total_energy} 🌀",
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="leaderboard", aliases=["lb"])
+async def leaderboard(ctx):
+    players = list(data_manager.players.values())
+    players.sort(key=lambda p: p.wins, reverse=True)
+
+    embed = discord.Embed(
+        title="🏆 Leaderboard",
+        color=discord.Color.purple()
+    )
+
+    for i, player in enumerate(players[:10], 1):
+        user = await bot.fetch_user(player.user_id)
+        embed.add_field(
+            name=f"{i}. {user.name}",
+            value=f"Class: {player.class_name}\n"
+                  f"Level: {player.class_level}\n"
+                  f"Wins: {player.wins}\n"
+                  f"Cursed Energy: {player.cursed_energy} 🌀",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+# Shop items
+SHOP_ITEMS = {
+    "Power Crystal": {
+        "cost": 50,
+        "description": "Increases power by 10% for one battle",
+        "type": "battle"
+    },
+    "Defense Talisman": {
+        "cost": 50,
+        "description": "Increases defense by 10% for one battle",
+        "type": "battle"
+    },
+    "Speed Charm": {
+        "cost": 50,
+        "description": "Increases speed by 10% for one battle",
+        "type": "battle"
+    },
+    "Energy Potion": {
+        "cost": 30,
+        "description": "Restores 50 HP during battle",
+        "type": "battle"
+    }
+}
+
+@bot.command(name="shop", aliases=["s"])
+async def shop(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    embed = discord.Embed(
+        title="🏪 Spirit Shop",
+        description=f"Your Cursed Energy: {player.cursed_energy} 🌀",
+        color=discord.Color.purple()
+    )
+
+    for item_name, item_data in SHOP_ITEMS.items():
+        embed.add_field(
+            name=f"{item_name} - {item_data['cost']} 🌀",
+            value=item_data['description'],
+            inline=False
+        )
+
+    embed.set_footer(text="Use !buy <item_name> to purchase")
+    await ctx.send(embed=embed)
+
+@bot.command(name="buy")
+async def buy(ctx, *, item_name: str):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if item_name not in SHOP_ITEMS:
+        await ctx.send("❌ Item not found in shop!")
+        return
+
+    item = SHOP_ITEMS[item_name]
+    if player.cursed_energy < item["cost"]:
+        await ctx.send("❌ Not enough Cursed Energy!")
+        return
+
+    player.cursed_energy -= item["cost"]
+    player.inventory.append(item_name)
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="🛍️ Item Purchased!",
+        description=f"You bought {item_name} for {item['cost']} 🌀",
+        color=discord.Color.purple()
+    )
+    embed.add_field(
+        name="Remaining Cursed Energy",
+        value=f"{player.cursed_energy} 🌀"
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="inventory", aliases=["inv", "i"])
+async def inventory(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    embed = discord.Embed(
+        title="🎒 Inventory",
+        description=f"Cursed Energy: {player.cursed_energy} 🌀",
+        color=discord.Color.purple()
+    )
+
+    if not player.inventory:
+        embed.add_field(name="Empty", value="No items yet!")
+    else:
+        item_counts = {}
+        for item in player.inventory:
+            item_counts[item] = item_counts.get(item, 0) + 1
+
+        for item, count in item_counts.items():
+            embed.add_field(
+                name=f"{item} x{count}",
+                value=SHOP_ITEMS[item]["description"],
+                inline=False
+            )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="use")
+async def use_item(ctx, *, item_name: str):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if item_name not in player.inventory:
+        await ctx.send("❌ You don't have this item!")
+        return
+
+    # Remove item from inventory
+    player.inventory.remove(item_name)
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="✨ Item Used!",
+        description=f"Used {item_name}\n{SHOP_ITEMS[item_name]['description']}",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="classes", aliases=["c"])
+async def classes(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    embed = discord.Embed(
+        title="🎭 Available Classes",
+        description=f"Current Class: {player.class_name}",
+        color=discord.Color.purple()
+    )
+
+    for class_name, class_data in STARTER_CLASSES.items():
+        status = "✅ Unlocked" if class_name in player.unlocked_classes else "🔒 Locked"
+        embed.add_field(
+            name=f"{class_name} ({status})",
+            value=f"Role: {class_data['role']}\n"
+                  f"Power: {class_data['stats']['power']}\n"
+                  f"Defense: {class_data['stats']['defense']}\n"
+                  f"Speed: {class_data['stats']['speed']}\n"
+                  f"HP: {class_data['stats']['hp']}",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="switch", aliases=["sw"])
+async def switch_class(ctx, *, class_name: str):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if class_name not in STARTER_CLASSES:
+        await ctx.send("❌ Invalid class name!")
+        return
+
+    if class_name not in player.unlocked_classes:
+        await ctx.send("❌ You haven't unlocked this class yet!")
+        return
+
+    player.class_name = class_name
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="🔄 Class Switched!",
+        description=f"You are now a {class_name}!",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+# Achievement System
+ACHIEVEMENTS = {
+    "Battle Novice": {
+        "description": "Win your first battle",
+        "reward": 100,
+        "condition": lambda p: p.wins >= 1
+    },
+    "Battle Master": {
+        "description": "Win 10 battles",
+        "reward": 500,
+        "condition": lambda p: p.wins >= 10
+    },
+    "Collector": {
+        "description": "Collect 10 different items",
+        "reward": 300,
+        "condition": lambda p: len(set(p.inventory)) >= 10
+    },
+    "Energy Master": {
+        "description": "Accumulate 1000 Cursed Energy",
+        "reward": 200,
+        "condition": lambda p: p.cursed_energy >= 1000
+    },
+    "Class Expert": {
+        "description": "Reach level 10 with any class",
+        "reward": 1000,
+        "condition": lambda p: p.class_level >= 10
+    }
+}
+
+@bot.command(name="achievements", aliases=["ach"])
+async def achievements(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    embed = discord.Embed(
+        title="🏆 Achievements",
+        description="Your accomplished feats",
+        color=discord.Color.purple()
+    )
+
+    for ach_name, ach_data in ACHIEVEMENTS.items():
+        completed = ach_data["condition"](player)
+        status = "✅ Completed" if completed else "❌ Incomplete"
+        embed.add_field(
+            name=f"{ach_name} - {status}",
+            value=f"{ach_data['description']}\nReward: {ach_data['reward']} 🌀",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+# Enhanced Battle System
+class BattleState:
+    def __init__(self, player1, player2):
+        self.player1 = player1
+        self.player2 = player2
+        self.p1_hp = STARTER_CLASSES[player1.class_name]["stats"]["hp"]
+        self.p2_hp = STARTER_CLASSES[player2.class_name]["stats"]["hp"]
+        self.turn = 1
+        self.combo_counter = {player1.user_id: 0, player2.user_id: 0}
+
+@bot.command(name="duel")
+async def duel(ctx, opponent: discord.Member):
+    if opponent.bot:
+        await ctx.send("❌ You can't duel with bots!")
+        return
+
+    if opponent.id == ctx.author.id:
+        await ctx.send("❌ You can't duel yourself!")
+        return
+
+    player1 = data_manager.players.get(ctx.author.id)
+    player2 = data_manager.players.get(opponent.id)
+
+    if not player1 or not player2:
+        await ctx.send("❌ Both players need to start their journey first!")
+        return
+
+    battle = BattleState(player1, player2)
+
+    embed = discord.Embed(
+        title="⚔️ Spirit Duel",
+        description=f"{ctx.author.mention} vs {opponent.mention}",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name=f"{player1.class_name}",
+        value=f"HP: {battle.p1_hp}/{STARTER_CLASSES[player1.class_name]['stats']['hp']}",
+        inline=True
+    )
+
+    embed.add_field(
+        name=f"{player2.class_name}",
+        value=f"HP: {battle.p2_hp}/{STARTER_CLASSES[player2.class_name]['stats']['hp']}",
+        inline=True
+    )
+
+    battle_msg = await ctx.send(embed=embed)
+
+    # Add reaction controls
+    actions = ["⚔️", "🛡️", "💨", "🎒"]
+    for action in actions:
+        await battle_msg.add_reaction(action)
+
+    def check(reaction, user):
+        return user.id in [ctx.author.id, opponent.id] and str(reaction.emoji) in actions
+
+    try:
+        while battle.p1_hp > 0 and battle.p2_hp > 0:
+            reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+
+            current_player = player1 if user.id == ctx.author.id else player2
+            other_player = player2 if user.id == ctx.author.id else player1
+
+            damage = 0
+            action_name = ""
+
+            if str(reaction.emoji) == "⚔️":
+                damage = STARTER_CLASSES[current_player.class_name]["stats"]["power"]
+                action_name = "Attack"
+            elif str(reaction.emoji) == "🛡️":
+                damage = -STARTER_CLASSES[current_player.class_name]["stats"]["defense"]
+                action_name = "Defend"
+            elif str(reaction.emoji) == "💨":
+                damage = STARTER_CLASSES[current_player.class_name]["stats"]["speed"] // 2
+                action_name = "Quick Strike"
+            elif str(reaction.emoji) == "🎒":
+                if current_player.inventory:
+                    embed = discord.Embed(
+                        title="🎒 Use Item",
+                        description="Choose an item to use",
+                        color=discord.Color.purple()
+                    )
+                    await ctx.send(embed=embed)
+                    continue
+
+            if user.id == ctx.author.id:
+                battle.p2_hp -= damage
+            else:
+                battle.p1_hp -= damage
+
+            embed = discord.Embed(
+                title="⚔️ Spirit Duel",
+                description=f"{user.mention} used {action_name}!",
+                color=discord.Color.purple()
+            )
+
+            embed.add_field(
+                name=f"{player1.class_name}",
+                value=f"HP: {battle.p1_hp}/{STARTER_CLASSES[player1.class_name]['stats']['hp']}",
+                inline=True
+            )
+
+            embed.add_field(
+                name=f"{player2.class_name}",
+                value=f"HP: {battle.p2_hp}/{STARTER_CLASSES[player2.class_name]['stats']['hp']}",
+                inline=True
+            )
+
+            await battle_msg.edit(embed=embed)
+
+        # Determine winner
+        winner = ctx.author if battle.p2_hp <= 0 else opponent
+        winner_player = player1 if winner == ctx.author else player2
+
+        # Update stats and rewards
+        winner_player.wins += 1
+        winner_player.cursed_energy += 50
+        winner_player.class_exp += 20
+
+        if winner_player.class_exp >= 100:
+            winner_player.class_level += 1
+            winner_player.class_exp -= 100
+
+        data_manager.save_data()
+
+        embed = discord.Embed(
+            title="🏆 Duel Complete!",
+            description=f"{winner.mention} wins!",
+            color=discord.Color.purple()
+        )
+
+        embed.add_field(
+            name="Rewards",
+            value="Cursed Energy: +50 🌀\nExperience: +20",
+            inline=False
+        )
+
+        await ctx.send(embed=embed)
+
+    except TimeoutError:
+        await ctx.send("⏰ Duel timed out!")
+
+# Class-specific abilities
+CLASS_ABILITIES = {
+    "Spirit Striker": {
+        "Spirit Rush": {
+            "description": "A powerful rushing attack that deals bonus damage based on combo count",
+            "damage_multiplier": 1.5,
+            "combo_bonus": 0.2,
+            "cooldown": 3
+        },
+        "Spirit Shield": {
+            "description": "Creates a protective barrier that reduces incoming damage",
+            "defense_boost": 1.3,
+            "duration": 2,
+            "cooldown": 4
+        }
+    },
+    "Domain Tactician": {
+        "Domain Expansion": {
+            "description": "Creates a domain that boosts defense and healing",
+            "defense_boost": 1.4,
+            "healing": 20,
+            "cooldown": 5
+        },
+        "Tactical Strike": {
+            "description": "A precise attack that ignores enemy defense",
+            "base_damage": 30,
+            "cooldown": 3
+        }
+    },
+    "Flash Rogue": {
+        "Shadow Step": {
+            "description": "Dodge the next attack and counter with increased damage",
+            "counter_multiplier": 1.6,
+            "cooldown": 4
+        },
+        "Rapid Strike": {
+            "description": "Multiple quick attacks that build combo faster",
+            "hits": 3,
+            "damage_per_hit": 15,
+            "cooldown": 3
+        }
+    }
+}
+
+class CombatState:
+    def __init__(self, player1, player2):
+        self.player1 = player1
+        self.player2 = player2
+        self.p1_hp = STARTER_CLASSES[player1.class_name]["stats"]["hp"]
+        self.p2_hp = STARTER_CLASSES[player2.class_name]["stats"]["hp"]
+        self.p1_combo = 0
+        self.p2_combo = 0
+        self.p1_cooldowns = {ability: 0 for ability in CLASS_ABILITIES[player1.class_name]}
+        self.p2_cooldowns = {ability: 0 for ability in CLASS_ABILITIES[player2.class_name]}
+        self.turn = 1
+
+@bot.command(name="abilities", aliases=["ab"])
+async def abilities(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    embed = discord.Embed(
+        title="✨ Class Abilities",
+        description=f"Abilities for {player.class_name}",
+        color=discord.Color.purple()
+    )
+
+    for ability_name, ability_data in CLASS_ABILITIES[player.class_name].items():
+        embed.add_field(
+            name=ability_name,
+            value=f"{ability_data['description']}\nCooldown: {ability_data['cooldown']} turns",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="combat")
+async def combat(ctx, opponent: discord.Member):
+    if opponent.bot:
+        await ctx.send("❌ You can't fight bots!")
+        return
+
+    if opponent.id == ctx.author.id:
+        await ctx.send("❌ You can't fight yourself!")
+        return
+
+    player1 = data_manager.players.get(ctx.author.id)
+    player2 = data_manager.players.get(opponent.id)
+
+    if not player1 or not player2:
+        await ctx.send("❌ Both players need to start their journey first!")
+        return
+
+    combat = CombatState(player1, player2)
+
+    embed = discord.Embed(
+        title="⚔️ Spirit Combat",
+        description=f"{ctx.author.mention} vs {opponent.mention}",
+        color=discord.Color.purple()
+    )
+
+    # Initial state display
+    embed.add_field(
+        name=f"{player1.class_name}",
+        value=f"HP: {combat.p1_hp}\nCombo: {combat.p1_combo}",
+        inline=True
+    )
+    embed.add_field(
+        name=f"{player2.class_name}",
+        value=f"HP: {combat.p2_hp}\nCombo: {combat.p2_combo}",
+        inline=True
+    )
+
+    battle_msg = await ctx.send(embed=embed)
+
+    # Add reaction controls for basic actions and abilities
+    basic_actions = ["⚔️", "🛡️", "💨"]
+    for action in basic_actions:
+        await battle_msg.add_reaction(action)
+
+    # Add custom reactions for abilities
+    ability_emojis = ["1️⃣", "2️⃣"]
+    for emoji in ability_emojis:
+        await battle_msg.add_reaction(emoji)
+
+    def check(reaction, user):
+        return user.id in [ctx.author.id, opponent.id] and str(reaction.emoji) in basic_actions + ability_emojis
+
+    async def update_combat_display():
+        embed = discord.Embed(
+            title="⚔️ Spirit Combat",
+            description=f"Turn {combat.turn}",
+            color=discord.Color.purple()
+        )
+
+        embed.add_field(
+            name=f"{player1.class_name}",
+            value=f"HP: {combat.p1_hp}\nCombo: {combat.p1_combo}",
+            inline=True
+        )
+        embed.add_field(
+            name=f"{player2.class_name}",
+            value=f"HP: {combat.p2_hp}\nCombo: {combat.p2_combo}",
+            inline=True
+        )
+
+        await battle_msg.edit(embed=embed)
+
+    try:
+        while combat.p1_hp > 0 and combat.p2_hp > 0:
+            # Update cooldowns
+            for cooldowns in [combat.p1_cooldowns, combat.p2_cooldowns]:
+                for ability in cooldowns:
+                    if cooldowns[ability] > 0:
+                        cooldowns[ability] -= 1
+
+            reaction, user = await bot.wait_for('reaction_add', timeout=30.0, check=check)
+
+            current_player = player1 if user.id == ctx.author.id else player2
+            other_player = player2 if user.id == ctx.author.id else player1
+
+            # Handle action
+            if str(reaction.emoji) in basic_actions:
+                damage = 0
+                if str(reaction.emoji) == "⚔️":
+                    damage = STARTER_CLASSES[current_player.class_name]["stats"]["power"]
+                    if user.id == ctx.author.id:
+                        combat.p1_combo += 1
+                    else:
+                        combat.p2_combo += 1
+                elif str(reaction.emoji) == "🛡️":
+                    damage = -STARTER_CLASSES[current_player.class_name]["stats"]["defense"] // 2
+                elif str(reaction.emoji) == "💨":
+                    damage = STARTER_CLASSES[current_player.class_name]["stats"]["speed"] // 2
+                    if user.id == ctx.author.id:
+                        combat.p1_combo += 1
+                    else:
+                        combat.p2_combo += 1
+
+                if user.id == ctx.author.id:
+                    combat.p2_hp -= damage
+                else:
+                    combat.p1_hp -= damage
+
+            # Handle abilities
+            elif str(reaction.emoji) in ability_emojis:
+                ability_index = ability_emojis.index(str(reaction.emoji))
+                ability_name = list(CLASS_ABILITIES[current_player.class_name].keys())[ability_index]
+                ability_data = CLASS_ABILITIES[current_player.class_name][ability_name]
+
+                cooldowns = combat.p1_cooldowns if user.id == ctx.author.id else combat.p2_cooldowns
+
+                if cooldowns[ability_name] > 0:
+                    await ctx.send(f"❌ {ability_name} is on cooldown for {cooldowns[ability_name]} more turns!")
+                    continue
+
+                # Apply ability effects
+                cooldowns[ability_name] = ability_data["cooldown"]
+
+                damage = 0
+                if "damage_multiplier" in ability_data:
+                    damage = STARTER_CLASSES[current_player.class_name]["stats"]["power"] * ability_data["damage_multiplier"]
+                elif "base_damage" in ability_data:
+                    damage = ability_data["base_damage"]
+
+                if user.id == ctx.author.id:
+                    combat.p2_hp -= damage
+                    combat.p1_combo += 2
+                else:
+                    combat.p1_hp -= damage
+                    combat.p2_combo += 2
+
+            await update_combat_display()
+            combat.turn += 1
+
+        # Determine winner
+        winner = ctx.author if combat.p2_hp <= 0 else opponent
+        winner_player = player1 if winner == ctx.author else player2
+
+        # Calculate rewards based on combo
+        max_combo = combat.p1_combo if winner == ctx.author else combat.p2_combo
+        bonus_energy = max_combo * 5
+        bonus_exp = max_combo * 2
+
+        winner_player.wins += 1
+        winner_player.cursed_energy += 50 + bonus_energy
+        winner_player.class_exp += 20 + bonus_exp
+
+        if winner_player.class_exp >= 100:
+            winner_player.class_level += 1
+            winner_player.class_exp -= 100
+
+        data_manager.save_data()
+
+        embed = discord.Embed(
+            title="🏆 Combat Complete!",
+            description=f"{winner.mention} wins!",
+            color=discord.Color.purple()
+        )
+
+        embed.add_field(
+            name="Rewards",
+            value=f"Base Rewards:\n"
+                  f"Cursed Energy: +50 🌀\n"
+                  f"Experience: +20\n\n"
+                  f"Combo Bonus:\n"
+                  f"Cursed Energy: +{bonus_energy} 🌀\n"
+                  f"Experience: +{bonus_exp}",
+            inline=False
+        )
+
+        await ctx.send(embed=embed)
+
+    except TimeoutError:
+        await ctx.send("⏰ Combat timed out!")
+
+
+# Training System
+TRAINING_EXERCISES = {
+    "Meditation": {
+        "cost": 30,
+        "exp_gain": 15,
+        "stat_boost": "power",
+        "boost_amount": 2,
+        "duration": 3  # battles
+    },
+    "Spirit Control": {
+        "cost": 30,
+        "exp_gain": 15,
+        "stat_boost": "defense",
+        "boost_amount": 2,
+        "duration": 3
+    },
+    "Energy Flow": {
+        "cost": 30,
+        "exp_gain": 15,
+        "stat_boost": "speed",
+        "boost_amount": 2,
+        "duration": 3
+    }
+}
+
+# Special Events
+EVENTS = {
+    "Blood Moon": {
+        "description": "The Blood Moon increases all damage by 30%",
+        "duration": 10  # minutes
+    },
+    "Spirit Storm": {
+        "description": "A storm of spiritual energy grants double exp",
+        "duration": 10
+    },
+    "Energy Surge": {
+        "description": "Cursed Energy gains are doubled",
+        "duration": 10
+    }
+}
+
+@bot.command(name="train", aliases=["tr"])
+async def train(ctx, *, exercise: str = None):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if not exercise:
+        embed = discord.Embed(
+            title="🎯 Training Grounds",
+            description="Available exercises:",
+            color=discord.Color.purple()
+        )
+
+        for ex_name, ex_data in TRAINING_EXERCISES.items():
+            embed.add_field(
+                name=ex_name,
+                value=f"Cost: {ex_data['cost']} 🌀\n"
+                      f"EXP Gain: {ex_data['exp_gain']}\n"
+                      f"Boosts: {ex_data['stat_boost'].title()}\n"
+                      f"Duration: {ex_data['duration']} battles",
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
+        return
+
+    if exercise not in TRAINING_EXERCISES:
+        await ctx.send("❌ Invalid exercise! Use !train to see available exercises.")
+        return
+
+    exercise_data = TRAINING_EXERCISES[exercise]
+
+    if player.cursed_energy < exercise_data["cost"]:
+        await ctx.send("❌ Not enough Cursed Energy!")
+        return
+
+    player.cursed_energy -= exercise_data["cost"]
+    player.class_exp += exercise_data["exp_gain"]
+
+    # Check for level up
+    if player.class_exp >= 100:
+        player.class_level += 1
+        player.class_exp -= 100
+        level_up_text = f"\nLevel Up! You are now level {player.class_level}!"
+    else:
+        level_up_text = ""
+
+    # Add temporary stat boost
+    if not hasattr(player, 'active_boosts'):
+        player.active_boosts = []
+
+    player.active_boosts.append({
+        "stat": exercise_data["stat_boost"],
+        "amount": exercise_data["boost_amount"],
+        "duration": exercise_data["duration"]
+    })
+
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="🎯 Training Complete!",
+        description=f"You completed {exercise} training!{level_up_text}",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Results",
+        value=f"EXP Gained: {exercise_data['exp_gain']}\n"
+              f"Stat Boost: +{exercise_data['boost_amount']} {exercise_data['stat_boost'].title()}\n"
+              f"Duration: {exercise_data['duration']} battles\n"
+              f"Remaining Energy: {player.cursed_energy} 🌀",
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
+# Event system
+import asyncio
+import random
+
+async def run_event():
+    while True:
+        # Random chance to trigger event every 30 minutes
+        if random.random() < 0.3:  # 30% chance
+            event_name = random.choice(list(EVENTS.keys()))
+            event_data = EVENTS[event_name]
+
+            embed = discord.Embed(
+                title=f"🌟 Special Event: {event_name}",
+                description=event_data["description"],
+                color=discord.Color.purple()
+            )
+
+            embed.add_field(
+                name="Duration",
+                value=f"{event_data['duration']} minutes",
+                inline=False
+            )
+
+            # Store event in bot's state
+            bot.current_event = {
+                "name": event_name,
+                "end_time": datetime.datetime.now() + datetime.timedelta(minutes=event_data["duration"])
+            }
+
+            # Send to all active channels (you'll need to track these)
+            # For now, we'll just store the last used channel
+            if hasattr(bot, 'last_channel'):
+                await bot.last_channel.send(embed=embed)
+
+        await asyncio.sleep(1800)  # 30 minutes
+
+@bot.event
+async def on_message(message):
+    # Store last active channel for events
+    bot.last_channel = message.channel
+    await bot.process_commands(message)
+
+@bot.command(name="event")
+async def check_event(ctx):
+    if hasattr(bot, 'current_event'):
+        if bot.current_event["end_time"] > datetime.datetime.now():
+            time_left = bot.current_event["end_time"] - datetime.datetime.now()
+            minutes_left = int(time_left.total_seconds() / 60)
+
+            embed = discord.Embed(
+                title=f"🌟 Active Event: {bot.current_event['name']}",
+                description=EVENTS[bot.current_event['name']]["description"],
+                color=discord.Color.purple()
+            )
+
+            embed.add_field(
+                name="Time Remaining",
+                value=f"{minutes_left} minutes",
+                inline=False
+            )
+
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("No active events right now!")
+    else:
+        await ctx.send("No active events right now!")
+
+# Start event loop
+@bot.event
+async def on_ready():
+    print(f'{bot.user} is ready!')
+    print('-------------------')
+    bot.loop.create_task(run_event())
+
+# Equipment System
+EQUIPMENT_SLOTS = ["Weapon", "Armor", "Accessory"]
+
+EQUIPMENT = {
+    "Weapon": {
+        "Spirit Blade": {
+            "power": 15,
+            "rarity": "Common",
+            "cost": 200,
+            "passive": "5% chance to deal double damage"
+        },
+        "Soul Reaver": {
+            "power": 25,
+            "rarity": "Rare",
+            "cost": 500,
+            "passive": "Lifesteal 10% of damage dealt"
+        },
+        "Ethereal Katana": {
+            "power": 40,
+            "rarity": "Epic",
+            "cost": 1000,
+            "passive": "20% chance to ignore defense"
+        }
+    },
+    "Armor": {
+        "Spirit Robe": {
+            "defense": 10,
+            "rarity": "Common",
+            "cost": 200,
+            "passive": "5% damage reduction"
+        },
+        "Soul Guard": {
+            "defense": 20,
+            "rarity": "Rare",
+            "cost": 500,
+            "passive": "Reflect 10% damage"
+        },
+        "Ethereal Plate": {
+            "defense": 35,
+            "rarity": "Epic",
+            "cost": 1000,
+            "passive": "Heal 5% HP each turn"
+        }
+    },
+    "Accessory": {
+        "Spirit Ring": {
+            "speed": 5,
+            "rarity": "Common",
+            "cost": 200,
+            "passive": "5% increased exp gain"
+        },
+        "Soul Pendant": {
+            "speed": 10,
+            "rarity": "Rare",
+            "cost": 500,
+            "passive": "10% increased cursed energy gain"
+        },
+        "Ethereal Crown": {
+            "speed": 15,
+            "rarity": "Epic",
+            "cost": 1000,
+            "passive": "15% chance to dodge attacks"
+        }
+    }
+}
+
+@bot.command(name="equipment", aliases=["eq"])
+async def equipment(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if not hasattr(player, 'equipment'):
+        player.equipment = {slot: None for slot in EQUIPMENT_SLOTS}
+
+    embed = discord.Embed(
+        title="🛡️ Equipment",
+        description=f"{ctx.author.name}'s equipped items",
+        color=discord.Color.purple()
+    )
+
+    for slot in EQUIPMENT_SLOTS:
+        equipped = player.equipment[slot]
+        if equipped:
+            item_data = EQUIPMENT[slot][equipped]
+            stats = []
+            for stat, value in item_data.items():
+                if stat not in ['rarity', 'cost', 'passive']:
+                    stats.append(f"{stat.title()}: +{value}")
+
+            embed.add_field(
+                name=f"{slot}: {equipped} ({item_data['rarity']})",
+                value=f"Stats: {', '.join(stats)}\nPassive: {item_data['passive']}",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name=slot,
+                value="Nothing equipped",
+                inline=False
+            )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="shop_equipment", aliases=["se"])
+async def shop_equipment(ctx, slot: str = None):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if slot and slot.title() not in EQUIPMENT_SLOTS:
+        await ctx.send(f"❌ Invalid slot! Available slots: {', '.join(EQUIPMENT_SLOTS)}")
+        return
+
+    embed = discord.Embed(
+        title="🏪 Equipment Shop",
+        description=f"Your Cursed Energy: {player.cursed_energy} 🌀",
+        color=discord.Color.purple()
+    )
+
+    slots_to_show = [slot.title()] if slot else EQUIPMENT_SLOTS
+
+    for slot in slots_to_show:
+        for item_name, item_data in EQUIPMENT[slot].items():
+            stats = []
+            for stat, value in item_data.items():
+                if stat not in ['rarity', 'cost', 'passive']:
+                    stats.append(f"{stat.title()}: +{value}")
+
+            embed.add_field(
+                name=f"{item_name} ({item_data['rarity']}) - {item_data['cost']} 🌀",
+                value=f"Slot: {slot}\nStats: {', '.join(stats)}\nPassive: {item_data['passive']}",
+                inline=False
+            )
+
+    embed.set_footer(text="Use !buy_equipment <item_name> to purchase")
+    await ctx.send(embed=embed)
+
+@bot.command(name="buy_equipment", aliases=["be"])
+async def buy_equipment(ctx, *, item_name: str):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    # Find the item in equipment
+    found_slot = None
+    item_data = None
+    for slot, items in EQUIPMENT.items():
+        if item_name in items:
+            found_slot = slot
+            item_data = items[item_name]
+            break
+
+    if not item_data:
+        await ctx.send("❌ Item not found!")
+        return
+
+    if player.cursed_energy < item_data["cost"]:
+        await ctx.send("❌ Not enough Cursed Energy!")
+        return
+
+    if not hasattr(player, 'equipment'):
+        player.equipment = {slot: None for slot in EQUIPMENT_SLOTS}
+
+    player.cursed_energy -= item_data["cost"]
+    player.equipment[found_slot] = item_name
+    data_manager.save_data()
+
+    embed = discord.Embed(
+        title="🛍️ Equipment Purchased!",
+        description=f"You bought {item_name} for {item_data['cost']} 🌀",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Item Details",
+        value=f"Slot: {found_slot}\nRarity: {item_data['rarity']}\nPassive: {item_data['passive']}",
+        inline=False
+    )
+
+    embed.add_field(
+        name="Remaining Cursed Energy",
+        value=f"{player.cursed_energy} 🌀",
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
+# Update battle system to include equipment stats and passives
+def calculate_stats(player):
+    base_stats = STARTER_CLASSES[player.class_name]["stats"].copy()
+
+    if hasattr(player, 'equipment'):
+        for slot, item_name in player.equipment.items():
+            if item_name:
+                item_data = EQUIPMENT[slot][item_name]
+                for stat, value in item_data.items():
+                    if stat not in ['rarity', 'cost', 'passive']:
+                        base_stats[stat] = base_stats.get(stat, 0) + value
+
+    return base_stats
+
+# Update the combat system to use calculate_stats()
+# Add passive ability checks in the combat loop
+
+# Quest System
+QUEST_TYPES = {
+    "Daily": {
+        "Win Battles": {
+            "description": "Win {count} battles today",
+            "required": 3,
+            "reward_energy": 100,
+            "reward_exp": 50
+        },
+        "Train": {
+            "description": "Complete {count} training sessions",
+            "required": 2,
+            "reward_energy": 80,
+            "reward_exp": 40
+        },
+        "Use Abilities": {
+            "description": "Use class abilities {count} times",
+            "required": 5,
+            "reward_energy": 90,
+            "reward_exp": 45
+        }
+    },
+    "Weekly": {
+        "Reach Combo": {
+            "description": "Reach a {count}x combo in battle",
+            "required": 10,
+            "reward_energy": 300,
+            "reward_exp": 150
+        },
+        "Equipment": {
+            "description": "Obtain {count} new equipment pieces",
+            "required": 2,
+            "reward_energy": 400,
+            "reward_exp": 200
+        }
+    },
+    "Achievement": {
+        "Battle Master": {
+            "description": "Win {count} total battles",
+            "required": 50,
+            "reward_energy": 1000,
+            "reward_exp": 500,
+            "title_reward": "Battle Master"
+        },
+        "Collector": {
+            "description": "Collect {count} different equipment pieces",
+            "required": 10,
+            "reward_energy": 800,
+            "reward_exp": 400,
+            "title_reward": "Collector"
+        }
+    }
+}
+
+# Rankings System
+class Rankings:
+    def __init__(self):
+        self.season_start = datetime.datetime.now()
+        self.season_end = self.season_start + datetime.timedelta(days=30)
+        self.rankings = {
+            "Battle": [],  # Based on wins
+            "Collection": [],  # Based on equipment collected
+            "Power": []  # Based on total stats
+        }
+
+@bot.command(name="quests", aliases=["q"])
+async def quests(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if not hasattr(player, 'quests'):
+        player.quests = {
+            "Daily": {},
+            "Weekly": {},
+            "Achievement": {}
+        }
+        player.quest_progress = {}
+
+    embed = discord.Embed(
+        title="📜 Quests",
+        description="Your active quests",
+        color=discord.Color.purple()
+    )
+
+    for quest_type, quests in QUEST_TYPES.items():
+        quest_list = []
+        for quest_name, quest_data in quests.items():
+            progress = player.quest_progress.get(quest_name, 0)
+            status = "✅" if progress >= quest_data["required"] else "❌"
+            quest_list.append(
+                f"{status} {quest_data['description'].format(count=quest_data['required'])}\n"
+                f"Progress: {progress}/{quest_data['required']}\n"
+                f"Rewards: {quest_data['reward_energy']}🌀, {quest_data['reward_exp']}EXP"
+            )
+
+        if quest_list:
+            embed.add_field(
+                name=quest_type,
+                value="\n\n".join(quest_list),
+                inline=False
+            )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="rankings", aliases=["rank"])
+async def show_rankings(ctx, category: str = "Battle"):
+    if category not in ["Battle", "Collection", "Power"]:
+        await ctx.send("❌ Invalid category! Choose from: Battle, Collection, Power")
+        return
+
+    # Calculate rankings
+    players = list(data_manager.players.values())
+
+    if category == "Battle":
+        players.sort(key=lambda p: p.wins, reverse=True)
+    elif category == "Collection":
+        players.sort(key=lambda p: len(getattr(p, 'equipment', {}).values()), reverse=True)
+    else:  # Power
+        players.sort(key=lambda p: sum(calculate_stats(p).values()), reverse=True)
+
+    embed = discord.Embed(
+        title=f"🏆 {category} Rankings",
+        description="Top Players",
+        color=discord.Color.purple()
+    )
+
+    for i, player in enumerate(players[:10], 1):
+        user = await bot.fetch_user(player.user_id)
+        if category == "Battle":
+            value = f"Wins: {player.wins}"
+        elif category == "Collection":
+            value = f"Items: {len(getattr(player, 'equipment', {}).values())}"
+        else:
+            value = f"Power: {sum(calculate_stats(player).values())}"
+
+        embed.add_field(
+            name=f"{i}. {user.name}",
+            value=f"Class: {player.class_name}\nLevel: {player.class_level}\n{value}",
+            inline=False
+        )
+
+    # Add season info
+    rankings = Rankings()
+    time_left = rankings.season_end - datetime.datetime.now()
+    days_left = time_left.days
+
+    embed.set_footer(text=f"Season ends in {days_left} days")
+    await ctx.send(embed=embed)
+
+# Update quest progress after battles
+async def update_quest_progress(player, quest_type, amount=1):
+    if not hasattr(player, 'quests'):
+        player.quests = {
+            "Daily": {},
+            "Weekly": {},
+            "Achievement": {}
+        }
+        player.quest_progress = {}
+
+    player.quest_progress[quest_type] = player.quest_progress.get(quest_type, 0) + amount
+
+    # Check for completion
+    quest_data = QUEST_TYPES.get(quest_type)
+    if quest_data and player.quest_progress[quest_type] >= quest_data["required"]:
+        if quest_type not in player.quests:
+            player.cursed_energy += quest_data["reward_energy"]
+            player.class_exp += quest_data["reward_exp"]
+            player.quests[quest_type] = True
+
+            if "title_reward" in quest_data:
+                if not hasattr(player, 'titles'):
+                    player.titles = []
+                player.titles.append(quest_data["title_reward"])
+
+            return True
+    return False
+
+# Add to combat system to update quests
+# Add after successful combat:
+"""
+await update_quest_progress(winner_player, "Win Battles")
+if winner_player.combo >= 10:
+    await update_quest_progress(winner_player, "Reach Combo")
+"""
+
+# Dungeon System
+DUNGEONS = {
+    "Spirit Realm": {
+        "level_req": 1,
+        "floors": 5,
+        "enemies": ["Spirit Scout", "Spirit Warrior", "Spirit Elite", "Spirit Champion", "Spirit Lord"],
+        "rewards": {
+            "energy": [50, 100, 150, 200, 300],
+            "exp": [25, 50, 75, 100, 150],
+            "rare_drop_chance": 0.1
+        }
+    },
+    "Shadow Domain": {
+        "level_req": 10,
+        "floors": 5,
+        "enemies": ["Shadow Lurker", "Shadow Hunter", "Shadow Assassin", "Shadow Master", "Shadow King"],
+        "rewards": {
+            "energy": [100, 200, 300, 400, 600],
+            "exp": [50, 100, 150, 200, 300],
+            "rare_drop_chance": 0.2
+        }
+    }
+}
+
+# Guild System
+class Guild:
+    def __init__(self, name, leader_id):
+        self.name = name
+        self.leader_id = leader_id
+        self.members = {leader_id: "Leader"}
+        self.level = 1
+        self.exp = 0
+        self.treasury = 0
+        self.buffs = []
+
+GUILD_BUFFS = {
+    "Spirit Blessing": {
+        "cost": 1000,
+        "effect": "All members gain 10% more exp",
+        "duration": 24  # hours
+    },
+    "Energy Flow": {
+        "cost": 1000,
+        "effect": "All members gain 10% more cursed energy",
+        "duration": 24
+    }
+}
+
+@bot.command(name="dungeon", aliases=["d"])
+async def dungeon(ctx, *, dungeon_name: str = None):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if not dungeon_name:
+        embed = discord.Embed(
+            title="🏰 Available Dungeons",
+            description="Click a button to enter a dungeon",
+            color=discord.Color.purple()
+        )
+
+        for name, data in DUNGEONS.items():
+            embed.add_field(
+                name=f"{name} (Level {data['level_req']}+)",
+                value=f"```\nFloors: {data['floors']}\n"
+                      f"Max Rewards: {data['rewards']['energy'][-1]} 🌀, {data['rewards']['exp'][-1]} EXP\n"
+                      f"Rare Drop: {int(data['rewards']['rare_drop_chance']*100)}%```",
+                inline=False
+            )
+
+        view = DungeonSelectView(DUNGEONS)
+        msg = await ctx.send(embed=embed, view=view)
+
+        try:
+            await view.wait()
+            if view.selected_dungeon:
+                dungeon_name = view.selected_dungeon
+            else:
+                await msg.edit(content="⏰ Selection timed out!", embed=None, view=None)
+                return
+        except Exception as e:
+            await ctx.send("❌ An error occurred while selecting the dungeon.")
+            return
+
+
+    if dungeon_name not in DUNGEONS:
+        await ctx.send("❌ Invalid dungeon name!")
+        return
+
+    dungeon = DUNGEONS[dungeon_name]
+    if player.class_level < dungeon["level_req"]:
+        await ctx.send(f"❌ You need to be level {dungeon['level_req']} to enter this dungeon!")
+        return
+
+    embed = discord.Embed(
+        title=f"⚔️ Entering {dungeon_name}",
+        description="Preparing for battle...",
+        color=discord.Color.purple()
+    )
+    dungeon_msg = await ctx.send(embed=embed)
+
+    player_stats = calculate_stats(player)
+    current_floor = 1
+
+    while current_floor <= dungeon["floors"]:
+        enemy = dungeon["enemies"][current_floor-1]
+        enemy_level = dungeon["level_req"] + current_floor - 1
+
+        embed = discord.Embed(
+            title=f"Floor {current_floor}: {enemy}",
+            description=f"```\nLevel {enemy_level}\n```",
+            color=discord.Color.purple()
+        )
+
+        embed.add_field(
+            name="Your Stats",
+            value=f"```\nHP: {player_stats['hp']}\n"
+                  f"Power: {player_stats['power']}\n"
+                  f"Defense: {player_stats['defense']}\n```",
+            inline=True
+        )
+
+        view = DungeonView(player_stats, enemy)
+        dungeon_msg = await ctx.send(embed=embed, view=view)
+
+        await view.wait()
+        if view.result:
+            if view.result == "run":
+                embed = discord.Embed(
+                    title="🏃 Escaped!",
+                    description="You ran away from the dungeon",
+                    color=discord.Color.purple()
+                )
+                break
+
+            elif view.result == "item":
+                success = random.random() < 0.8  # Higher chance with item
+
+            elif view.result == "defend":
+                success = random.random() < 0.75
+
+            else:  # Attack
+                success = random.random() < 0.7
+
+            if success:
+                energy_reward = dungeon["rewards"]["energy"][current_floor-1]
+                exp_reward = dungeon["rewards"]["exp"][current_floor-1]
+
+                player.cursed_energy += energy_reward
+                player.class_exp += exp_reward
+
+                if random.random() < dungeon["rewards"]["rare_drop_chance"]:
+                    rare_items = list(EQUIPMENT["Weapon"].keys()) + list(EQUIPMENT["Armor"].keys())
+                    rare_drop = random.choice(rare_items)
+                    if not hasattr(player, 'equipment'):
+                        player.equipment = {slot: None for slot in EQUIPMENT_SLOTS}
+                    player.equipment[rare_drop] = True
+
+                    embed.add_field(
+                        name="🌟 Rare Drop!",
+                        value=f"You found: {rare_drop}",
+                        inline=False
+                    )
+
+                embed = discord.Embed(
+                    title="⚔️ Victory!",
+                    description=f"Floor {current_floor} cleared!\n"
+                               f"Gained {energy_reward}🌀 and {exp_reward}EXP",
+                    color=discord.Color.green()
+                )
+                await dungeon_msg.edit(embed=embed, view=None)
+                await asyncio.sleep(2)
+                current_floor += 1
+            else:
+                embed = discord.Embed(
+                    title="❌ Dungeon Failed",
+                    description=f"Defeated on floor {current_floor}",
+                    color=discord.Color.red()
+                )
+                break
+        else:
+            await dungeon_msg.edit(content="⏰ Battle timed out!", embed=None, view=None)
+            return
+
+    data_manager.save_data()
+    await ctx.send(embed=embed)
+
+
+
+
+@bot.command(name="create_guild")
+async def create_guild(ctx, *, guild_name: str):
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if hasattr(player, 'guild'):
+        await ctx.send("❌ You're already in a guild!")
+        return
+
+    if not hasattr(bot, 'guilds'):
+        bot.guilds = {}
+
+    if guild_name in bot.guilds:
+        await ctx.send("❌ A guild with this name already exists!")
+        return
+
+    guild = Guild(guild_name, ctx.author.id)
+    bot.guilds[guild_name] = guild
+    player.guild = guild_name
+
+    embed = discord.Embed(
+        title="🏰 Guild Created!",
+        description=f"Welcome to {guild_name}!",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="guild_info")
+async def guild_info(ctx):
+    player = data_manager.players.get(ctx.author.id)
+    if not player or not hasattr(player, 'guild'):
+        await ctx.send("❌ You're not in a guild!")
+        return
+
+    guild = bot.guilds[player.guild]
+
+    embed = discord.Embed(
+        title=f"🏰 {guild.name}",
+        description=f"Level {guild.level} Guild",
+        color=discord.Color.purple()
+    )
+
+    # Get member names
+    members = []
+    for member_id, role in guild.members.items():
+        user = await bot.fetch_user(member_id)
+        members.append(f"{user.name} ({role})")
+
+    embed.add_field(
+        name="Members",
+        value="\n".join(members),
+        inline=False
+    )
+
+    embed.add_field(
+        name="Treasury",
+        value=f"{guild.treasury} 🌀",
+        inline=True
+    )
+
+    if guild.buffs:
+        embed.add_field(
+            name="Active Buffs",
+            value="\n".join(guild.buffs),
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+# Tournament System
+TOURNAMENT_TYPES = {
+    "Standard": {
+        "entry_fee": 100,
+        "min_players": 4,
+        "max_players": 8,
+        "rewards": {
+            "1st": {"energy": 500, "exp": 250, "title": "Tournament Champion"},
+            "2nd": {"energy": 300, "exp": 150},
+            "3rd": {"energy": 150, "exp": 75}
+        }
+    },
+    "Elite": {
+        "entry_fee": 300,
+        "min_players": 8,
+        "max_players": 16,
+        "min_level": 10,
+        "rewards": {
+            "1st": {"energy": 1000, "exp": 500, "title": "Elite Champion"},
+            "2nd": {"energy": 600, "exp": 300},
+            "3rd": {"energy": 300, "exp": 150}
+        }
+    }
+}
+
+# Trading System
+class Trade:
+    def __init__(self, sender_id, receiver_id):
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+        self.sender_items = []
+        self.sender_energy = 0
+        self.receiver_items = []
+        self.receiver_energy = 0
+        self.status = "pending"  # pending, accepted, declined
+
+@bot.command(name="tournament", aliases=["t"])
+async def tournament(ctx, tournament_type: str = None):
+    if not hasattr(bot, 'active_tournaments'):
+        bot.active_tournaments = {}
+
+    if not tournament_type:
+        embed = discord.Embed(
+            title="🏆 Tournaments",
+            description="Available tournament types",
+            color=discord.Color.purple()
+        )
+
+        for t_type, data in TOURNAMENT_TYPES.items():
+            embed.add_field(
+                name=t_type,
+                value=f"Entry Fee: {data['entry_fee']}🌀\n"
+                      f"Players: {data['min_players']}-{data['max_players']}\n"
+                      f"1st Place: {data['rewards']['1st']['energy']}🌀",
+                inline=False
+            )
+
+        await ctx.send(embed=embed)
+        return
+
+    if tournament_type not in TOURNAMENT_TYPES:
+        await ctx.send("❌ Invalid tournament type!")
+        return
+
+    t_data = TOURNAMENT_TYPES[tournament_type]
+
+    if tournament_type not in bot.active_tournaments:
+        bot.active_tournaments[tournament_type] = {
+            "players": [],
+            "status": "registering"
+        }
+
+    player = data_manager.players.get(ctx.author.id)
+    if not player:
+        await ctx.send("❌ Use !start to begin your journey first!")
+        return
+
+    if player.cursed_energy < t_data["entry_fee"]:
+        await ctx.send("❌ Not enough Cursed Energy for entry fee!")
+        return
+
+    if "min_level" in t_data and player.class_level < t_data["min_level"]:
+        await ctx.send(f"❌ You need to be level {t_data['min_level']} to join this tournament!")
+        return
+
+    tournament = bot.active_tournaments[tournament_type]
+    if ctx.author.id in tournament["players"]:
+        await ctx.send("❌ You're already registered for this tournament!")
+        return
+
+    player.cursed_energy -= t_data["entry_fee"]
+    tournament["players"].append(ctx.author.id)
+
+    embed = discord.Embed(
+        title=f"🏆 {tournament_type} Tournament",
+        description=f"Players: {len(tournament['players'])}/{t_data['max_players']}",
+        color=discord.Color.purple()
+    )
+
+    if len(tournament["players"]) >= t_data["min_players"]:
+        embed.add_field(
+            name="Status",
+            value="Tournament can begin!\nUse !start_tournament to begin",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="trade")
+async def trade(ctx, member: discord.Member):
+    if member.bot:
+        await ctx.send("❌ You can't trade with bots!")
+        return
+
+    if member.id == ctx.author.id:
+        await ctx.send("❌ You can't trade with yourself!")
+        return
+
+    sender = data_manager.players.get(ctx.author.id)
+    receiver = data_manager.players.get(member.id)
+
+    if not sender or not receiver:
+        await ctx.send("❌ Both players need to start their journey first!")
+        return
+
+    if not hasattr(bot, 'active_trades'):
+        bot.active_trades = {}
+
+    trade_id = f"{ctx.author.id}-{member.id}"
+    if trade_id in bot.active_trades:
+        await ctx.send("❌ You already have an active trade with this player!")
+        return
+
+    bot.active_trades[trade_id] = Trade(ctx.author.id, member.id)
+
+    embed = discord.Embed(
+        title="🤝 Trade Started",
+        description=f"Trade between {ctx.author.name} and {member.name}",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Commands",
+        value="!add_item <item_name> - Add item to trade\n"
+              "!add_energy <amount> - Add cursed energy to trade\n"
+              "!accept_trade - Accept the trade\n"
+              "!decline_trade - Decline the trade",
+        inline=False
+    )
+
+    await ctx.send(embed=embed)
+
+@bot.command(name="add_item")
+async def add_item(ctx, *, item_name: str):
+    active_trade = None
+    trade_id = None
+
+    for tid, trade in bot.active_trades.items():
+        if ctx.author.id in [trade.sender_id, trade.receiver_id]:
+            active_trade = trade
+            trade_id = tid
+            break
+
+    if not active_trade:
+        await ctx.send("❌ You don't have any active trades!")
+        return
+
+    player = data_manager.players.get(ctx.author.id)
+    if not hasattr(player, 'equipment') or item_name not in player.equipment:
+        await ctx.send("❌ You don't have this item!")
+        return
+
+    if ctx.author.id == active_trade.sender_id:
+        active_trade.sender_items.append(item_name)
+    else:
+        active_trade.receiver_items.append(item_name)
+
+    embed = discord.Embed(
+        title="🤝 Trade Updated",
+        description=f"{ctx.author.name} added {item_name}",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+@bot.command(name="add_energy")
+async def add_energy(ctx, amount: int):
+    if amount <= 0:
+        await ctx.send("❌ Amount must be positive!")
+        return
+
+    active_trade = None
+    trade_id = None
+
+    for tid, trade in bot.active_trades.items():
+        if ctx.author.id in [trade.sender_id, trade.receiver_id]:
+            active_trade = trade
+            trade_id = tid
+            break
+
+    if not active_trade:
+        await ctx.send("❌ You don't have any active trades!")
+        return
+
+    player = data_manager.players.get(ctx.author.id)
+    if player.cursed_energy < amount:
+        await ctx.send("❌ Not enough Cursed Energy!")
+        return
+
+    if ctx.author.id == active_trade.sender_id:
+        active_trade.sender_energy = amount
+    else:
+        active_trade.receiver_energy = amount
+
+    embed = discord.Embed(
+        title="🤝 Trade Updated",
+        description=f"{ctx.author.name} added {amount}🌀",
+        color=discord.Color.purple()
+    )
+    await ctx.send(embed=embed)
+
+
+
+
+
+
+
+
+# These should be the last lines
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+
+if __name__ == "__main__":
+    bot.run(TOKEN)
+
+
