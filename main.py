@@ -234,15 +234,21 @@ async def profile_command(ctx, member: discord.Member = None):
         title=f"📜 {target.display_name}'s Profile",
         description=f"**Class:** {player.class_name}\n"
                    f"**Level:** {player.class_level} ({player.class_exp}/{int(100 * (player.class_level ** 1.5))} EXP)\n"
-                   f"**Gold:** {player.gold} 🌀",
-        color=discord.Color.blue()
+                   f"**Technique Grade:** {player.technique_grade}\n"
+                   f"**Cursed Energy:** {player.cursed_energy} 🔮",
+        color=discord.Color.dark_purple()
     )
+    
+    # Add domain expansion if unlocked
+    domain = getattr(player, 'domain_expansion', None)
+    if domain:
+        embed.description = embed.description + f"\n**Domain Expansion:** {domain} 🌀"
     
     # Add stats
     embed.add_field(
         name="📊 Stats",
         value=f"**HP:** {stats['hp']} ❤️\n"
-              f"**Power:** {stats['power']} ⚔️\n"
+              f"**Cursed Power:** {stats['power']} ⚔️\n"
               f"**Defense:** {stats['defense']} 🛡️\n"
               f"**Speed:** {stats['speed']} 💨\n"
               f"**Energy:** {player.cursed_energy}/{player.max_cursed_energy} ✨",
@@ -345,29 +351,31 @@ async def daily_command(ctx):
     player.last_daily = now
     
     # Calculate rewards based on streak
-    base_gold = 50
+    base_cursed_energy = 50
     base_exp = 30
     
     # Bonus for streak (up to 100% extra at 30 days)
     streak_bonus = min(1.0, player.daily_streak / 30)
     
-    gold_reward = int(base_gold * (1 + streak_bonus))
+    cursed_energy_reward = int(base_cursed_energy * (1 + streak_bonus))
     exp_reward = int(base_exp * (1 + streak_bonus))
     
-    # Add rewards
-    player.gold += gold_reward
+    # Add rewards (with max limit check)
+    player.cursed_energy += cursed_energy_reward
+    if player.cursed_energy > player.max_cursed_energy:
+        player.cursed_energy = player.max_cursed_energy
     leveled_up = player.add_exp(exp_reward)
     
     # Create reward embed
     embed = discord.Embed(
         title="🎁 Daily Reward Claimed!",
         description=f"You've claimed your daily reward!",
-        color=discord.Color.gold()
+        color=discord.Color.dark_purple()
     )
     
     embed.add_field(
         name="Rewards",
-        value=f"**Gold:** +{gold_reward} 🌀\n"
+        value=f"**Cursed Energy:** +{cursed_energy_reward} 🔮\n"
               f"**EXP:** +{exp_reward} 📊\n"
               f"**Streak:** {player.daily_streak} day{'s' if player.daily_streak != 1 else ''}",
         inline=False
@@ -651,15 +659,15 @@ async def advanced_shop_cmd(ctx):
     """Browse the enhanced item shop with categories and filters"""
     await advanced_shop_command(ctx, data_manager)
 
-@bot.command(name="balance", aliases=["bal", "gold", "money"])
+@bot.command(name="balance", aliases=["bal", "ce", "energy"])
 async def balance_cmd(ctx):
-    """Check your current gold balance"""
+    """Check your current cursed energy balance"""
     player = data_manager.get_player(ctx.author.id)
     
     embed = discord.Embed(
-        title=f"{ctx.author.display_name}'s Balance",
-        description=f"💰 **Gold:** {player.gold} 🌀",
-        color=discord.Color.gold()
+        title=f"{ctx.author.display_name}'s Cursed Energy",
+        description=f"🔮 **Cursed Energy:** {player.cursed_energy}/{player.max_cursed_energy}",
+        color=discord.Color.dark_purple()
     )
     
     # Show achievement points if any
@@ -821,7 +829,7 @@ async def slash_event(interaction: discord.Interaction, action: str = None, even
     ctx = await bot.get_context(interaction)
     await event_command(ctx, data_manager, action, event_id, duration)
 
-@bot.tree.command(name="balance", description="Check your current gold balance")
+@bot.tree.command(name="balance", description="Check your current cursed energy balance")
 async def slash_balance(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await balance_cmd(ctx)

@@ -2,7 +2,7 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 1,
-        "class_exp": 31,
+        "class_exp": 180,
         "user_level": 1,
         "user_exp": 0,
         "cursed_energy": 100,
@@ -19,9 +19,9 @@
         "achievements": [],
         "skill_points": 0,
         "allocated_stats": {
-            "power": 0,
+            "power": 10,
             "defense": 0,
-            "speed": 0,
+            "speed": 4,
             "hp": 0
         },
         "skill_tree": {},
@@ -30,12 +30,17 @@
         "losses": 0,
         "last_daily": "2025-05-14T15:37:53.317600",
         "daily_streak": 1,
-        "last_train": null,
+        "last_train": "2025-05-14T15:52:06.816380",
         "dungeon_clears": {},
         "skill_cooldowns": {},
         "special_abilities": {},
         "active_effects": {},
         "training_cooldowns": {},
-        "gold": 151
+        "technique_grade": "Grade 3",
+        "domain_expansion": null,
+        "pvp_history": [],
+        "pvp_wins": 0,
+        "pvp_losses": 0,
+        "last_pvp_battle": null
     }
 }

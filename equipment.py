@@ -11,8 +11,8 @@ SHOP_ITEMS = {
     # Level 1-3 Shop Items
     "beginner": [
         {
-            "name": "Wooden Sword",
-            "description": "A basic training sword.",
+            "name": "Cursed Tool: Novice Staff",
+            "description": "A basic staff that channels cursed energy.",
             "item_type": "weapon",
             "rarity": "common",
             "stats": {"power": 3},
@@ -20,8 +20,8 @@ SHOP_ITEMS = {
             "value": 50
         },
         {
-            "name": "Leather Armor",
-            "description": "Simple leather protection.",
+            "name": "Jujutsu Sorcerer Uniform",
+            "description": "Standard uniform worn by jujutsu students.",
             "item_type": "armor",
             "rarity": "common",
             "stats": {"defense": 3},
@@ -29,13 +29,31 @@ SHOP_ITEMS = {
             "value": 50
         },
         {
-            "name": "Leather Boots",
-            "description": "Light boots for better mobility.",
+            "name": "Brawler's Boots",
+            "description": "Quick-movement footwear for agile fighters.",
             "item_type": "accessory",
             "rarity": "common",
             "stats": {"speed": 3},
             "level_req": 1,
             "value": 50
+        },
+        {
+            "name": "Cursed Armband",
+            "description": "An armband that helps control cursed energy flow.",
+            "item_type": "accessory",
+            "rarity": "common",
+            "stats": {"power": 1, "defense": 1},
+            "level_req": 1,
+            "value": 45
+        },
+        {
+            "name": "Spike Knuckles",
+            "description": "Hand protection with offensive spikes.",
+            "item_type": "weapon",
+            "rarity": "common",
+            "stats": {"power": 2, "speed": 1},
+            "level_req": 1,
+            "value": 45
         },
         {
             "name": "Health Potion",
@@ -60,8 +78,8 @@ SHOP_ITEMS = {
     # Level 4-7 Shop Items
     "intermediate": [
         {
-            "name": "Steel Sword",
-            "description": "A reliable steel blade.",
+            "name": "Cursed Tool: Binding Threads",
+            "description": "Strings imbued with cursed energy that immobilize opponents.",
             "item_type": "weapon",
             "rarity": "uncommon",
             "stats": {"power": 7},
@@ -69,8 +87,8 @@ SHOP_ITEMS = {
             "value": 200
         },
         {
-            "name": "Chain Mail",
-            "description": "Sturdy chain armor for better protection.",
+            "name": "Grade 2 Sorcerer Robe",
+            "description": "Protective garment worn by Grade 2 jujutsu sorcerers.",
             "item_type": "armor",
             "rarity": "uncommon",
             "stats": {"defense": 7},
@@ -78,13 +96,31 @@ SHOP_ITEMS = {
             "value": 200
         },
         {
-            "name": "Scout Amulet",
-            "description": "Enhances reflexes and speed.",
+            "name": "Brawler's Combat Gloves",
+            "description": "Enhances reflexes and striking power.",
             "item_type": "accessory",
             "rarity": "uncommon",
             "stats": {"speed": 5, "power": 2},
             "level_req": 4,
             "value": 200
+        },
+        {
+            "name": "Cursed Energy Conductor",
+            "description": "A bracelet that helps channel cursed energy more efficiently.",
+            "item_type": "accessory",
+            "rarity": "uncommon",
+            "stats": {"power": 4, "defense": 3},
+            "level_req": 4,
+            "value": 210
+        },
+        {
+            "name": "Star Power Charm",
+            "description": "A lucky charm that enhances your natural abilities.",
+            "item_type": "accessory",
+            "rarity": "uncommon",
+            "stats": {"hp": 15, "speed": 3},
+            "level_req": 5,
+            "value": 225
         },
         {
             "name": "Greater Health Potion",
@@ -118,8 +154,8 @@ SHOP_ITEMS = {
     # Level 8-12 Shop Items
     "advanced": [
         {
-            "name": "Enchanted Blade",
-            "description": "A sword imbued with magical energy.",
+            "name": "Cursed Tool: Malevolent Blade",
+            "description": "A special-grade weapon that amplifies cursed techniques.",
             "item_type": "weapon",
             "rarity": "rare",
             "stats": {"power": 12, "speed": 3},
@@ -127,8 +163,8 @@ SHOP_ITEMS = {
             "value": 500
         },
         {
-            "name": "Guardian Platemail",
-            "description": "Heavy armor offering exceptional protection.",
+            "name": "Grade 1 Sorcerer Attire",
+            "description": "Battle garment worn by elite Grade 1 jujutsu sorcerers.",
             "item_type": "armor",
             "rarity": "rare",
             "stats": {"defense": 15, "hp": 30},
@@ -136,13 +172,31 @@ SHOP_ITEMS = {
             "value": 500
         },
         {
-            "name": "Cursed Energy Ring",
-            "description": "Channel more cursed energy in battle.",
+            "name": "Domain Amplifier",
+            "description": "A rare accessory that strengthens your domain abilities.",
             "item_type": "accessory",
             "rarity": "rare",
             "stats": {"power": 5, "speed": 5},
             "level_req": 8,
             "value": 500
+        },
+        {
+            "name": "Brawler's Gadget",
+            "description": "A specialized device that enhances combat efficiency.",
+            "item_type": "accessory",
+            "rarity": "rare",
+            "stats": {"defense": 6, "speed": 6},
+            "level_req": 9,
+            "value": 550
+        },
+        {
+            "name": "Cursed Technique Enhancer",
+            "description": "A device that amplifies the user's innate cursed technique.",
+            "item_type": "weapon",
+            "rarity": "rare",
+            "stats": {"power": 10, "defense": 5},
+            "level_req": 10,
+            "value": 600
         },
         {
             "name": "Superior Health Potion",
@@ -176,8 +230,8 @@ SHOP_ITEMS = {
     # Level 13+ Shop Items
     "elite": [
         {
-            "name": "Artifact Weapon",
-            "description": "An ancient weapon of immense power.",
+            "name": "Special Grade Cursed Tool",
+            "description": "A legendary weapon used by the most powerful jujutsu sorcerers.",
             "item_type": "weapon",
             "rarity": "epic",
             "stats": {"power": 20, "speed": 5},
@@ -185,8 +239,8 @@ SHOP_ITEMS = {
             "value": 1200
         },
         {
-            "name": "Domain Armor",
-            "description": "Armor that creates its own protective domain.",
+            "name": "Domain Barrier Attire",
+            "description": "Special armor that strengthens your domain and provides exceptional protection.",
             "item_type": "armor",
             "rarity": "epic",
             "stats": {"defense": 25, "hp": 60},
@@ -194,13 +248,31 @@ SHOP_ITEMS = {
             "value": 1200
         },
         {
-            "name": "Infinity Charm",
-            "description": "A charm said to touch other realms.",
+            "name": "Reverse Cursed Technique Amplifier",
+            "description": "A powerful accessory that enhances healing and offensive capabilities.",
             "item_type": "accessory",
             "rarity": "epic",
             "stats": {"power": 10, "defense": 10, "speed": 10},
             "level_req": 13,
             "value": 1200
+        },
+        {
+            "name": "Brawler's Legendary Gadget",
+            "description": "The ultimate combat enhancement device used by champion brawlers.",
+            "item_type": "accessory",
+            "rarity": "epic",
+            "stats": {"power": 8, "speed": 15, "defense": 8},
+            "level_req": 14,
+            "value": 1350
+        },
+        {
+            "name": "Limitless Technique Vessel",
+            "description": "A rare artifact that grants aspects of the legendary Limitless Technique.",
+            "item_type": "weapon",
+            "rarity": "epic",
+            "stats": {"power": 25, "hp": 30},
+            "level_req": 15,
+            "value": 1500
         },
         {
             "name": "Master Health Potion",
@@ -298,6 +370,15 @@ RARE_ITEMS = [
         "value": 5000
     },
     {
+        "name": "Star Power: Dynamike's Demolition",
+        "description": "Legendary Brawler power that amplifies all explosive techniques.",
+        "item_type": "accessory",
+        "rarity": "legendary",
+        "stats": {"power": 20, "speed": 10, "defense": 5},
+        "level_req": 12,
+        "value": 5000
+    },
+    {
         "name": "Domain Expansion Core",
         "description": "Legendary armor that creates its own domain.",
         "item_type": "armor",
@@ -307,11 +388,29 @@ RARE_ITEMS = [
         "value": 5000
     },
     {
+        "name": "Star Power: Bull's Berserker",
+        "description": "Legendary Brawler armor that becomes stronger as you take damage.",
+        "item_type": "armor",
+        "rarity": "legendary",
+        "stats": {"defense": 25, "hp": 120, "speed": 5},
+        "level_req": 12,
+        "value": 5000
+    },
+    {
         "name": "Black Flash Sword",
         "description": "A legendary weapon that cuts through reality.",
         "item_type": "weapon",
         "rarity": "legendary",
         "stats": {"power": 30, "speed": 20, "defense": 5},
+        "level_req": 12,
+        "value": 5000
+    },
+    {
+        "name": "Star Power: Shelly's Shell Shock",
+        "description": "The most powerful brawler weapon, causes massive damage and slows opponents.",
+        "item_type": "weapon",
+        "rarity": "legendary",
+        "stats": {"power": 28, "speed": 15, "defense": 10},
         "level_req": 12,
         "value": 5000
     }
@@ -467,20 +566,23 @@ class ItemActionView(View):
             )
             return
         
-        # Process sale
-        self.player_data.gold += item_value
+        # Process sale - earn cursed energy from selling items
+        self.player_data.cursed_energy += item_value
+        # Make sure not to exceed max cursed energy
+        if self.player_data.cursed_energy > self.player_data.max_cursed_energy:
+            self.player_data.cursed_energy = self.player_data.max_cursed_energy
         
         # Remove from inventory (or decrease quantity for consumables)
         if self.inventory_item.item.item_type == "consumable" and self.inventory_item.quantity > 1:
             self.inventory_item.quantity -= 1
             await interaction.response.edit_message(
-                content=f"💰 Sold 1x {item_name} for {item_value} gold. {self.inventory_item.quantity}x remaining.",
+                content=f"🔮 Sold 1x {item_name} for {item_value} cursed energy. {self.inventory_item.quantity}x remaining.",
                 view=None
             )
         else:
             self.player_data.inventory.remove(self.inventory_item)
             await interaction.response.edit_message(
-                content=f"💰 Sold {item_name} for {item_value} gold.",
+                content=f"🔮 Sold {item_name} for {item_value} cursed energy.",
                 view=None
             )
         
@@ -890,11 +992,11 @@ class ShopView(View):
                 emoji = "🧪"
             
             # Check if player can afford it
-            can_afford = self.player_data.gold >= item.value
+            can_afford = self.player_data.cursed_energy >= item.value
             
             # Create button
             btn = Button(
-                label=f"{item.name} ({item.value} 🌀)",
+                label=f"{item.name} ({item.value} 🔮)",
                 emoji=emoji,
                 style=discord.ButtonStyle.green if can_afford else discord.ButtonStyle.gray,
                 disabled=not can_afford,
@@ -950,15 +1052,15 @@ class ShopView(View):
             return
         
         # Check if player can afford the item
-        if self.player_data.gold < shop_item.value:
+        if self.player_data.cursed_energy < shop_item.value:
             await interaction.response.send_message(
-                f"❌ You can't afford this item! It costs {shop_item.value} gold, but you only have {self.player_data.gold}.",
+                f"❌ You can't afford this item! It costs {shop_item.value} cursed energy 🔮, but you only have {self.player_data.cursed_energy} 🔮.",
                 ephemeral=True
             )
             return
         
         # Process purchase
-        self.player_data.gold -= shop_item.value
+        self.player_data.cursed_energy -= shop_item.value
         add_item_to_inventory(self.player_data, shop_item)
         
         # Save player data
@@ -969,7 +1071,7 @@ class ShopView(View):
         
         # Send confirmation
         await interaction.response.send_message(
-            f"✅ You purchased {shop_item.name} for {shop_item.value} gold!",
+            f"✅ You purchased {shop_item.name} for {shop_item.value} cursed energy! 🔮",
             ephemeral=True
         )
         
@@ -986,11 +1088,11 @@ class ShopView(View):
         
         # Create embed
         embed = discord.Embed(
-            title="🛒 Item Shop",
-            description=f"Gold: {self.player_data.gold} 🌀\n"
+            title="🛒 Jujutsu Supplies Shop",
+            description=f"Cursed Energy: {self.player_data.cursed_energy}/{self.player_data.max_cursed_energy} 🔮\n"
                        f"Filter: {self.selected_category.title() if self.selected_category != 'all' else 'All Items'}\n"
                        f"Click on an item to purchase it.",
-            color=discord.Color.gold()
+            color=discord.Color.dark_purple()
         )
         
         # Add shop items
@@ -1005,10 +1107,10 @@ class ShopView(View):
                 stats_text = f" ({', '.join(stats_list)})"
             
             # Add affordability indicator
-            affordable = "✅" if self.player_data.gold >= item.value else "❌"
+            affordable = "✅" if self.player_data.cursed_energy >= item.value else "❌"
             
             embed.add_field(
-                name=f"{i}. {rarity_emoji} {item.name} - {item.value} Gold {affordable}",
+                name=f"{i}. {rarity_emoji} {item.name} - {item.value} 🔮 {affordable}",
                 value=f"Type: {item.item_type.title()}{stats_text}\n"
                       f"Level Req: {item.level_req}\n{item.description}",
                 inline=False
@@ -1095,12 +1197,12 @@ async def buy_command(ctx, item_name: str, data_manager: DataManager):
     item_data = matching_items[0]
     
     # Check if player can afford it
-    if player_data.gold < item_data["value"]:
-        await ctx.send(f"❌ You can't afford this item! It costs {item_data['value']} gold, but you only have {player_data.gold}.")
+    if player_data.cursed_energy < item_data["value"]:
+        await ctx.send(f"❌ You can't afford this item! It costs {item_data['value']} cursed energy 🔮, but you only have {player_data.cursed_energy} 🔮.")
         return
     
     # Process purchase
-    player_data.gold -= item_data["value"]
+    player_data.cursed_energy -= item_data["value"]
     
     # Create and add item to inventory
     new_item = Item(
@@ -1122,8 +1224,8 @@ async def buy_command(ctx, item_name: str, data_manager: DataManager):
     # Create confirmation embed
     embed = discord.Embed(
         title="✅ Purchase Successful",
-        description=f"You have purchased {new_item.name} for {new_item.value} gold!",
-        color=discord.Color.green()
+        description=f"You have purchased {new_item.name} for {new_item.value} cursed energy! 🔮",
+        color=discord.Color.dark_purple()
     )
     
     # Add item details

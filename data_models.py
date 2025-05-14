@@ -187,7 +187,10 @@ class PlayerData:
         self.last_train = None
         self.dungeon_clears = {}  # Map of dungeon name to count of clears
         self.skill_cooldowns = {}  # Map of skill_id to next available timestamp
-        self.gold = 100
+        self.cursed_energy = 100
+        self.max_cursed_energy = 100
+        self.technique_grade = "Grade 3"  # Jujutsu rank/grade
+        self.domain_expansion = None  # Special ultimate technique
         self.pvp_history = []  # List of PvP battle history
         self.pvp_wins = 0
         self.pvp_losses = 0
@@ -275,7 +278,9 @@ class PlayerData:
             "special_abilities": self.special_abilities,
             "active_effects": self.active_effects,
             "training_cooldowns": self.training_cooldowns,
-            "gold": self.gold,
+            "cursed_energy": self.cursed_energy,
+            "technique_grade": self.technique_grade,
+            "domain_expansion": self.domain_expansion,
             "pvp_history": self.pvp_history,
             "pvp_wins": self.pvp_wins,
             "pvp_losses": self.pvp_losses,
@@ -288,9 +293,9 @@ class PlayerData:
         
         # Set simple attributes
         for attr in ["class_name", "class_level", "class_exp", "user_level", "user_exp", 
-                     "cursed_energy", "max_cursed_energy", "unlocked_classes", "equipped_items",
+                     "cursed_energy", "technique_grade", "domain_expansion", "unlocked_classes", "equipped_items",
                      "skill_points", "allocated_stats", "skill_tree", "skill_points_spent", "wins", "losses", "daily_streak",
-                     "dungeon_clears", "gold", "special_abilities", "active_effects", "training_cooldowns",
+                     "dungeon_clears", "special_abilities", "active_effects", "training_cooldowns",
                      "pvp_history", "pvp_wins", "pvp_losses"]:
             if attr in data:
                 setattr(player, attr, data[attr])
