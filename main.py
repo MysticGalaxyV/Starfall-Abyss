@@ -31,10 +31,11 @@ from encyclopedia import encyclopedia_command, browser_command, codex_command, E
 # Go to your application -> Bot -> Privileged Gateway Intents and enable both options
 # Bot requires "Message Content Intent" and "Server Members Intent" to be enabled
 # in the Discord Developer Portal: https://discord.com/developers/applications/
-# Required intents for the bot to function properly
+# Bot intents for local development
 intents = discord.Intents.default()
-intents.message_content = True  # Required for prefix commands
-intents.members = True          # Required for guild member functions
+# Note: For production, uncomment these lines and enable the intents in Discord Developer Portal
+# intents.message_content = True  # Required for prefix commands
+# intents.members = True          # Required for guild member functions
 
 # Game name and welcome message
 GAME_NAME = "🌀 Ethereal Ascendancy"
@@ -50,8 +51,8 @@ def is_admin():
     return commands.check(predicate)
 
 def get_prefix(bot, message):
-    prefixes = ['!', '/', f'<@{bot.user.id}> ', f'<@!{bot.user.id}> ']  # Include slash for visual consistency
-    return prefixes
+    # Using just "!" as the prefix
+    return "!"
 
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 bot.remove_command('help')  # Remove default help command
