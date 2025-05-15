@@ -374,15 +374,9 @@ class GuildManager:
         if player_data.class_level < 20:
             return False, f"You must be at least level 20 to create a guild. You are currently level {player_data.class_level}."
             
-        # Check if player has Guild Charter
-        has_charter = False
-        for inv_item in player_data.inventory:
-            if inv_item.item.name == "Guild Charter":
-                has_charter = True
-                break
-                
-        if not has_charter:
-            return False, "You need a Guild Charter to create a guild. Purchase one from the shop with `!shop`."
+        # Check if player has enough cursed energy (1000)
+        if player_data.cursed_energy < 1000:
+            return False, f"You need 1000 cursed energy to create a guild. You currently have {player_data.cursed_energy}."
         
         # Create new guild
         new_guild = Guild(name, leader_id)
@@ -391,10 +385,14 @@ class GuildManager:
         # Update member mapping
         self.member_guild_map[leader_id] = name
         
+        # Deduct cursed energy
+        player_data.cursed_energy -= 1000
+        
         # Save data
         self.save_guilds()
+        self.data_manager.save_data()  # Save player data with updated cursed energy
         
-        return True, f"Guild '{name}' has been created! You are now the leader."
+        return True, f"Guild '{name}' has been created for 1000 cursed energy! You are now the leader."
     
     def get_guild_by_name(self, name: str) -> Optional[Guild]:
         """Get guild by name"""

@@ -99,7 +99,18 @@ class BattleEntity:
         """Apply a move to a target and return damage dealt and effect message"""
         # Check energy cost
         if self.current_energy < move.energy_cost:
-            return 0, "❌ Not enough energy!"
+            # Player is out of energy but can regain energy
+            if self.is_player:
+                # Restore some energy so they can continue
+                energy_gained = 50
+                self.current_energy += energy_gained
+                
+                # Set a special status effect to indicate they lose 2 turns
+                self.status_effects["energy_recovery"] = (2, 0)  # 2 turns of recovery
+                
+                return 0, f"🔄 You're out of energy! You regained {energy_gained} energy but will lose your next 2 turns."
+            else:
+                return 0, "❌ Not enough energy!"
         
         self.current_energy -= move.energy_cost
         
@@ -329,13 +340,38 @@ class BattleView(View):
                 self.add_item(ItemButton(item_name, item_effect, row=2))
         
     async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
-        # Apply player move
-        damage, effect_msg = self.player.apply_move(move, self.enemy)
-        await interaction.response.edit_message(
-            content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                   f"Waiting for enemy move...",
-            view=self
-        )
+        # Check if player is in energy recovery mode (lost turns)
+        if "energy_recovery" in self.player.status_effects:
+            turns_left, _ = self.player.status_effects["energy_recovery"]
+            
+            # Update turns left
+            if turns_left > 1:
+                self.player.status_effects["energy_recovery"] = (turns_left - 1, 0)
+                await interaction.response.edit_message(
+                    content=f"⚖️ You're still recovering energy! {turns_left-1} more turn(s) until you can act again.\n"
+                           f"Waiting for enemy move...",
+                    view=self
+                )
+                # Skip player's turn but continue with enemy turn
+                damage, effect_msg = 0, ""
+            else:
+                # Last turn of recovery, remove the effect
+                del self.player.status_effects["energy_recovery"]
+                await interaction.response.edit_message(
+                    content=f"⚖️ You've recovered your energy and can act normally next turn!\n"
+                           f"Waiting for enemy move...",
+                    view=self
+                )
+                # Skip player's turn but continue with enemy turn
+                damage, effect_msg = 0, ""
+        else:
+            # Normal turn, apply player move
+            damage, effect_msg = self.player.apply_move(move, self.enemy)
+            await interaction.response.edit_message(
+                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                       f"Waiting for enemy move...",
+                view=self
+            )
         
         # Check if enemy is defeated
         if not self.enemy.is_alive():

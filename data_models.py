@@ -220,18 +220,13 @@ class PlayerData:
         return base_stats
     
     def add_cursed_energy(self, amount: int) -> int:
-        """Add cursed energy up to the maximum limit. Returns the amount actually added."""
+        """Add cursed energy with no maximum limit. Returns the amount added."""
         if amount <= 0:
             return 0
             
-        # Check if we're already at max
-        if self.cursed_energy >= self.max_cursed_energy:
-            return 0
-            
-        # Calculate how much we can add without exceeding max
-        can_add = min(amount, self.max_cursed_energy - self.cursed_energy)
-        self.cursed_energy += can_add
-        return can_add
+        # Simply add the amount (no limit)
+        self.cursed_energy += amount
+        return amount
         
     def remove_cursed_energy(self, amount: int) -> bool:
         """Remove cursed energy if available. Returns True if successful."""
@@ -265,12 +260,9 @@ class PlayerData:
             self.class_level += 1
             self.skill_points += 2  # Reduced from 3 to slow down character progression
             
-            # Increase max cursed energy on level up
-            old_max = self.max_cursed_energy
-            self.max_cursed_energy = 100 + (self.class_level * 50)  # Scales with level
-            
-            # Also increase current cursed energy by the same amount
-            self.cursed_energy += (self.max_cursed_energy - old_max)
+            # Grant cursed energy bonus on level up
+            cursed_energy_bonus = 50  # Fixed amount per level
+            self.cursed_energy += cursed_energy_bonus
             
             leveled_up = True
             

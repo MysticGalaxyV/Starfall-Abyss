@@ -212,6 +212,13 @@ class DungeonProgressView(View):
         self.battles_won = True  # Track if player has won all battles
         self.messages = []  # Store message references for cleanup
         
+        # Track player stats for cumulative damage
+        from utils import GAME_CLASSES
+        player_stats = self.player_data.get_stats(GAME_CLASSES)
+        self.player_max_hp = player_stats["hp"]
+        self.player_current_hp = self.player_max_hp
+        self.player_current_energy = self.player_data.cursed_energy
+        
         # Add continue button
         self.continue_btn = Button(
             label="Proceed to Next Floor", 
@@ -220,6 +227,15 @@ class DungeonProgressView(View):
         )
         self.continue_btn.callback = self.next_floor_callback
         self.add_item(self.continue_btn)
+        
+        # Add use item button
+        self.item_btn = Button(
+            label="Use Item",
+            style=discord.ButtonStyle.blurple,
+            emoji="🧪"
+        )
+        self.item_btn.callback = self.use_item_callback
+        self.add_item(self.item_btn)
         
         # Add retreat button
         self.retreat_btn = Button(
@@ -252,6 +268,91 @@ class DungeonProgressView(View):
             # Regular floor encounter
             await self.floor_encounter(interaction)
     
+    async def use_item_callback(self, interaction: discord.Interaction):
+        """Handle using an item between dungeon floors"""
+        # Get list of usable healing/buff items
+        usable_items = []
+        if hasattr(self.player_data, 'inventory') and self.player_data.inventory:
+            for inv_item in self.player_data.inventory:
+                if (hasattr(inv_item, 'item') and inv_item.item and 
+                    hasattr(inv_item.item, 'item_type') and 
+                    inv_item.item.item_type == "consumable" and 
+                    inv_item.quantity > 0):
+                    usable_items.append((inv_item.item.name, inv_item.item.description))
+        
+        if not usable_items:
+            await interaction.response.send_message("❌ You don't have any usable items!", ephemeral=True)
+            return
+        
+        # Create a selection menu for items
+        select = Select(
+            placeholder="Select an item to use...",
+            options=[discord.SelectOption(label=item[0], description=item[1][:100]) for item in usable_items[:25]]  # Discord limits to 25 options
+        )
+        
+        async def select_callback(select_interaction):
+            selected_item = select.values[0]
+            
+            # Find the item in inventory
+            for inv_item in self.player_data.inventory:
+                if inv_item.item and inv_item.item.name == selected_item:
+                    # Apply item effect
+                    effect_msg = "Used item!"
+                    
+                    # Different effects based on item type
+                    if "health" in inv_item.item.description.lower() or "healing" in inv_item.item.description.lower():
+                        # Get player's max HP
+                        from utils import GAME_CLASSES
+                        player_stats = self.player_data.get_stats(GAME_CLASSES)
+                        max_hp = player_stats["hp"]
+                        
+                        heal_amount = int(max_hp * 0.3)  # Heal 30% of max HP
+                        self.player_current_hp = min(max_hp, self.player_current_hp + heal_amount)
+                        effect_msg = f"Restored {heal_amount} HP! ({self.player_current_hp}/{max_hp} HP)"
+                    
+                    elif "energy" in inv_item.item.description.lower():
+                        energy_amount = 50
+                        self.player_current_energy += energy_amount
+                        effect_msg = f"Restored {energy_amount} energy! (Now have {self.player_current_energy} energy)"
+                    
+                    elif "buff" in inv_item.item.description.lower() or "boost" in inv_item.item.description.lower():
+                        # Apply a temporary buff for the next battle
+                        if not hasattr(self.player_data, 'active_effects'):
+                            self.player_data.active_effects = {}
+                        
+                        buff_type = "damage_boost"
+                        if "defense" in inv_item.item.description.lower() or "shield" in inv_item.item.description.lower():
+                            buff_type = "defense_boost"
+                        
+                        self.player_data.active_effects[selected_item] = {
+                            "effect": buff_type,
+                            "strength": 0.2,  # 20% buff
+                            "duration": 1     # Next battle only
+                        }
+                        effect_msg = f"Applied {selected_item} buff for the next battle!"
+                    
+                    # Consume the item
+                    inv_item.quantity -= 1
+                    self.data_manager.save_data()
+                    
+                    await select_interaction.response.edit_message(
+                        content=f"🧪 {effect_msg}",
+                        view=None
+                    )
+                    break
+        
+        select.callback = select_callback
+        
+        # Create temporary view for the item selection
+        temp_view = View(timeout=30)
+        temp_view.add_item(select)
+        
+        await interaction.response.send_message(
+            content="Choose an item to use:",
+            view=temp_view,
+            ephemeral=True
+        )
+    
     async def retreat_callback(self, interaction: discord.Interaction):
         """Handle player retreat from dungeon"""
         self.battles_won = False
@@ -269,7 +370,7 @@ class DungeonProgressView(View):
         )
         
         # Award partial rewards
-        self.player_data.gold += gold_reward
+        self.player_data.cursed_energy += gold_reward  # Changed from gold to cursed_energy
         self.player_data.add_exp(exp_reward)
         
         # Save player data
@@ -372,6 +473,12 @@ class DungeonProgressView(View):
             max_hp = player_stats["hp"]
             damage = int(max_hp * trap["damage"])
             
+            # Apply cumulative damage to player's HP
+            if hasattr(self, 'player_current_hp'):
+                self.player_current_hp = max(1, self.player_current_hp - damage)  # Ensure HP doesn't go below 1
+            else:
+                self.player_current_hp = max(1, max_hp - damage)
+            
             # Create embed for trap
             embed = discord.Embed(
                 title=f"⚠️ Trap Encountered - Floor {self.current_floor}",
@@ -381,12 +488,9 @@ class DungeonProgressView(View):
             
             embed.add_field(
                 name="Damage",
-                value=f"You took {damage} damage! 💥",
+                value=f"You took {damage} damage! 💥\nRemaining HP: {self.player_current_hp}/{max_hp}",
                 inline=False
             )
-            
-            # Update player HP (will be restored after dungeon)
-            # This is just for narrative purposes
             
             await channel.send(embed=embed)
             await asyncio.sleep(2)
@@ -473,6 +577,10 @@ class DungeonProgressView(View):
         # Calculate player stats including equipment and level
         player_stats = self.player_data.get_stats(GAME_CLASSES)
         
+        # Apply cumulative damage - use HP from previous battles
+        if hasattr(self, 'player_current_hp'):
+            player_stats["hp"] = min(player_stats["hp"], self.player_current_hp)
+        
         # Get player moves based on class
         player_moves = []
         
@@ -550,11 +658,14 @@ class DungeonProgressView(View):
         # Process battle results
         if not enemy_entity.is_alive():
             # Player won
+            # Store player's current HP for next fights
+            self.player_current_hp = player_entity.current_hp
+            
             # Small reward for each enemy defeated
-            minor_gold = int(self.dungeon_data["max_rewards"] * 0.1)
+            minor_cursed_energy = int(self.dungeon_data["max_rewards"] * 0.1)
             minor_exp = int(self.dungeon_data["exp"] * 0.1)
             
-            self.player_data.gold += minor_gold
+            self.player_data.cursed_energy += minor_cursed_energy
             self.player_data.add_exp(minor_exp)
             
             win_embed = discord.Embed(
@@ -565,8 +676,16 @@ class DungeonProgressView(View):
             
             win_embed.add_field(
                 name="Minor Rewards",
-                value=f"Gold: +{minor_gold} 🌀\n"
+                value=f"Cursed Energy: +{minor_cursed_energy} 🌀\n"
                       f"EXP: +{minor_exp} 📊",
+                inline=False
+            )
+            
+            # Show remaining HP
+            win_embed.add_field(
+                name="Status",
+                value=f"HP: {self.player_current_hp}/{player_stats['hp']} ❤️\n"
+                      f"Energy: {player_entity.current_energy} ✨",
                 inline=False
             )
             
@@ -574,6 +693,8 @@ class DungeonProgressView(View):
             return True
         else:
             # Player lost
+            # Set remaining HP to minimal (1) since they lost
+            self.player_current_hp = 1
             return False
     
     async def boss_encounter(self, interaction: discord.Interaction):

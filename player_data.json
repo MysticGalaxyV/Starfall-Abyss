@@ -2,15 +2,47 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 2,
-        "class_exp": 199,
+        "class_exp": 303,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 100,
+        "cursed_energy": 78,
         "max_cursed_energy": 100,
         "unlocked_classes": [
             "Flash Rogue"
         ],
-        "inventory": [],
+        "inventory": [
+            {
+                "item": {
+                    "item_id": "oQXw7Yfi",
+                    "name": "Spike Knuckles",
+                    "description": "Hand protection with offensive spikes.",
+                    "item_type": "weapon",
+                    "rarity": "common",
+                    "stats": {
+                        "power": 2,
+                        "speed": 1
+                    },
+                    "level_req": 1,
+                    "value": 45
+                },
+                "quantity": 1,
+                "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "tcnAp73M",
+                    "name": "Energy Potion",
+                    "description": "Restores 40 energy during battle.",
+                    "item_type": "consumable",
+                    "rarity": "common",
+                    "stats": {},
+                    "level_req": 1,
+                    "value": 30
+                },
+                "quantity": 1,
+                "equipped": false
+            }
+        ],
         "equipped_items": {
             "weapon": null,
             "armor": null,
@@ -19,23 +51,25 @@
         "achievements": [],
         "skill_points": 2,
         "allocated_stats": {
-            "power": 15,
+            "power": 16,
             "defense": 4,
             "speed": 15,
-            "hp": 16
+            "hp": 21
         },
         "skill_tree": {},
         "skill_points_spent": {},
-        "wins": 1,
+        "wins": 2,
         "losses": 0,
-        "last_daily": "2025-05-14T15:37:53.317600",
-        "daily_streak": 1,
+        "last_daily": "2025-05-15T09:29:23.022317",
+        "daily_streak": 2,
         "last_train": "2025-05-14T21:41:17.401407",
         "dungeon_clears": {},
         "skill_cooldowns": {},
         "special_abilities": {},
         "active_effects": {},
-        "training_cooldowns": {},
+        "training_cooldowns": {
+            "Cursed Energy Control": "2025-05-14T23:57:32.793165"
+        },
         "technique_grade": "Grade 3",
         "domain_expansion": null,
         "pvp_history": [],
