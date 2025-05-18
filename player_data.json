@@ -2,11 +2,11 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 9,
-        "class_exp": 421,
+        "class_exp": 454,
         "user_level": 1,
         "user_exp": 0,
         "cursed_energy": 505,
-        "max_cursed_energy": 250,
+        "max_cursed_energy": 100,
         "gold": 0,
         "unlocked_classes": [
             "Flash Rogue"
@@ -280,6 +280,62 @@
                     },
                     "level_req": 8,
                     "value": 500
+                },
+                "quantity": 1,
+                "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "51343040-c152-4ec2-9671-2440d9132b8f",
+                    "name": "Uncommon Stone",
+                    "description": "A uncommon quality stone used in crafting.",
+                    "item_type": "Material:Mining",
+                    "rarity": "Uncommon",
+                    "stats": {},
+                    "level_req": 1,
+                    "value": 10
+                },
+                "quantity": 1,
+                "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "ffd57dfb-5c90-43a2-8037-a462652059e4",
+                    "name": "Uncommon Cotton",
+                    "description": "A uncommon quality cotton used in crafting.",
+                    "item_type": "Material:Fabrics",
+                    "rarity": "Uncommon",
+                    "stats": {},
+                    "level_req": 1,
+                    "value": 14
+                },
+                "quantity": 1,
+                "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "efecad54-a9d9-4414-8451-a6138e8bb436",
+                    "name": "Uncommon Wool",
+                    "description": "A uncommon quality wool used in crafting.",
+                    "item_type": "Material:Fabrics",
+                    "rarity": "Uncommon",
+                    "stats": {},
+                    "level_req": 5,
+                    "value": 24
+                },
+                "quantity": 1,
+                "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "be7af91e-2066-4296-a7e6-f0391b94ed66",
+                    "name": "Common Wolf Fang",
+                    "description": "A common quality wolf fang used in crafting.",
+                    "item_type": "Material:Monster Parts",
+                    "rarity": "Common",
+                    "stats": {},
+                    "level_req": 1,
+                    "value": 10
                 },
                 "quantity": 1,
                 "equipped": false

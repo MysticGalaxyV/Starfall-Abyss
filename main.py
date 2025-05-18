@@ -690,7 +690,8 @@ async def level_cmd(ctx):
     # Get player data using the data_manager
     player_id = ctx.author.id
     if player_id not in data_manager.player_data:
-        data_manager.player_data[player_id] = data_models.PlayerData(player_id)
+        from data_models import PlayerData
+        data_manager.player_data[player_id] = PlayerData(player_id)
     player_data = data_manager.player_data[player_id]
     
     # Calculate XP needed for next level
@@ -769,6 +770,154 @@ async def event_cmd(ctx, action: str = None, event_id: str = None, duration: flo
 async def advanced_shop_cmd(ctx):
     """Browse the enhanced item shop with categories and filters"""
     await advanced_shop_command(ctx, data_manager)
+    
+@bot.command(name="monsters", aliases=["mobs", "enemies"])
+async def monsters_cmd(ctx):
+    """Shows all available monsters/enemies that can be battled"""
+    from utils import ENEMY_POOLS
+    
+    # Check if player has started
+    player_data = data_manager.get_player(ctx.author.id)
+    if not player_data.class_name:
+        await ctx.send("❌ You need to start your adventure first with `!start`")
+        return
+    
+    embed = discord.Embed(
+        title="📚 Monster Encyclopedia",
+        description="All monsters you can encounter in the world",
+        color=discord.Color.dark_gold()
+    )
+    
+    # Organize enemies by zone
+    for zone, enemies in ENEMY_POOLS.items():
+        # Format zone name
+        zone_name = zone.replace("_", " ").title()
+        
+        # Get level range for this zone
+        min_level = 1
+        max_level = 100
+        
+        if "forest" in zone.lower():
+            min_level = 1
+            max_level = 15
+        elif "cave" in zone.lower():
+            min_level = 10
+            max_level = 30
+        elif "shrine" in zone.lower():
+            min_level = 25
+            max_level = 45
+        elif "abyss" in zone.lower():
+            min_level = 40
+            max_level = 70
+        elif "citadel" in zone.lower():
+            min_level = 60
+            max_level = 100
+        
+        # Format enemy list with special attributes
+        enemy_list = []
+        for enemy in enemies:
+            enemy_attr = ""
+            
+            # Add special attributes based on name patterns
+            if "cursed" in enemy.lower():
+                enemy_attr = "🔥 High Power"
+            elif "swift" in enemy.lower():
+                enemy_attr = "⚡ High Speed"
+            elif "giant" in enemy.lower() or "brute" in enemy.lower():
+                enemy_attr = "💪 High HP"
+            elif "armored" in enemy.lower() or "guardian" in enemy.lower():
+                enemy_attr = "🛡️ High Defense"
+            elif "elite" in enemy.lower() or "ancient" in enemy.lower():
+                enemy_attr = "⭐ Balanced Elite"
+            
+            enemy_list.append(f"• {enemy} {enemy_attr}")
+        
+        # Add field for this zone
+        embed.add_field(
+            name=f"{zone_name} (Level {min_level}-{max_level})",
+            value="\n".join(enemy_list) if enemy_list else "No enemies found",
+            inline=False
+        )
+    
+    embed.set_footer(text="Tip: Use !battle [enemy_name] [level] to battle a specific enemy")
+    
+    await ctx.send(embed=embed)
+
+@bot.command(name="level", aliases=["lvl", "progression"])
+async def level_cmd(ctx):
+    """View your level information and progression details"""
+    player_data = data_manager.get_player(ctx.author.id)
+    
+    # Check if player has started
+    if not player_data.class_name:
+        await ctx.send("❌ You need to start your adventure first with `!start`")
+        return
+    
+    # Get current level and max level
+    current_level = player_data.class_level
+    max_level = 100
+    current_xp = player_data.class_exp
+    
+    if current_level >= max_level:
+        xp_needed = 0
+        xp_to_next = 0
+        progress_percent = 100
+    else:
+        xp_needed = int(100 * (current_level**1.5))
+        xp_to_next = max(0, xp_needed - current_xp)
+        progress_percent = min(100, int((current_xp / xp_needed) * 100))
+    
+    # Create XP progress bar
+    progress_bar_length = 20
+    filled_length = int(progress_bar_length * progress_percent / 100)
+    bar = '█' * filled_length + '░' * (progress_bar_length - filled_length)
+    
+    # Calculate stats growth per level
+    base_stats = {"power": 2, "defense": 1.5, "speed": 1, "hp": 10}
+    
+    embed = discord.Embed(
+        title=f"{ctx.author.display_name}'s Level Information",
+        description=f"Character Class: **{player_data.class_name or 'None'}**",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(
+        name="Level Progress",
+        value=(
+            f"**Level**: {current_level}/{max_level}\n"
+            f"**XP**: {current_xp}/{xp_needed}\n"
+            f"**XP to next level**: {xp_to_next}\n"
+            f"**Progress**: {progress_percent}%\n"
+            f"[{bar}]"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Level Growth Stats (per level)",
+        value=(
+            f"**Power**: +{base_stats['power']}\n"
+            f"**Defense**: +{base_stats['defense']}\n"
+            f"**Speed**: +{base_stats['speed']}\n"
+            f"**HP**: +{base_stats['hp']}\n"
+            f"**Cursed Energy**: +50 (max capacity)"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="XP Sources",
+        value=(
+            f"• Battles: {5 + current_level} XP\n"
+            f"• Daily Rewards: 30-60 XP\n"
+            f"• Quests: 50-200 XP\n"
+            f"• Training: 5-15 XP\n"
+            f"• Guild Activities: 30-100 XP"
+        ),
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
 
 @bot.command(name="balance", aliases=["bal", "ce", "energy"])
 async def balance_cmd(ctx):
@@ -777,7 +926,7 @@ async def balance_cmd(ctx):
     
     embed = discord.Embed(
         title=f"{ctx.author.display_name}'s Cursed Energy",
-        description=f"🔮 **Cursed Energy:** {player.cursed_energy}/{player.max_cursed_energy}",
+        description=f"🔮 **Cursed Energy:** {player.cursed_energy}",
         color=discord.Color.dark_purple()
     )
     
@@ -950,6 +1099,16 @@ async def slash_advanced_shop(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await advanced_shop_command(ctx, data_manager)
     
+@bot.tree.command(name="monsters", description="Shows all available monsters/enemies that can be battled")
+async def slash_monsters(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await monsters_cmd(ctx)
+    
+@bot.tree.command(name="level", description="View your level information and progression details")
+async def slash_level(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await level_cmd(ctx)
+    
 @bot.tree.command(name="materials", description="View the materials encyclopedia")
 async def slash_materials(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
@@ -1036,6 +1195,16 @@ async def _show_help(ctx, category: str = None):
                 "description": "Check your current cursed energy balance",
                 "usage": "!balance (aliases: !bal, !ce, !energy) or /balance",
                 "notes": "View your current cursed energy and achievement points"
+            },
+            "Level": {
+                "description": "View your level information and progression details",
+                "usage": "!level (aliases: !lvl, !progression) or /level",
+                "notes": "Shows detailed level progress with XP requirements and growth stats"
+            },
+            "Monsters": {
+                "description": "Shows all available monsters/enemies that can be battled",
+                "usage": "!monsters (aliases: !mobs, !enemies) or /monsters",
+                "notes": "Lists all enemies by zone with their level ranges"
             },
             "Help": {
                 "description": "Show this help message",
