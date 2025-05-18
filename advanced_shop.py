@@ -867,7 +867,7 @@ ADVANCED_SHOP_ITEMS = {
             "item_type": "special",
             "effect": "create_guild",
             "rarity": "legendary",
-            "level_req": 25,
+            "level_req": 10,
             "value": 10000
         },
         {

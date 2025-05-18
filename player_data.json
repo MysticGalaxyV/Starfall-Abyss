@@ -1,12 +1,13 @@
 {
     "759434349069860945": {
         "class_name": "Flash Rogue",
-        "class_level": 5,
-        "class_exp": 1065,
+        "class_level": 6,
+        "class_exp": 908,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 2003,
+        "cursed_energy": 100,
         "max_cursed_energy": 100,
+        "gold": 0,
         "unlocked_classes": [
             "Flash Rogue"
         ],
@@ -26,7 +27,7 @@
                     "value": 45
                 },
                 "quantity": 1,
-                "equipped": false
+                "equipped": true
             },
             {
                 "item": {
@@ -77,22 +78,6 @@
             },
             {
                 "item": {
-                    "item_id": "CUKPSJil",
-                    "name": "Cursed Tool: Novice Staff",
-                    "description": "A basic staff that channels cursed energy.",
-                    "item_type": "weapon",
-                    "rarity": "common",
-                    "stats": {
-                        "power": 3
-                    },
-                    "level_req": 1,
-                    "value": 50
-                },
-                "quantity": 1,
-                "equipped": false
-            },
-            {
-                "item": {
                     "item_id": "vN0Aa9LS",
                     "name": "Brawler's Boots",
                     "description": "Quick-movement footwear for agile fighters.",
@@ -124,22 +109,6 @@
             {
                 "item": {
                     "item_id": "hJcRklLa",
-                    "name": "Cursed Tool: Novice Staff",
-                    "description": "A basic staff that channels cursed energy.",
-                    "item_type": "weapon",
-                    "rarity": "common",
-                    "stats": {
-                        "power": 3
-                    },
-                    "level_req": 1,
-                    "value": 50
-                },
-                "quantity": 1,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "TvcLYPLF",
                     "name": "Cursed Tool: Novice Staff",
                     "description": "A basic staff that channels cursed energy.",
                     "item_type": "weapon",
@@ -248,7 +217,7 @@
                     "value": 200
                 },
                 "quantity": 1,
-                "equipped": false
+                "equipped": true
             },
             {
                 "item": {
@@ -265,24 +234,7 @@
                     "value": 225
                 },
                 "quantity": 1,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "h2867B9V",
-                    "name": "Star Power Charm",
-                    "description": "A lucky charm that enhances your natural abilities.",
-                    "item_type": "accessory",
-                    "rarity": "uncommon",
-                    "stats": {
-                        "hp": 15,
-                        "speed": 3
-                    },
-                    "level_req": 5,
-                    "value": 225
-                },
-                "quantity": 1,
-                "equipped": false
+                "equipped": true
             },
             {
                 "item": {
@@ -319,10 +271,10 @@
         "equipped_items": {
             "weapon": null,
             "armor": null,
-            "accessory": null
+            "accessory": "ktNYQMy1"
         },
         "achievements": [],
-        "skill_points": 8,
+        "skill_points": 10,
         "allocated_stats": {
             "power": 42,
             "defense": 5,
@@ -331,7 +283,7 @@
         },
         "skill_tree": {},
         "skill_points_spent": {},
-        "wins": 6,
+        "wins": 8,
         "losses": 0,
         "last_daily": "2025-05-18T11:56:35.511775",
         "daily_streak": 1,
@@ -363,6 +315,7 @@
         "user_exp": 0,
         "cursed_energy": 100,
         "max_cursed_energy": 100,
+        "gold": 0,
         "unlocked_classes": [],
         "inventory": [],
         "equipped_items": {
@@ -405,6 +358,7 @@
         "user_exp": 0,
         "cursed_energy": 100,
         "max_cursed_energy": 100,
+        "gold": 0,
         "unlocked_classes": [],
         "inventory": [],
         "equipped_items": {

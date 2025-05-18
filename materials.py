@@ -313,14 +313,14 @@ def gather_materials(player: PlayerData, category: str, tool_efficiency: float =
     base_count = max(1, min(5, int(random.randint(1, 3) * tool_efficiency)))
     
     # Chance for bonus items based on player level
-    bonus_chance = min(0.5, player.level / 200)  # Max 50% chance at level 100
+    bonus_chance = min(0.5, player.class_level / 200)  # Max 50% chance at level 100
     if random.random() < bonus_chance:
         base_count += random.randint(1, 2)
     
     # Generate the materials
     materials = []
     for _ in range(base_count):
-        material = generate_material(player.level, category)
+        material = generate_material(player.class_level, category)
         materials.append(material)
     
     return materials
@@ -582,7 +582,7 @@ class GatheringView(View):
             )
         
         # Also give some experience for gathering
-        base_xp = 10 + (self.player.level // 5)
+        base_xp = 10 + (self.player.class_level // 5)  # Use class_level instead of level
         total_xp = base_xp * len(materials)
         leveled_up = self.player.add_exp(total_xp)
         

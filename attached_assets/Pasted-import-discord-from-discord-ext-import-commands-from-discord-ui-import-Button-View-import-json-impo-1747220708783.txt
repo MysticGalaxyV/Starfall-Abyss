@@ -467,7 +467,7 @@ async def profile(ctx):
     if player.class_level >= 100:
         xp_needed = 0
     else:
-        xp_needed = int(100 * (player.class_level ** 0.5))
+        xp_needed = int(100 * (player.class_level ** 1.75))
 
     # Optional: build a progress bar
     def exp_bar(current, total, length=20):

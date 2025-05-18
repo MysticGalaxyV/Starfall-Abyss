@@ -226,6 +226,44 @@ CLASS_TRAINING = {
     }
 }
 
+class TargetButton(Button):
+    def __init__(self, is_target: bool, parent_view, row: int = 0):
+        # Define the button appearance
+        if is_target:
+            super().__init__(
+                label="Target!",
+                style=discord.ButtonStyle.green,
+                emoji="🎯",
+                row=row
+            )
+        else:
+            super().__init__(
+                label="Miss",
+                style=discord.ButtonStyle.gray,
+                emoji="❌",
+                row=row
+            )
+        
+        self.is_target = is_target
+        self.parent_view = parent_view
+    
+    async def callback(self, interaction: discord.Interaction):
+        # Handle the button click
+        if self.is_target:
+            self.parent_view.score += 1
+            await interaction.response.edit_message(
+                content=f"🎯 Hit! Score: {self.parent_view.score}/{self.parent_view.max_score}",
+                view=None
+            )
+        else:
+            await interaction.response.edit_message(
+                content=f"❌ Miss! Score: {self.parent_view.score}/{self.parent_view.max_score}",
+                view=None
+            )
+        
+        self.parent_view.round_complete = True
+        self.parent_view.stop()
+
 class TrainingMinigameView(View):
     def __init__(self, player_data: PlayerData, training_type: str, training_data: Dict[str, Any], data_manager: DataManager):
         super().__init__(timeout=60)
@@ -237,6 +275,7 @@ class TrainingMinigameView(View):
         self.score = 0
         self.max_score = 5
         self.current_step = 0
+        self.round_complete = False
         
         # Add start button
         start_btn = Button(
@@ -274,9 +313,10 @@ class TrainingMinigameView(View):
         # Run the minigame
         for i in range(self.max_score):
             self.current_step = i + 1
+            self.round_complete = False
             
-            # Create the minigame view for this step
-            minigame_view = View(timeout=5)  # 5 seconds to hit
+            # Create a round view for this step
+            round_view = View(timeout=5)
             
             # Add target buttons in random positions
             positions = list(range(3*3))  # 3x3 grid
@@ -284,57 +324,27 @@ class TrainingMinigameView(View):
             
             # Add target button and dummy buttons
             for j in range(9):
-                if j == positions[0]:  # Target button
-                    btn = Button(
-                        label="Target!",
-                        style=discord.ButtonStyle.green,
-                        emoji="🎯",
-                        row=j // 3
-                    )
-                    btn.custom_id = "target"
-                else:  # Dummy button
-                    btn = Button(
-                        label="Miss",
-                        style=discord.ButtonStyle.gray,
-                        emoji="❌",
-                        row=j // 3
-                    )
-                    btn.custom_id = f"dummy_{j}"
-                
-                async def button_callback(button_interaction):
-                    if button_interaction.data["custom_id"] == "target":
-                        self.score += 1
-                        await button_interaction.response.edit_message(
-                            content=f"🎯 Hit! Score: {self.score}/{self.max_score}",
-                            view=None
-                        )
-                    else:
-                        await button_interaction.response.edit_message(
-                            content=f"❌ Miss! Score: {self.score}/{self.max_score}",
-                            view=None
-                        )
-                
-                btn.callback = button_callback
-                minigame_view.add_item(btn)
+                is_target = (j == positions[0])
+                button = TargetButton(is_target=is_target, parent_view=self, row=j//3)
+                round_view.add_item(button)
             
-            # Show minigame view
+            # Show the round view
             try:
-                await interaction.edit_original_response(
+                round_msg = await interaction.followup.send(
                     content=f"Round {self.current_step}/{self.max_score} - Click the target!",
-                    view=minigame_view
+                    view=round_view
                 )
                 
-                # Wait for this step to complete
+                # Wait for this step to complete (max 5 seconds)
                 await asyncio.sleep(5)
                 
-                # If no button was clicked, consider it a miss
-                if self.current_step > self.score:
-                    await interaction.edit_original_response(
-                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}",
-                        view=None
+                # If the round was not completed, count it as a miss
+                if not self.round_complete:
+                    await interaction.followup.send(
+                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
                     )
             except Exception as e:
-                print(f"Error in minigame: {e}")
+                print(f"Error in minigame round: {e}")
             
             # Short pause between rounds
             await asyncio.sleep(1)

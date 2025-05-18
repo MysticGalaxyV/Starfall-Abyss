@@ -950,7 +950,7 @@ async def _show_help(ctx, category: str = None):
             },
             "Advanced Training": {
                 "description": "Participate in advanced training exercises",
-                "usage": "!advanced_training (alias: !at) or /advanced_training",
+                "usage": "!advanced_train (alias: !at) or /advanced_train",
                 "notes": "Specialized training minigames with better rewards"
             },
             "Skills": {

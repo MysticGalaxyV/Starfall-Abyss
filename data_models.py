@@ -260,7 +260,7 @@ class PlayerData:
 
         # Add stats from equipped items
         for inv_item in self.inventory:
-            if inv_item.equipped:
+            if inv_item.equipped and hasattr(inv_item.item, 'stats'):
                 for stat, value in inv_item.item.stats.items():
                     if stat in base_stats:
                         base_stats[stat] += value
@@ -304,50 +304,34 @@ class PlayerData:
             self.class_exp -= xp_needed
             self.class_level += 1
             self.skill_points += 2
-            self.cursed_energy += 50
+            self.max_cursed_energy += 50  # Increase max energy with each level
+            self.cursed_energy = min(self.cursed_energy + 50, self.max_cursed_energy)  # Cap energy at max
             leveled_up = True
 
         return leveled_up
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "class_name":
-            self.class_name,
-            "class_level":
-            self.class_level,
-            "class_exp":
-            self.class_exp,
-            "user_level":
-            self.user_level,
-            "user_exp":
-            self.user_exp,
-            "cursed_energy":
-            self.cursed_energy,
-            "max_cursed_energy":
-            self.max_cursed_energy,
-            "unlocked_classes":
-            self.unlocked_classes,
+            "class_name": self.class_name,
+            "class_level": self.class_level,
+            "class_exp": self.class_exp,
+            "user_level": self.user_level,
+            "user_exp": self.user_exp,
+            "cursed_energy": self.cursed_energy,
+            "max_cursed_energy": self.max_cursed_energy,
+            "gold": self.gold,
+            "unlocked_classes": self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
-            "equipped_items":
-            self.equipped_items,
-            "achievements":
-            [achievement.to_dict() for achievement in self.achievements],
-            "skill_points":
-            self.skill_points,
-            "allocated_stats":
-            self.allocated_stats,
-            "skill_tree":
-            self.skill_tree,
-            "skill_points_spent":
-            self.skill_points_spent,
-            "wins":
-            self.wins,
-            "losses":
-            self.losses,
-            "last_daily":
-            self.last_daily.isoformat() if self.last_daily else None,
-            "daily_streak":
-            self.daily_streak,
+            "equipped_items": self.equipped_items,
+            "achievements": [achievement.to_dict() for achievement in self.achievements],
+            "skill_points": self.skill_points,
+            "allocated_stats": self.allocated_stats,
+            "skill_tree": self.skill_tree,
+            "skill_points_spent": self.skill_points_spent,
+            "wins": self.wins,
+            "losses": self.losses,
+            "last_daily": self.last_daily.isoformat() if self.last_daily else None,
+            "daily_streak": self.daily_streak,
             "last_train":
             self.last_train.isoformat() if self.last_train else None,
             "dungeon_clears":

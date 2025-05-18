@@ -370,9 +370,9 @@ class GuildManager:
         if leader_id in self.member_guild_map:
             return False, "You are already in a guild. Leave your current guild first."
             
-        # Check if player meets level requirement (level 20)
-        if player_data.class_level < 20:
-            return False, f"You must be at least level 20 to create a guild. You are currently level {player_data.class_level}."
+        # Check if player meets level requirement (level 10)
+        if player_data.class_level < 10:
+            return False, f"You must be at least level 10 to create a guild. You are currently level {player_data.class_level}."
             
         # Check if player has enough cursed energy (1000)
         if player_data.cursed_energy < 1000:

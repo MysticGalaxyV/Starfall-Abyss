@@ -561,23 +561,48 @@ class ItemActionView(View):
         if self.inventory_item.equipped:
             # Unequip
             self.inventory_item.equipped = False
+            
+            # Also remove from equipped_items dictionary
+            for slot, item_id in self.player_data.equipped_items.items():
+                if item_id == self.inventory_item.item.item_id:
+                    self.player_data.equipped_items[slot] = None
+            
             await interaction.response.edit_message(
                 content=f"✅ {self.inventory_item.item.name} has been unequipped.",
                 view=None
             )
         else:
-            # Equip - first unequip any other item of the same type
-            item_type = self.inventory_item.item.item_type
-            for inv_item in self.player_data.inventory:
-                if inv_item.item.item_type == item_type and inv_item.equipped:
-                    inv_item.equipped = False
+            # Determine the slot based on item type
+            slot = None
+            if self.inventory_item.item.item_type == "weapon":
+                slot = "weapon"
+            elif self.inventory_item.item.item_type == "armor":
+                slot = "armor"
+            elif self.inventory_item.item.item_type == "accessory":
+                slot = "accessory"
             
-            # Now equip this item
-            self.inventory_item.equipped = True
-            await interaction.response.edit_message(
-                content=f"✅ {self.inventory_item.item.name} has been equipped.",
-                view=None
-            )
+            if slot:
+                # Unequip any previous item in this slot
+                if self.player_data.equipped_items[slot]:
+                    # Find the equipped item and unequip it
+                    for inv_item in self.player_data.inventory:
+                        if hasattr(inv_item.item, "item_id") and inv_item.item.item_id == self.player_data.equipped_items[slot]:
+                            inv_item.equipped = False
+                
+                # Equip this item
+                self.inventory_item.equipped = True
+                self.player_data.equipped_items[slot] = self.inventory_item.item.item_id
+                
+                await interaction.response.edit_message(
+                    content=f"✅ {self.inventory_item.item.name} has been equipped as your {slot}.",
+                    view=None
+                )
+            else:
+                await interaction.response.edit_message(
+                    content=f"❌ Cannot equip {self.inventory_item.item.name} - unknown item type.",
+                    view=None
+                )
+                return
         
         # Save player data
         self.data_manager.save_data()
