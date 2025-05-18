@@ -647,6 +647,111 @@ async def achievements_cmd(ctx):
 async def quests_cmd(ctx):
     """View your active quests and special events"""
     await quests_command(ctx, data_manager)
+    
+@bot.command(name="monsters", aliases=["mobs", "enemies"])
+async def monsters_cmd(ctx):
+    """Shows all available monsters/enemies that can be battled"""
+    embed = discord.Embed(
+        title="Ethereal Ascendancy - Monster Guide",
+        description="Here are all the monsters you can encounter in different zones:",
+        color=discord.Color.dark_purple()
+    )
+    
+    for zone, enemies in utils.ENEMY_POOLS.items():
+        zone_info = []
+        for enemy in enemies:
+            zone_info.append(f"• **{enemy['name']}** (Level {enemy['min_level']}-{enemy['max_level']})")
+        
+        embed.add_field(
+            name=f"📍 {zone} Zone",
+            value="\n".join(zone_info),
+            inline=False
+        )
+    
+    embed.add_field(
+        name="Special Enemy Types",
+        value=(
+            "• **Cursed** - High power, low defense\n"
+            "• **Armored** - High defense, low speed\n"
+            "• **Giant** - High HP, low speed\n"
+            "• **Specter** - High speed, low HP"
+        ),
+        inline=False
+    )
+    
+    embed.set_footer(text="Use !battle <zone> to encounter these monsters")
+    await ctx.send(embed=embed)
+    
+@bot.command(name="level", aliases=["lvl", "progression"])
+async def level_cmd(ctx):
+    """View your level information and progression details"""
+    player_data = await get_player_data(ctx.author.id)
+    
+    # Calculate XP needed for next level
+    max_level = 100
+    current_level = player_data.class_level
+    current_xp = player_data.class_exp
+    
+    if current_level >= max_level:
+        xp_needed = 0
+        xp_to_next = 0
+        progress_percent = 100
+    else:
+        xp_needed = int(100 * (current_level**1.5))
+        xp_to_next = max(0, xp_needed - current_xp)
+        progress_percent = min(100, int((current_xp / xp_needed) * 100))
+    
+    # Create XP progress bar
+    progress_bar_length = 20
+    filled_length = int(progress_bar_length * progress_percent / 100)
+    bar = '█' * filled_length + '░' * (progress_bar_length - filled_length)
+    
+    # Calculate stats growth per level
+    base_stats = {"power": 2, "defense": 1.5, "speed": 1, "hp": 10}
+    
+    embed = discord.Embed(
+        title=f"{ctx.author.display_name}'s Level Information",
+        description=f"Character Class: **{player_data.class_name or 'None'}**",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(
+        name="Level Progress",
+        value=(
+            f"**Level**: {current_level}/{max_level}\n"
+            f"**XP**: {current_xp}/{xp_needed}\n"
+            f"**XP to next level**: {xp_to_next}\n"
+            f"**Progress**: {progress_percent}%\n"
+            f"[{bar}]"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Level Growth Stats (per level)",
+        value=(
+            f"**Power**: +{base_stats['power']}\n"
+            f"**Defense**: +{base_stats['defense']}\n" 
+            f"**Speed**: +{base_stats['speed']}\n"
+            f"**HP**: +{base_stats['hp']}\n"
+            f"**Energy**: +5"
+        ),
+        inline=False
+    )
+    
+    embed.add_field(
+        name="XP Sources",
+        value=(
+            "• Battles: 10-50 XP\n"
+            "• Dungeons: 50-200 XP\n"
+            "• Quests: 20-500 XP\n"
+            "• Training: 5-15 XP\n"
+            "• Guild Activities: 30-100 XP"
+        ),
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
 
 @bot.command(name="event")
 @is_admin()
