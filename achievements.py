@@ -554,6 +554,13 @@ SPECIAL_EVENTS = [
         "description": "All training now gives double stat bonuses!",
         "effect": {"type": "training_multiplier", "value": 2.0},
         "duration": 1  # days
+    },
+    {
+        "id": "spirit_storm",
+        "name": "Spirit Storm",
+        "description": "A mystical storm of spirits has descended! Increased cursed energy drops by 75%!",
+        "effect": {"type": "cursed_energy_multiplier", "value": 1.75},
+        "duration": 1  # days
     }
 ]
 
