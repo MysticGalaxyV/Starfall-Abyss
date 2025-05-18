@@ -188,9 +188,11 @@ class PlayerData:
         self.class_exp = 0
         self.user_level = 1
         self.user_exp = 0
-        self.cursed_energy = 100
-        self.max_cursed_energy = 100
-        self.gold = 0  # Adding missing gold attribute
+        self.cursed_energy = 100  # Now used as Gold/currency
+        self.max_cursed_energy = 1000000  # Very high maximum as there's no cap on gold
+        self.gold = 0  # Currently unused - we'll use cursed_energy for compatibility
+        self.battle_energy = 100  # Battle resource
+        self.max_battle_energy = 100  # Max battle resource
         self.unlocked_classes = []
         self.inventory = []  # List[InventoryItem]
         self.equipped_items = {
@@ -268,7 +270,7 @@ class PlayerData:
         return base_stats
 
     def add_cursed_energy(self, amount: int) -> int:
-        """Add cursed energy with no maximum limit. Returns the amount added."""
+        """Add cursed energy (gold) with no maximum limit. Returns the amount added."""
         if amount <= 0:
             return 0
 
@@ -277,12 +279,31 @@ class PlayerData:
         return amount
 
     def remove_cursed_energy(self, amount: int) -> bool:
-        """Remove cursed energy if available. Returns True if successful."""
+        """Remove cursed energy (gold) if available. Returns True if successful."""
         if amount <= 0:
             return True
 
         if self.cursed_energy >= amount:
             self.cursed_energy -= amount
+            return True
+        return False
+        
+    def add_battle_energy(self, amount: int) -> int:
+        """Add battle energy up to maximum limit. Returns the actual amount added."""
+        if amount <= 0:
+            return 0
+            
+        old_value = self.battle_energy
+        self.battle_energy = min(self.max_battle_energy, self.battle_energy + amount)
+        return self.battle_energy - old_value
+
+    def remove_battle_energy(self, amount: int) -> bool:
+        """Remove battle energy if available. Returns True if successful."""
+        if amount <= 0:
+            return True
+            
+        if self.battle_energy >= amount:
+            self.battle_energy -= amount
             return True
         return False
 
@@ -348,6 +369,12 @@ class PlayerData:
             self.training_cooldowns,
             "cursed_energy":
             self.cursed_energy,
+            "max_cursed_energy":
+            self.max_cursed_energy,
+            "battle_energy":
+            self.battle_energy,
+            "max_battle_energy":
+            self.max_battle_energy,
             "technique_grade":
             self.technique_grade,
             "domain_expansion":
@@ -369,7 +396,8 @@ class PlayerData:
         # Set simple attributes
         for attr in [
                 "class_name", "class_level", "class_exp", "user_level",
-                "user_exp", "cursed_energy", "technique_grade",
+                "user_exp", "cursed_energy", "max_cursed_energy", 
+                "battle_energy", "max_battle_energy", "technique_grade",
                 "domain_expansion", "unlocked_classes", "equipped_items",
                 "skill_points", "allocated_stats", "skill_tree",
                 "skill_points_spent", "wins", "losses", "daily_streak",

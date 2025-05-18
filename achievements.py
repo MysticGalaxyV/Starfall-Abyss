@@ -1216,7 +1216,7 @@ class AchievementsView(View):
         
         # Create embed
         embed = discord.Embed(
-            title=f"Achievements - {self.player_data.username}",
+            title=f"Achievements",
             description=f"Total Achievement Points: **{total_points}**\n"
                        f"Achievements Earned: **{len(completed_achievements)}/{len(ACHIEVEMENTS)}**",
             color=discord.Color.gold()
@@ -1359,7 +1359,7 @@ class QuestsView(View):
             quests = self.quest_manager.get_daily_quests(self.player_data)
             
             embed = discord.Embed(
-                title=f"Daily Quests - {self.player_data.username}",
+                title=f"Daily Quests",
                 description="Complete these quests before the daily reset!",
                 color=discord.Color.green()
             )
@@ -1379,7 +1379,7 @@ class QuestsView(View):
             quests = self.quest_manager.get_weekly_quests(self.player_data)
             
             embed = discord.Embed(
-                title=f"Weekly Quests - {self.player_data.username}",
+                title=f"Weekly Quests",
                 description="Complete these quests before the weekly reset!",
                 color=discord.Color.blue()
             )
@@ -1398,7 +1398,7 @@ class QuestsView(View):
             quests = self.quest_manager.get_long_term_quests(self.player_data)
             
             embed = discord.Embed(
-                title=f"Long-term Quests - {self.player_data.username}",
+                title=f"Long-term Quests",
                 description="These challenging quests never expire!",
                 color=discord.Color.purple()
             )

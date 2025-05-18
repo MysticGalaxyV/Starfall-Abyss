@@ -140,7 +140,7 @@ class BattleEntity:
                     if ability_effect == "critical" and random.random() < 0.25:  # 25% chance
                         crit_bonus = int(damage * 1.5)
                         damage += crit_bonus
-                        effect_msg += f"\n⚡ {ability_name} activated! Critical hit for {crit_bonus} bonus damage!"
+                        effect_msg += f"\n✨ {ability_name} activated! Critical hit for {crit_bonus} bonus damage!"
                     
                     # Domain Expansion damage boost
                     elif ability_effect == "special_ability" and ability_name == "Domain Expansion":
@@ -197,7 +197,7 @@ class BattleEntity:
             elif move.effect == "energy_restore":
                 energy_amount = int(30)
                 self.current_energy = min(self.stats.get("energy", 100), self.current_energy + energy_amount)
-                effect_msg += f"\n⚡ {self.name} restored {energy_amount} energy!"
+                effect_msg += f"\n✨ {self.name} restored {energy_amount} energy!"
             elif move.effect == "weakness":
                 target.status_effects["weakness"] = (2, 0.25)  # 2 turns, 25% more damage
                 effect_msg += f"\n🟣 {target.name} is weakened for 2 turns!"
@@ -244,7 +244,7 @@ class BattleMoveButton(Button):
             emoji = "💚"
         elif "energy" in (move.effect or ""):
             style = discord.ButtonStyle.blurple
-            emoji = "⚡"
+            emoji = "✨"
         elif "shield" in (move.effect or ""):
             style = discord.ButtonStyle.gray
             emoji = "🛡️"
@@ -253,7 +253,7 @@ class BattleMoveButton(Button):
             emoji = "⚔️"
             
         super().__init__(
-            label=f"{move.name} ({move.energy_cost} ⚡)", 
+            label=f"{move.name} ({move.energy_cost} ✨)", 
             style=style,
             emoji=emoji,
             row=row
@@ -381,7 +381,7 @@ class BattleView(View):
             await interaction.edit_original_response(
                 content=f"🎉 Victory! You defeated {self.enemy.name}!\n"
                        f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-                       f"Energy: {self.player.current_energy}/100 ⚡",
+                       f"Energy: {self.player.current_energy}/100 ✨",
                 view=None
             )
             return
@@ -431,9 +431,9 @@ class BattleView(View):
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/100 ⚡\n"
+            f"Energy: {self.player.current_energy}/100 ✨\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
-            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
+            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ✨"
             f"{player_status_msg}{enemy_status_msg}"
         )
         
@@ -482,7 +482,7 @@ class BattleView(View):
                 energy_amount = 50  # Default energy restore
                 
             self.player.current_energy = min(100, self.player.current_energy + energy_amount)
-            effect_msg = f"⚡ You used {item_name} and restored {energy_amount} energy!"
+            effect_msg = f"✨ You used {item_name} and restored {energy_amount} energy!"
             
         elif "strength" in item_effect.lower():
             self.player.status_effects["strength"] = (3, 0.3)  # 3 turns, 30% more damage
@@ -551,9 +551,9 @@ class BattleView(View):
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/100 ⚡\n"
+            f"Energy: {self.player.current_energy}/100 ✨\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
-            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
+            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ✨"
             f"{player_status_msg}{enemy_status_msg}"
         )
         
@@ -645,7 +645,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     
     # Add fields for abilities and effects if any
     if active_abilities_text:
-        embed.add_field(name="⚡ Active Abilities", value=active_abilities_text, inline=False)
+        embed.add_field(name="✨ Active Abilities", value=active_abilities_text, inline=False)
     
     if active_effects_text:
         embed.add_field(name="🧪 Active Effects", value=active_effects_text, inline=False)
@@ -654,7 +654,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     embed.add_field(
         name=f"{ctx.author.display_name} (Level {player_data.class_level})",
         value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
+              f"Energy: {player_entity.current_energy}/{player_data.max_cursed_energy} ✨\n"
               f"Power: {player_entity.stats['power']} ⚔️\n"
               f"Defense: {player_entity.stats['defense']} 🛡️",
         inline=True
@@ -664,7 +664,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     embed.add_field(
         name=f"{enemy_name} (Level {enemy_level})",
         value=f"HP: {enemy_entity.current_hp}/{enemy_entity.stats['hp']} ❤️\n"
-              f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ⚡\n"
+              f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ✨\n"
               f"Power: {enemy_entity.stats['power']} ⚔️\n"
               f"Defense: {enemy_entity.stats['defense']} 🛡️",
         inline=True
@@ -684,11 +684,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         # Player won
         # Calculate rewards
         exp_reward = calculate_exp_reward(enemy_level, player_data.class_level)
-        gold_reward = calculate_gold_reward(enemy_level)  # Calculate gold reward
+        cursed_energy_reward = calculate_gold_reward(enemy_level)  # Using same function but for cursed energy
         
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.add_cursed_energy(gold_reward)  # Using new method that handles limits
+        player_data.add_cursed_energy(cursed_energy_reward)  # Using new method that handles limits
         
         # Update stats
         player_data.wins += 1
@@ -703,7 +703,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
             from equipment import add_item_to_inventory
             add_item_to_inventory(player_data, new_item)
             
-            drop_msg = f"\n⚡ The {enemy_name} dropped: **{new_item.name}**!"
+            drop_msg = f"\n✨ The {enemy_name} dropped: **{new_item.name}**!"
         
         # Check for special item drop (rarer)
         special_drop_msg = ""
@@ -746,7 +746,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{cursed_energy_reward} 🔮{drop_msg}{special_drop_msg}",
+                  f"Cursed Energy: +{cursed_energy_reward} 🔮{drop_msg}{special_drop_msg}",
             inline=False
         )
         
@@ -1030,7 +1030,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
     embed.add_field(
         name=f"{ctx.author.display_name} (Level {player_data.class_level})",
         value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
+              f"Energy: {player_entity.current_energy}/{player_data.max_cursed_energy} ✨\n"
               f"Power: {player_entity.stats['power']} ⚔️\n"
               f"Defense: {player_entity.stats['defense']} 🛡️",
         inline=True
@@ -1040,7 +1040,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
     embed.add_field(
         name=f"{target_member.display_name} (Level {target_data.class_level})",
         value=f"HP: {target_entity.current_hp}/{target_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {target_entity.current_energy}/{target_data.max_battle_energy} ⚡\n"
+              f"Energy: {target_entity.current_energy}/{target_data.max_cursed_energy} ✨\n"
               f"Power: {target_entity.stats['power']} ⚔️\n"
               f"Defense: {target_entity.stats['defense']} 🛡️",
         inline=True
@@ -1133,7 +1133,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{cursed_energy_reward} 🔮",
+                  f"Cursed Energy: +{cursed_energy_reward} 🔮",
             inline=False
         )
         

@@ -236,7 +236,7 @@ async def profile_command(ctx, member: discord.Member = None):
                    f"**Level:** {player.class_level} ({player.class_exp}/{int(100 * (player.class_level ** 1.5))} EXP)\n"
                    f"**Technique Grade:** {player.technique_grade}\n"
                    f"**Gold:** {player.cursed_energy} 🔮\n"
-                   f"**Battle Energy:** {player.battle_energy}/{player.max_battle_energy} ⚡",
+                   f"**Battle Energy:** {getattr(player, 'battle_energy', 100)}/{getattr(player, 'max_battle_energy', 100)} ⚡",
         color=discord.Color.dark_purple()
     )
     
@@ -251,7 +251,8 @@ async def profile_command(ctx, member: discord.Member = None):
         value=f"**HP:** {stats['hp']} ❤️\n"
               f"**Cursed Power:** {stats['power']} ⚔️\n"
               f"**Defense:** {stats['defense']} 🛡️\n"
-              f"**Speed:** {stats['speed']} 💨",
+              f"**Speed:** {stats['speed']} 💨\n"
+              f"**Energy:** {player.cursed_energy}/{player.max_cursed_energy} ✨",
         inline=True
     )
     
@@ -351,26 +352,19 @@ async def daily_command(ctx):
     player.last_daily = now
     
     # Calculate rewards based on streak
-    base_gold = 50
-    base_battle_energy = 25
+    base_cursed_energy = 50
     base_exp = 30
     
     # Bonus for streak (up to 100% extra at 30 days)
     streak_bonus = min(1.0, player.daily_streak / 30)
     
-    gold_reward = int(base_gold * (1 + streak_bonus))
-    battle_energy_reward = int(base_battle_energy * (1 + streak_bonus))
+    cursed_energy_reward = int(base_cursed_energy * (1 + streak_bonus))
     exp_reward = int(base_exp * (1 + streak_bonus))
     
-    # Add gold (no maximum limit)
-    player.cursed_energy += gold_reward
-    
-    # Add battle energy (with max limit check)
-    player.battle_energy += battle_energy_reward
-    if player.battle_energy > player.max_battle_energy:
-        player.battle_energy = player.max_battle_energy
-    
-    # Add experience
+    # Add rewards (with max limit check)
+    player.cursed_energy += cursed_energy_reward
+    if player.cursed_energy > player.max_cursed_energy:
+        player.cursed_energy = player.max_cursed_energy
     leveled_up = player.add_exp(exp_reward)
     
     # Create reward embed
@@ -382,8 +376,7 @@ async def daily_command(ctx):
     
     embed.add_field(
         name="Rewards",
-        value=f"**Gold:** +{gold_reward} 🔮\n"
-              f"**Battle Energy:** +{battle_energy_reward} ⚡\n"
+        value=f"**Cursed Energy:** +{cursed_energy_reward} 🔮\n"
               f"**EXP:** +{exp_reward} 📊\n"
               f"**Streak:** {player.daily_streak} day{'s' if player.daily_streak != 1 else ''}",
         inline=False
@@ -393,8 +386,7 @@ async def daily_command(ctx):
     if player.daily_streak >= 7:
         embed.add_field(
             name="🔥 Streak Bonus",
-            value=f"Your streak bonus is +{int(streak_bonus * 100)}%!\n"
-                  f"Gold: {gold_reward} 🔮 | Battle Energy: {battle_energy_reward} ⚡",
+            value=f"Your streak bonus is +{int(streak_bonus * 100)}%!",
             inline=False
         )
     else:
