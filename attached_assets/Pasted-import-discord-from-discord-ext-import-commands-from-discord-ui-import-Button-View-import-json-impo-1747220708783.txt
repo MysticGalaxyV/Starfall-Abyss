@@ -463,6 +463,20 @@ async def profile(ctx):
     class_data = STARTER_CLASSES[player.class_name]
     current_stats = class_data["stats"]
 
+    # Calculate XP needed for current level
+    if player.class_level >= 100:
+        xp_needed = 0
+    else:
+        xp_needed = int(100 * (player.class_level ** 0.5))
+
+    # Optional: build a progress bar
+    def exp_bar(current, total, length=20):
+        if total == 0: return "[MAX LEVEL]"
+        filled = int(length * current / total)
+        return f"[{'█' * filled}{'.' * (length - filled)}]"
+
+    bar = exp_bar(player.class_exp, xp_needed)
+
     embed = discord.Embed(
         title=f"📊 {ctx.author.name}'s Profile",
         color=discord.Color.purple()
@@ -472,8 +486,8 @@ async def profile(ctx):
         name="Class Info",
         value=f"Class: {player.class_name}\n"
               f"Role: {class_data['role']}\n"
-              f"Level: {player.class_level}\n"
-              f"Experience: {player.class_exp}/100",
+              f"Level: {player.class_level} ({player.class_exp}/{xp_needed} EXP)\n"
+              f"{bar}",
         inline=False
     )
 
@@ -495,6 +509,7 @@ async def profile(ctx):
     )
 
     await ctx.send(embed=embed)
+
 
 @bot.command(name="battle", aliases=["b"])
 async def battle(ctx, opponent: discord.Member):
@@ -1313,19 +1328,20 @@ TRAINING_EXERCISES = {
 
 # Special Events
 EVENTS = {
-    "Blood Moon": {
+    "Blood_Moon": {
         "description": "The Blood Moon increases all damage by 30%",
         "duration": 10  # minutes
     },
-    "Spirit Storm": {
+    "Spirit_Storm": {
         "description": "A storm of spiritual energy grants double exp",
         "duration": 10
     },
-    "Energy Surge": {
+    "Energy_Surge": {
         "description": "Cursed Energy gains are doubled",
         "duration": 10
     }
 }
+
 
 @bot.command(name="train", aliases=["tr"])
 async def train(ctx, *, exercise: str = None):

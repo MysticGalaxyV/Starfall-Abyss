@@ -2037,26 +2037,23 @@ async def guild_command(ctx, action: str = None, *args):
     
     elif action.lower() == "create":
         # Check if player has guild charter item
-        has_charter = False
-        charter_item_id = None
-        if hasattr(player_data, "inventory"):
-            for inv_item in player_data.inventory:
-                # Check for Guild Charter item
-                if inv_item.item.name.lower().endswith("guild charter") or inv_item.item.name.lower() == "guild charter":
-                    has_charter = True
-                    charter_item_id = inv_item.item.item_id
-                    break
-        
-        if not has_charter:
-            await ctx.send("You need a Guild Charter to create a guild. Purchase one from the shop with `!shop`.")
+        if player_data.cursed_energy < 1000:
+            await ctx.send("❌ You need 1,000 🌀 Cursed Energy to create a guild. Current balance: {} 🌀".format(player_data.cursed_energy))
             return
-        
+
         # Get guild name from arguments
         if not args:
             await ctx.send("Please provide a name for your guild. Usage: `!guild create <name>`")
             return
-        
+
         guild_name = " ".join(args)
+
+        # Deduct the Cursed Energy
+        player_data.cursed_energy -= 1000
+
+        # Save the updated player data
+        data_manager.save_data()
+
         
         # Check if name is valid
         if len(guild_name) < 3 or len(guild_name) > 32:
