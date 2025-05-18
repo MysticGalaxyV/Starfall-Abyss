@@ -5,7 +5,7 @@
         "class_exp": 2340,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 785,
+        "cursed_energy": 100,
         "max_cursed_energy": 100,
         "gold": 0,
         "unlocked_classes": [
@@ -102,22 +102,6 @@
                     "stats": {},
                     "level_req": 1,
                     "value": 30
-                },
-                "quantity": 1,
-                "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "hJcRklLa",
-                    "name": "Cursed Tool: Novice Staff",
-                    "description": "A basic staff that channels cursed energy.",
-                    "item_type": "weapon",
-                    "rarity": "common",
-                    "stats": {
-                        "power": 3
-                    },
-                    "level_req": 1,
-                    "value": 50
                 },
                 "quantity": 1,
                 "equipped": false
@@ -234,7 +218,7 @@
                     "value": 225
                 },
                 "quantity": 1,
-                "equipped": true
+                "equipped": false
             },
             {
                 "item": {
@@ -282,7 +266,7 @@
                     "value": 500
                 },
                 "quantity": 1,
-                "equipped": false
+                "equipped": true
             },
             {
                 "item": {
@@ -339,29 +323,12 @@
                 },
                 "quantity": 1,
                 "equipped": false
-            },
-            {
-                "item": {
-                    "item_id": "w1O6BWqU",
-                    "name": "Star Power Charm",
-                    "description": "A lucky charm that enhances your natural abilities.",
-                    "item_type": "accessory",
-                    "rarity": "uncommon",
-                    "stats": {
-                        "hp": 15,
-                        "speed": 3
-                    },
-                    "level_req": 5,
-                    "value": 225
-                },
-                "quantity": 1,
-                "equipped": false
             }
         ],
         "equipped_items": {
             "weapon": null,
             "armor": null,
-            "accessory": "ktNYQMy1"
+            "accessory": "2EH4SzTy"
         },
         "achievements": [],
         "skill_points": 16,

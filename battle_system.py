@@ -501,8 +501,8 @@ class BattleView(View):
         )
         
         # Save player data
-        if player_data and self.view is not None and hasattr(self.view, 'data_manager') and self.view.data_manager is not None:
-            self.view.data_manager.save_data()
+        if player_data and hasattr(self, 'data_manager') and self.data_manager is not None:
+            self.data_manager.save_data()
             
         # Enemy turn (items don't consume a turn, but enemy still attacks)
         await asyncio.sleep(1)
@@ -746,7 +746,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{cursed_energy_reward} 🔮{drop_msg}{special_drop_msg}",
+                  f"Gold: +{gold_reward} 🔮{drop_msg}{special_drop_msg}",
             inline=False
         )
         
