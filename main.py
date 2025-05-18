@@ -651,13 +651,15 @@ async def quests_cmd(ctx):
 @bot.command(name="monsters", aliases=["mobs", "enemies"])
 async def monsters_cmd(ctx):
     """Shows all available monsters/enemies that can be battled"""
+    from utils import ENEMY_POOLS
+    
     embed = discord.Embed(
         title="Ethereal Ascendancy - Monster Guide",
         description="Here are all the monsters you can encounter in different zones:",
         color=discord.Color.dark_purple()
     )
     
-    for zone, enemies in utils.ENEMY_POOLS.items():
+    for zone, enemies in ENEMY_POOLS.items():
         zone_info = []
         for enemy in enemies:
             zone_info.append(f"• **{enemy['name']}** (Level {enemy['min_level']}-{enemy['max_level']})")
@@ -685,7 +687,11 @@ async def monsters_cmd(ctx):
 @bot.command(name="level", aliases=["lvl", "progression"])
 async def level_cmd(ctx):
     """View your level information and progression details"""
-    player_data = await get_player_data(ctx.author.id)
+    # Get player data using the data_manager
+    player_id = ctx.author.id
+    if player_id not in data_manager.player_data:
+        data_manager.player_data[player_id] = data_models.PlayerData(player_id)
+    player_data = data_manager.player_data[player_id]
     
     # Calculate XP needed for next level
     max_level = 100

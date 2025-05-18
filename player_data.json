@@ -1,12 +1,12 @@
 {
     "759434349069860945": {
         "class_name": "Flash Rogue",
-        "class_level": 6,
-        "class_exp": 908,
+        "class_level": 9,
+        "class_exp": 421,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 100,
-        "max_cursed_energy": 100,
+        "cursed_energy": 505,
+        "max_cursed_energy": 250,
         "gold": 0,
         "unlocked_classes": [
             "Flash Rogue"
@@ -266,6 +266,23 @@
                 },
                 "quantity": 1,
                 "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "2EH4SzTy",
+                    "name": "Domain Amplifier",
+                    "description": "A rare accessory that strengthens your domain abilities.",
+                    "item_type": "accessory",
+                    "rarity": "rare",
+                    "stats": {
+                        "power": 5,
+                        "speed": 5
+                    },
+                    "level_req": 8,
+                    "value": 500
+                },
+                "quantity": 1,
+                "equipped": false
             }
         ],
         "equipped_items": {
@@ -274,7 +291,7 @@
             "accessory": "ktNYQMy1"
         },
         "achievements": [],
-        "skill_points": 10,
+        "skill_points": 16,
         "allocated_stats": {
             "power": 42,
             "defense": 5,
@@ -283,7 +300,7 @@
         },
         "skill_tree": {},
         "skill_points_spent": {},
-        "wins": 8,
+        "wins": 9,
         "losses": 0,
         "last_daily": "2025-05-18T11:56:35.511775",
         "daily_streak": 1,

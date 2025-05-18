@@ -847,16 +847,28 @@ def generate_enemy_stats(enemy_name: str, enemy_level: int, player_level: int) -
     
     # Scale difficulty based on player level difference
     level_diff = enemy_level - player_level
+    
     if level_diff > 0:
-        # Enemy is higher level, make slightly easier
-        difficulty_mod = 1.0 - (level_diff * 0.05)
-        stats["power"] = int(stats["power"] * difficulty_mod)
-        stats["defense"] = int(stats["defense"] * difficulty_mod)
+        # Enemy is higher level - make them MUCH harder
+        # Higher level enemies should be very challenging
+        power_boost = 1.0 + (level_diff * 0.15)  # 15% increase per level difference
+        defense_boost = 1.0 + (level_diff * 0.10)  # 10% increase per level difference
+        hp_boost = 1.0 + (level_diff * 0.20)  # 20% increase per level difference
+        
+        stats["power"] = int(stats["power"] * power_boost)
+        stats["defense"] = int(stats["defense"] * defense_boost)
+        stats["hp"] = int(stats["hp"] * hp_boost)
     elif level_diff < -2:
-        # Enemy is much lower level, make slightly harder
-        difficulty_mod = 1.0 + (abs(level_diff) * 0.03)
+        # Enemy is much lower level, still make them challenging
+        difficulty_mod = 1.0 + (abs(level_diff) * 0.05)  # 5% increase per level below player
         stats["power"] = int(stats["power"] * difficulty_mod)
         stats["defense"] = int(stats["defense"] * difficulty_mod)
+    
+    # Ensure no negative stats - enforce minimum values
+    stats["power"] = max(5, stats["power"])
+    stats["defense"] = max(5, stats["defense"])
+    stats["hp"] = max(50, stats["hp"])
+    stats["speed"] = max(5, stats["speed"])
     
     return stats
 
