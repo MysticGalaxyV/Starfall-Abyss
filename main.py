@@ -52,6 +52,10 @@ def is_admin():
     async def predicate(ctx):
         return ctx.author.id == ADMIN_USER_ID
     return commands.check(predicate)
+
+# Define a simpler check function that works properly with the command system
+def admin_check(ctx):
+    return ctx.author.id == ADMIN_USER_ID
     
 # Give gold command will be added after bot is defined
 
@@ -655,7 +659,7 @@ async def achievements_cmd(ctx):
     await achievements_command(ctx, data_manager)
     
 @bot.command(name="give_gold")
-@commands.check(is_admin)
+@commands.check(admin_check)
 async def give_gold_cmd(ctx, member: discord.Member, amount: int):
     """[Admin] Give gold to a user"""
     if amount <= 0:
@@ -678,6 +682,54 @@ async def give_gold_cmd(ctx, member: discord.Member, amount: int):
 async def quests_cmd(ctx):
     """View your active quests and special events"""
     await quests_command(ctx, data_manager)
+    
+@bot.command(name="levels")
+async def levels_cmd(ctx):
+    """View your level information and progression details"""
+    player = data_manager.get_player(ctx.author.id)
+    
+    next_level_xp = player.xp_to_next_level()
+    progress_percentage = round((player.xp / next_level_xp) * 100 if next_level_xp > 0 else 100)
+    progress_bar = "".join(["█" if i < progress_percentage/10 else "░" for i in range(10)])
+    
+    embed = discord.Embed(
+        title=f"{ctx.author.name}'s Level Information",
+        color=discord.Color.blue()
+    )
+    
+    embed.add_field(
+        name="Level Progress", 
+        value=f"Level: {player.level}/100\n"
+              f"XP: {player.xp}/{next_level_xp}\n"
+              f"XP to next level: {next_level_xp - player.xp}\n"
+              f"Progress: {progress_percentage}%\n"
+              f"[{progress_bar}]",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="Level Growth Stats (per level)", 
+        value=f"Power: +2\n"
+              f"Defense: +1.5\n"
+              f"Speed: +1\n"
+              f"HP: +10\n"
+              f"Gold: +50\n"
+              f"Battle Energy: +5",
+        inline=False
+    )
+    
+    # Add XP sources
+    embed.add_field(
+        name="XP Sources", 
+        value="• Battles: 10-50 XP\n"
+              "• Dungeons: 50-200 XP\n"
+              "• Quests: 20-500 XP\n"
+              "• Training: 5-15 XP\n"
+              "• Guild Activities: 30-100 XP",
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
     
 @bot.command(name="monsters", aliases=["mobs", "enemies"])
 async def monsters_cmd(ctx):
@@ -1146,16 +1198,16 @@ async def _show_help(ctx, category: str = None):
             "Daily": {
                 "description": "Claim your daily rewards",
                 "usage": "!daily or /daily",
-                "notes": "Claim cursed energy and items every 24 hours"
+                "notes": "Claim gold (🔮) and items every 24 hours"
             },
             "Balance": {
-                "description": "Check your current cursed energy balance",
-                "usage": "!balance (aliases: !bal, !ce, !energy) or /balance",
-                "notes": "View your current cursed energy and achievement points"
+                "description": "Check your current gold balance",
+                "usage": "!balance (aliases: !bal) or /balance",
+                "notes": "View your current gold (🔮) and battle energy (✨)"
             },
-            "Level": {
+            "Levels": {
                 "description": "View your level information and progression details",
-                "usage": "!level (aliases: !lvl, !progression) or /level",
+                "usage": "!levels or /levels",
                 "notes": "Shows detailed level progress with XP requirements and growth stats"
             },
             "Monsters": {
@@ -1225,7 +1277,7 @@ async def _show_help(ctx, category: str = None):
             "Buy": {
                 "description": "Buy an item from the shop",
                 "usage": "!buy <item_name>",
-                "notes": "Purchase items with cursed energy to improve your character"
+                "notes": "Purchase items with gold (🔮) to improve your character"
             }
         },
         "Exploration": {

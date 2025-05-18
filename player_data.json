@@ -2,7 +2,7 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 9,
-        "class_exp": 2340,
+        "class_exp": 2348,
         "user_level": 1,
         "user_exp": 0,
         "cursed_energy": 100,
@@ -336,7 +336,7 @@
             "power": 42,
             "defense": 5,
             "speed": 22,
-            "hp": 93
+            "hp": 95
         },
         "skill_tree": {},
         "skill_points_spent": {},
@@ -344,7 +344,7 @@
         "losses": 2,
         "last_daily": "2025-05-18T11:56:35.511775",
         "daily_streak": 1,
-        "last_train": "2025-05-18T12:24:37.078142",
+        "last_train": "2025-05-18T19:04:10.273125",
         "dungeon_clears": {
             "Ancient Forest": 10,
             "Forgotten Cave": 6

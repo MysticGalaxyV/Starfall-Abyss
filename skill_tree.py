@@ -198,8 +198,13 @@ class SkillTreeView(View):
         
     async def node_button_callback(self, interaction: discord.Interaction):
         """Handle node selection"""
-        # Extract node index from button custom_id
-        node_index = int(interaction.custom_id.split("_")[1])
+        # Extract node index from button component data
+        custom_id = interaction.data.get('custom_id', '')
+        if not custom_id:
+            await interaction.response.send_message("Error processing skill selection. Please try again.", ephemeral=True)
+            return
+            
+        node_index = int(custom_id.split("_")[1])
         
         # Get the node info
         tree_nodes = {

@@ -117,18 +117,24 @@ class TrainingOptionView(View):
     
     async def option_callback(self, interaction: discord.Interaction):
         """Handle training option selection"""
-        self.selected_option = interaction.data["custom_id"]
+        custom_id = interaction.data.get("custom_id", "")
+        self.selected_option = custom_id
         
         # Get the option data
         option_data = None
         for item in self.children:
-            if isinstance(item, Button) and item.custom_id == self.selected_option:
+            if isinstance(item, Button) and hasattr(item, 'custom_id') and item.custom_id == custom_id:
                 option_data = item.option_data
                 break
         
         if not option_data:
             await interaction.response.send_message("❌ Error: Training option not found!", ephemeral=True)
             return
+            
+        # Disable all other buttons to hide options once one is selected
+        for item in self.children:
+            if isinstance(item, Button) and hasattr(item, 'custom_id') and item.custom_id != custom_id:
+                item.disabled = True
         
         # Check if player can train (cooldown)
         now = datetime.datetime.now()

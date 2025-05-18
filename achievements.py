@@ -1198,7 +1198,12 @@ class AchievementsView(View):
     
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
-        self.current_category = interaction.data["values"][0]
+        values = interaction.data.get("values", [])
+        if values:
+            self.current_category = values[0]
+        else:
+            # Default to "All" if no selection was made
+            self.current_category = "All"
         
         # Create updated embed
         embed = self.create_achievements_embed()

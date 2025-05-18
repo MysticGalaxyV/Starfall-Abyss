@@ -297,6 +297,16 @@ class PlayerData:
         self.battle_energy = min(self.max_battle_energy, self.battle_energy + amount)
         return self.battle_energy - old_value
 
+    def xp_to_next_level(self) -> int:
+        """Calculate XP needed for the next level."""
+        # Base XP requirement that increases with level
+        base_xp = 100
+        level_multiplier = 1.5  # Exponential growth factor
+        
+        # Calculate XP needed for next level
+        next_level_xp = int(base_xp * (self.level ** level_multiplier))
+        return next_level_xp
+        
     def remove_battle_energy(self, amount: int) -> bool:
         """Remove battle energy if available. Returns True if successful."""
         if amount <= 0:
