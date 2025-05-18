@@ -52,6 +52,8 @@ def is_admin():
     async def predicate(ctx):
         return ctx.author.id == ADMIN_USER_ID
     return commands.check(predicate)
+    
+# Give gold command will be added after bot is defined
 
 def get_prefix(bot, message):
     # Support for both "!" and "@bot" as prefixes
@@ -651,6 +653,26 @@ async def guild_cmd(ctx, action: str = None, *args):
 async def achievements_cmd(ctx):
     """View your achievements and badges"""
     await achievements_command(ctx, data_manager)
+    
+@bot.command(name="give_gold")
+@commands.check(is_admin)
+async def give_gold_cmd(ctx, member: discord.Member, amount: int):
+    """[Admin] Give gold to a user"""
+    if amount <= 0:
+        await ctx.send("❌ Amount must be greater than 0.")
+        return
+        
+    player = data_manager.get_player(member.id)
+    player.add_cursed_energy(amount)
+    data_manager.save_data()
+    
+    embed = discord.Embed(
+        title="💰 Gold Added",
+        description=f"Added **{amount}** gold to {member.mention}'s balance.\nNew balance: **{player.cursed_energy}** 🔮",
+        color=discord.Color.gold()
+    )
+    
+    await ctx.send(embed=embed)
 
 @bot.command(name="quests", aliases=["q"])
 async def quests_cmd(ctx):
@@ -856,12 +878,12 @@ async def advanced_shop_cmd(ctx):
 
 @bot.command(name="balance", aliases=["bal", "gold"])
 async def balance_cmd(ctx):
-    """Check your current gold and battle energy balance"""
+    """Check your current gold balance"""
     player = data_manager.get_player(ctx.author.id)
     
     embed = discord.Embed(
         title=f"{ctx.author.display_name}'s Balance",
-        description=f"🔮 **Gold:** {player.cursed_energy}\n⚡ **Battle Energy:** {getattr(player, 'battle_energy', 100)}/{getattr(player, 'max_battle_energy', 100)}",
+        description=f"🔮 **Gold:** {player.cursed_energy}",
         color=discord.Color.dark_purple()
     )
     

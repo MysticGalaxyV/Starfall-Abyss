@@ -325,8 +325,14 @@ class PlayerData:
             self.class_exp -= xp_needed
             self.class_level += 1
             self.skill_points += 2
-            self.max_cursed_energy += 50  # Increase max energy with each level
-            self.cursed_energy = min(self.cursed_energy + 50, self.max_cursed_energy)  # Cap energy at max
+            self.max_cursed_energy += 50  # Increase max gold with each level
+            self.cursed_energy = min(self.cursed_energy + 50, self.max_cursed_energy)  # Cap gold at max
+            
+            # Increase max battle energy on level up
+            battle_energy_increase = 5 + (self.class_level // 10)  # More energy gain at higher levels
+            self.max_battle_energy += battle_energy_increase
+            # Refill battle energy on level up
+            self.battle_energy = self.max_battle_energy
             leveled_up = True
 
         return leveled_up

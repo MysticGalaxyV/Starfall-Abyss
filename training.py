@@ -168,6 +168,10 @@ class TrainingOptionView(View):
         # Add exp
         leveled_up = self.player_data.add_exp(exp_gain)
         
+        # Add some battle energy
+        battle_energy_gain = random.randint(3, 8)
+        energy_added = self.player_data.add_battle_energy(battle_energy_gain)
+        
         # Update last train time
         self.player_data.last_train = now
         
@@ -184,7 +188,8 @@ class TrainingOptionView(View):
         embed.add_field(
             name="Results",
             value=f"**{option_data['attribute'].title()}:** +{attribute_gain}\n"
-                  f"**EXP Gained:** {exp_gain}",
+                  f"**EXP Gained:** {exp_gain}\n"
+                  f"**Battle Energy:** +{energy_added} ✨",
             inline=False
         )
         
