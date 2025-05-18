@@ -190,6 +190,7 @@ class PlayerData:
         self.user_exp = 0
         self.cursed_energy = 100
         self.max_cursed_energy = 100
+        self.gold = 0  # Adding missing gold attribute
         self.unlocked_classes = []
         self.inventory = []  # List[InventoryItem]
         self.equipped_items = {
@@ -216,13 +217,31 @@ class PlayerData:
         self.dungeon_clears = {}  # Map of dungeon name to count of clears
         self.skill_cooldowns = {
         }  # Map of skill_id to next available timestamp
-        self.cursed_energy = 100
-        self.max_cursed_energy = 100
         self.technique_grade = "Grade 3"  # Jujutsu rank/grade
         self.domain_expansion = None  # Special ultimate technique
         self.pvp_history = []  # List of PvP battle history
         self.pvp_wins = 0
         self.pvp_losses = 0
+        self.last_pvp_battle = None
+        self.earned_roles = []  # Server roles earned through achievements
+        self.level = 1  # Alias for user_level to fix compatibility issues
+        # Additional attributes for achievements
+        self.dungeons_completed = 0
+        self.bosses_defeated = 0
+        self.gold_earned = 0
+        self.gold_spent = 0
+        self.training_completed = 0
+        self.advanced_training_completed = 0
+        self.guild_contributions = 0
+        self.guild_dungeons = 0
+        self.class_changes = 0
+        self.daily_claims = 0
+        self.quests_completed = 0
+        # Quest tracking
+        self.daily_quests = {}
+        self.weekly_quests = {}
+        self.long_term_quests = []
+        self.achievement_progress = {}
         self.last_pvp_battle = None  # Timestamp of last PvP battle
 
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
@@ -417,6 +436,11 @@ class DataManager:
     def __init__(self):
         self.players: Dict[int, PlayerData] = {}
         self.dungeons = {}  # Will be populated with dungeon data
+        self.active_events = {}  # Active server events
+        self.member_guild_map = {}  # Maps member IDs to guild IDs
+        self.guild_data = {}  # Guild data storage
+        self.player_data = {}  # For compatibility with existing code
+        
         if not os.path.exists('player_data.json'):
             with open('player_data.json', 'w') as f:
                 json.dump({}, f)

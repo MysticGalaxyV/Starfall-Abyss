@@ -2,10 +2,10 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 5,
-        "class_exp": 940,
+        "class_exp": 1065,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 1951,
+        "cursed_energy": 2003,
         "max_cursed_energy": 100,
         "unlocked_classes": [
             "Flash Rogue"
@@ -297,6 +297,23 @@
                 },
                 "quantity": 1,
                 "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "VDug2tFM",
+                    "name": "Cursed Energy Conductor",
+                    "description": "A bracelet that helps channel cursed energy more efficiently.",
+                    "item_type": "accessory",
+                    "rarity": "uncommon",
+                    "stats": {
+                        "power": 4,
+                        "defense": 3
+                    },
+                    "level_req": 4,
+                    "value": 210
+                },
+                "quantity": 1,
+                "equipped": false
             }
         ],
         "equipped_items": {
@@ -307,14 +324,14 @@
         "achievements": [],
         "skill_points": 8,
         "allocated_stats": {
-            "power": 41,
-            "defense": 4,
+            "power": 42,
+            "defense": 5,
             "speed": 22,
             "hp": 93
         },
         "skill_tree": {},
         "skill_points_spent": {},
-        "wins": 4,
+        "wins": 6,
         "losses": 0,
         "last_daily": "2025-05-18T11:56:35.511775",
         "daily_streak": 1,
@@ -328,7 +345,8 @@
         "active_effects": {},
         "training_cooldowns": {
             "Cursed Energy Control": "2025-05-14T23:57:32.793165",
-            "Combat Training": "2025-05-18T14:23:49.549074"
+            "Combat Training": "2025-05-18T14:23:49.549074",
+            "Tactical Analysis": "2025-05-18T20:42:04.447661"
         },
         "technique_grade": "Grade 3",
         "domain_expansion": null,
