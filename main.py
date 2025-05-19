@@ -229,7 +229,45 @@ async def start_command(ctx):
             f"❌ You've already chosen the **{player.class_name}** class! You cannot start over."
         )
         return
+        
+    # First send domain expansion message
+    domain_embed = discord.Embed(
+        title="DOMAIN EXPANSION",
+        description=("```\nReality is obsolete.\n"
+                     "The code of the soul, rewritten.\n"
+                     "Welcome to my world—\n"
+                     "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
+        color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
+    )
+    
+    # Add the character image with built-in domain expansion text
+    domain_embed.set_image(url="attachment://domain_expansion.png")
+    
+    # Try to find the image in various possible locations
+    image_paths = [
+        "attached_assets/image_1747675410070.png",
+        "./attached_assets/image_1747675410070.png"
+    ]
 
+    file = None
+    for path in image_paths:
+        try:
+            if os.path.exists(path):
+                file = discord.File(path, filename="domain_expansion.png")
+                break
+        except:
+            continue
+
+    # Send domain expansion message first
+    if file:
+        await ctx.send(embed=domain_embed, file=file)
+    else:
+        domain_embed.set_image(url=bot.user.display_avatar.url)
+        await ctx.send(embed=domain_embed)
+        
+    # Brief delay to ensure messages appear in the right order
+    await asyncio.sleep(1)
+        
     # Send welcome message
     welcome_embed = discord.Embed(
         title=WELCOME_MESSAGE,
