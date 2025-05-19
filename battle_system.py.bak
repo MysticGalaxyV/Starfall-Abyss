@@ -900,21 +900,28 @@ def generate_enemy_moves(enemy_name: str) -> List[BattleMove]:
 
 def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     """Calculate experience reward based on enemy and player levels"""
-    base_exp = 20 + (enemy_level * 10)
+    # Increase base XP reward to make progression faster
+    base_exp = 30 + (enemy_level * 15)  # Increased from 20 + (enemy_level * 10)
     
-    # Adjust based on level difference
+    # Adjust based on level difference with improved rewards
     level_diff = enemy_level - player_level
     if level_diff > 0:
         # More exp for defeating higher level enemies
-        exp_modifier = 1.0 + (level_diff * 0.2)
+        exp_modifier = 1.0 + (level_diff * 0.3)  # Increased from 0.2
     elif level_diff < 0:
-        # Less exp for defeating lower level enemies
-        exp_modifier = max(0.3, 1.0 + (level_diff * 0.1))
+        # Less exp for defeating lower level enemies, but not as penalized
+        exp_modifier = max(0.4, 1.0 + (level_diff * 0.08))  # Improved from 0.3 and 0.1
     else:
-        # Same level
-        exp_modifier = 1.0
+        # Same level - provide better rewards
+        exp_modifier = 1.2  # Increased from 1.0
         
-    return int(base_exp * exp_modifier)
+    # Apply an additional scaling bonus for higher player levels
+    # This helps counteract the increased XP requirements at higher levels
+    level_scaling = 1.0
+    if player_level > 20:
+        level_scaling = 1.0 + min(0.5, (player_level - 20) * 0.02)  # Up to +50% at level 45+
+        
+    return int(base_exp * exp_modifier * level_scaling)
 
 def calculate_gold_reward(enemy_level: int) -> int:
     """Calculate cursed energy reward based on enemy level (keeping original function name for compatibility)"""

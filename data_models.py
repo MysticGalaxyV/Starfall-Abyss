@@ -420,8 +420,8 @@ class PlayerData:
         """Add experience points and handle level ups. Returns True if leveled up."""
         leveled_up = False
         
-        # Apply a small reduction to XP gain at higher levels to further slow progression
-        level_penalty = max(0.9, 1.0 - (self.class_level * 0.005))  # 0.5% reduction per level, min 90% of original XP
+        # Reduce the XP penalty for higher levels to make progression easier
+        level_penalty = max(0.95, 1.0 - (self.class_level * 0.002))  # 0.2% reduction per level, min 95% of original XP
         adjusted_exp = int(exp_amount * level_penalty)
         
         self.class_exp += adjusted_exp
