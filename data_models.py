@@ -301,9 +301,10 @@ class PlayerData:
         max_hp = self.get_max_hp(class_data)
         self.current_hp = max(int(max_hp * percent), 1)  # Ensure at least 1 HP
         
-        # Regenerate Energy
+        # Regenerate Energy - battles should always restore to full energy
+        # Regardless of percent parameter, energy is always fully restored
         max_energy = self.get_max_battle_energy()
-        self.battle_energy = max(int(max_energy * percent), 10)  # Ensure at least 10 energy
+        self.battle_energy = max_energy  # Always ensure full energy regeneration
         
     def add_dungeon_damage(self, damage: int, class_data: Dict[str, Any]) -> None:
         """
