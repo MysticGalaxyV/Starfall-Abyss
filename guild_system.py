@@ -2091,11 +2091,8 @@ async def guild_command(ctx, action: str = None, *args):
 
         guild_name = " ".join(args)
 
-        # Deduct the Cursed Energy
-        player_data.cursed_energy -= 1000
-
-        # Save the updated player data
-        data_manager.save_data()
+        # Currency will be deducted by the create_guild method
+        # No need to deduct it here or we'll double-charge the player
 
         
         # Check if name is valid
