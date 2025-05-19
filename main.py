@@ -1495,6 +1495,21 @@ async def slash_achievements(interaction: discord.Interaction):
 async def slash_quests(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await quests_command(ctx, data_manager)
+    
+    
+@bot.tree.command(name="leaderboard", description="View the top players leaderboard")
+@app_commands.describe(category="Category to rank players by")
+@app_commands.choices(category=[
+    app_commands.Choice(name="Level", value="level"),
+    app_commands.Choice(name="Gold", value="gold"),
+    app_commands.Choice(name="Battle Wins", value="wins"),
+    app_commands.Choice(name="PvP Wins", value="pvp_wins"),
+    app_commands.Choice(name="Dungeons Completed", value="dungeons_completed"),
+    app_commands.Choice(name="Bosses Defeated", value="bosses_defeated")
+])
+async def slash_leaderboard(interaction: discord.Interaction, category: str = "level"):
+    ctx = await bot.get_context(interaction)
+    await leaderboard_command(ctx, data_manager, category)
 
 
 @bot.tree.command(name="event",
