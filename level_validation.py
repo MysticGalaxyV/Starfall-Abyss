@@ -8,8 +8,8 @@ from data_models import PlayerData, DataManager
 # Consistent XP formula to use throughout the game
 def calculate_xp_for_level(level: int) -> int:
     """Calculate XP needed to reach a specific level using the standard formula"""
-    base_xp = 100  # Base XP requirement
-    level_exponent = 1.5  # Exponent for level scaling
+    base_xp = 75  # Reduced from 100 to make progression easier
+    level_exponent = 1.35  # Reduced from 1.5 to flatten the curve for high levels
     return int(base_xp * (level ** level_exponent))
 
 def validate_player_level(player: PlayerData) -> Tuple[bool, int, int]:

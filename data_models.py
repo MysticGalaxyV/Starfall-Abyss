@@ -396,9 +396,9 @@ class PlayerData:
         Calculate XP needed to level up from a specific level
         This is the canonical XP formula that should be used throughout the game
         """
-        # Standard XP formula
-        base_xp = 100
-        level_exponent = 1.5
+        # Updated to match the easier progression formula in level_validation.py
+        base_xp = 75  # Reduced from 100 to make progression easier
+        level_exponent = 1.35  # Reduced from 1.5 to flatten the curve for high levels
         return int(base_xp * (level ** level_exponent))
         
     def xp_to_next_level(self) -> int:
