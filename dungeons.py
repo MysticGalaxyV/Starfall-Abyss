@@ -301,86 +301,203 @@ class DungeonProgressView(View):
         """Handle using an item between dungeon floors"""
         # Get list of usable healing/buff items
         usable_items = []
+        
+        # Check if player has inventory and items
         if hasattr(self.player_data, 'inventory') and self.player_data.inventory:
-            for inv_item in self.player_data.inventory:
-                if (hasattr(inv_item, 'item') and inv_item.item and 
-                    hasattr(inv_item.item, 'item_type') and 
-                    inv_item.item.item_type == "consumable" and 
-                    inv_item.quantity > 0):
-                    usable_items.append((inv_item.item.name, inv_item.item.description))
+            for i, inv_item in enumerate(self.player_data.inventory):
+                # Only show consumable items that can be used in dungeons
+                if (inv_item.get('item_type', '') == "consumable" or 
+                    inv_item.get('type', '') == "consumable" or 
+                    inv_item.get('category', '') == "potion") and inv_item.get('quantity', 0) > 0:
+                    
+                    # Add item info to usable items list
+                    item_name = inv_item.get('name', f"Item #{i+1}")
+                    item_desc = inv_item.get('description', 'A usable item')
+                    usable_items.append({
+                        'name': item_name,
+                        'description': item_desc,
+                        'index': i
+                    })
         
         if not usable_items:
-            await interaction.response.send_message("❌ You don't have any usable items!", ephemeral=True)
+            await interaction.response.send_message("❌ You don't have any usable items in your inventory!", ephemeral=True)
             return
         
-        # Create a selection menu for items
-        select = Select(
-            placeholder="Select an item to use...",
-            options=[discord.SelectOption(label=item[0], description=item[1][:100]) for item in usable_items[:25]]  # Discord limits to 25 options
-        )
-        
-        async def select_callback(select_interaction):
-            selected_item = select.values[0]
+        # Create a class for the item selection view
+        class ItemSelectView(discord.ui.View):
+            def __init__(self, dungeon_view, items):
+                super().__init__(timeout=30)
+                self.dungeon_view = dungeon_view
+                self.items = items
+                
+                # Add item selection dropdown
+                select = discord.ui.Select(
+                    placeholder="Select an item to use...",
+                    options=[
+                        discord.SelectOption(
+                            label=item['name'][:25],  # Limit to 25 chars
+                            description=item['description'][:50] + "..." if len(item['description']) > 50 else item['description'],
+                            value=str(item['index'])
+                        ) for item in items[:25]  # Discord limits to 25 options
+                    ]
+                )
+                
+                select.callback = self.select_callback
+                self.add_item(select)
+                
+                # Add cancel button
+                cancel_btn = discord.ui.Button(label="Cancel", style=discord.ButtonStyle.secondary)
+                cancel_btn.callback = self.cancel_callback
+                self.add_item(cancel_btn)
             
-            # Find the item in inventory
-            for inv_item in self.player_data.inventory:
-                if inv_item.item and inv_item.item.name == selected_item:
-                    # Apply item effect
-                    effect_msg = "Used item!"
+            async def select_callback(self, select_interaction):
+                try:
+                    selected_index = int(select_interaction.data['values'][0])
+                    item_data = self.dungeon_view.player_data.inventory[selected_index]
                     
-                    # Different effects based on item type
-                    if "health" in inv_item.item.description.lower() or "healing" in inv_item.item.description.lower():
-                        # Get player's max HP
-                        from utils import GAME_CLASSES
-                        player_stats = self.player_data.get_stats(GAME_CLASSES)
-                        max_hp = player_stats["hp"]
+                    # Apply effect based on item type
+                    effect_msg = f"You used {item_data.get('name', 'an item')}!"
+                    item_used = False
+                    
+                    # Get player stats for reference
+                    from utils import GAME_CLASSES
+                    player_stats = self.dungeon_view.player_data.get_stats(GAME_CLASSES)
+                    max_hp = player_stats.get("hp", 100)
+                    max_energy = player_stats.get("energy", 100)
+                    
+                    # Check item description for effect hints
+                    item_desc = item_data.get('description', '').lower()
+                    
+                    # Health potions
+                    if any(word in item_desc for word in ['health', 'healing', 'hp', 'potion', 'heal']):
+                        # Calculate healing amount based on item quality
+                        if 'minor' in item_desc:
+                            heal_percent = 0.2  # 20% of max HP
+                        elif 'major' in item_desc:
+                            heal_percent = 0.5  # 50% of max HP
+                        elif 'full' in item_desc or 'complete' in item_desc:
+                            heal_percent = 1.0  # Full heal
+                        else:
+                            heal_percent = 0.3  # Default to 30%
+                            
+                        heal_amount = int(max_hp * heal_percent)
                         
-                        heal_amount = int(max_hp * 0.3)  # Heal 30% of max HP
-                        self.player_current_hp = min(max_hp, self.player_current_hp + heal_amount)
-                        effect_msg = f"Restored {heal_amount} HP! ({self.player_current_hp}/{max_hp} HP)"
-                    
-                    elif "energy" in inv_item.item.description.lower():
-                        energy_amount = 50
-                        self.player_current_energy += energy_amount
-                        effect_msg = f"Restored {energy_amount} energy! (Now have {self.player_current_energy} energy)"
-                    
-                    elif "buff" in inv_item.item.description.lower() or "boost" in inv_item.item.description.lower():
-                        # Apply a temporary buff for the next battle
-                        if not hasattr(self.player_data, 'active_effects'):
-                            self.player_data.active_effects = {}
+                        # Apply healing
+                        if hasattr(self.dungeon_view, 'player_current_hp'):
+                            prev_hp = self.dungeon_view.player_current_hp
+                            self.dungeon_view.player_current_hp = min(max_hp, prev_hp + heal_amount)
+                            effect_msg = f"✅ Restored {heal_amount} HP! ({self.dungeon_view.player_current_hp}/{max_hp} HP)"
+                        else:
+                            # If no HP tracking, create it
+                            self.dungeon_view.player_current_hp = max_hp
+                            effect_msg = f"✅ Fully restored your HP! ({max_hp}/{max_hp} HP)"
                         
-                        buff_type = "damage_boost"
-                        if "defense" in inv_item.item.description.lower() or "shield" in inv_item.item.description.lower():
-                            buff_type = "defense_boost"
+                        item_used = True
+                    
+                    # Energy potions
+                    elif any(word in item_desc for word in ['energy', 'stamina', 'mana']):
+                        # Calculate energy amount based on item quality
+                        if 'minor' in item_desc:
+                            energy_amount = 30  # Small energy restore
+                        elif 'major' in item_desc:
+                            energy_amount = 60  # Medium energy restore
+                        elif 'full' in item_desc or 'complete' in item_desc:
+                            energy_amount = max_energy  # Full energy
+                        else:
+                            energy_amount = 40  # Default
+                            
+                        # Apply energy
+                        if hasattr(self.dungeon_view, 'player_current_energy'):
+                            prev_energy = self.dungeon_view.player_current_energy
+                            self.dungeon_view.player_current_energy = min(max_energy, prev_energy + energy_amount)
+                            effect_msg = f"✅ Restored {energy_amount} energy! ({self.dungeon_view.player_current_energy}/{max_energy} energy)"
+                        else:
+                            # If no energy tracking, create it
+                            self.dungeon_view.player_current_energy = max_energy
+                            effect_msg = f"✅ Fully restored your energy! ({max_energy}/{max_energy} energy)"
                         
-                        self.player_data.active_effects[selected_item] = {
-                            "effect": buff_type,
-                            "strength": 0.2,  # 20% buff
-                            "duration": 1     # Next battle only
-                        }
-                        effect_msg = f"Applied {selected_item} buff for the next battle!"
+                        item_used = True
                     
-                    # Consume the item
-                    inv_item.quantity -= 1
-                    self.data_manager.save_data()
+                    # Buff potions
+                    elif any(word in item_desc for word in ['buff', 'boost', 'strength', 'power', 'defense']):
+                        # Track active buffs
+                        if not hasattr(self.dungeon_view.player_data, 'active_effects'):
+                            self.dungeon_view.player_data.active_effects = {}
+                        
+                        # Determine buff type based on description
+                        buff_type = "power"  # Default
+                        buff_amount = 10     # Default
+                        
+                        if 'power' in item_desc or 'strength' in item_desc or 'attack' in item_desc:
+                            buff_type = "power"
+                            buff_amount = 15
+                        elif 'defense' in item_desc or 'shield' in item_desc or 'armor' in item_desc:
+                            buff_type = "defense"
+                            buff_amount = 15
+                        elif 'speed' in item_desc or 'quick' in item_desc or 'agility' in item_desc:
+                            buff_type = "speed"
+                            buff_amount = 10
+                        elif 'all' in item_desc or 'stat' in item_desc:
+                            # Apply all buffs
+                            self.dungeon_view.player_data.active_effects["power"] = 10
+                            self.dungeon_view.player_data.active_effects["defense"] = 10
+                            self.dungeon_view.player_data.active_effects["speed"] = 5
+                            effect_msg = f"✅ Applied a boost to all stats for the next battle!"
+                            item_used = True
+                        
+                        if not item_used:
+                            # Apply single stat buff
+                            self.dungeon_view.player_data.active_effects[buff_type] = buff_amount
+                            effect_msg = f"✅ Applied a {buff_amount}% boost to your {buff_type} for the next battle!"
+                            item_used = True
                     
-                    await select_interaction.response.edit_message(
-                        content=f"🧪 {effect_msg}",
-                        view=None
-                    )
-                    break
+                    # If no specific effect was applied
+                    if not item_used:
+                        # Generic effect - apply a small HP restore as a fallback
+                        if hasattr(self.dungeon_view, 'player_current_hp'):
+                            heal_amount = int(max_hp * 0.15)  # 15% heal
+                            prev_hp = self.dungeon_view.player_current_hp
+                            self.dungeon_view.player_current_hp = min(max_hp, prev_hp + heal_amount)
+                            effect_msg = f"✅ Used {item_data.get('name', 'the item')} and restored {heal_amount} HP."
+                        else:
+                            effect_msg = f"✅ Used {item_data.get('name', 'the item')} and feel somewhat refreshed."
+                        
+                        item_used = True
+                    
+                    # Consume the item if successfully used
+                    if item_used:
+                        # Decrement item quantity
+                        item_data['quantity'] = max(0, item_data.get('quantity', 1) - 1)
+                        
+                        # Remove item if quantity is 0
+                        if item_data['quantity'] <= 0:
+                            self.dungeon_view.player_data.inventory = [
+                                item for i, item in enumerate(self.dungeon_view.player_data.inventory) 
+                                if i != selected_index
+                            ]
+                        
+                        # Save player data
+                        self.dungeon_view.data_manager.save_data()
+                        
+                        # Show success message with effect
+                        await select_interaction.response.send_message(effect_msg, ephemeral=False)
+                    else:
+                        await select_interaction.response.send_message("❌ Could not use that item here.", ephemeral=True)
+                
+                except Exception as e:
+                    await select_interaction.response.send_message(f"❌ Error using item: {str(e)}", ephemeral=True)
+            
+            async def cancel_callback(self, cancel_interaction):
+                await cancel_interaction.response.send_message("Item selection canceled.", ephemeral=True)
         
-        select.callback = select_callback
-        
-        # Create temporary view for the item selection
-        temp_view = View(timeout=30)
-        temp_view.add_item(select)
-        
+        # Create and show the item select view
+        item_view = ItemSelectView(self, usable_items)
         await interaction.response.send_message(
-            content="Choose an item to use:",
-            view=temp_view,
-            ephemeral=True
+            "Select an item to use before the next floor:", 
+            view=item_view,
+            ephemeral=False
         )
+
     
     async def retreat_callback(self, interaction: discord.Interaction):
         """Handle player retreat from dungeon"""

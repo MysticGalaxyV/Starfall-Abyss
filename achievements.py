@@ -1703,7 +1703,112 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
             inline=False
         )
         
-        await ctx.send(embed=help_embed)
+        # Create event buttons view
+        class EventCommandView(discord.ui.View):
+            def __init__(self, quest_manager, data_manager):
+                super().__init__(timeout=60)
+                self.quest_manager = quest_manager
+                self.data_manager = data_manager
+                
+            @discord.ui.button(label="List Available Events", style=discord.ButtonStyle.primary)
+            async def list_events_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                events_list = "\n".join([f"• `{event['id']}`: {event['name']}" for event in SPECIAL_EVENTS])
+                await interaction.response.send_message(f"Available events to start:\n{events_list}", ephemeral=True)
+            
+            @discord.ui.button(label="Start 1-Week Event", style=discord.ButtonStyle.success)
+            async def start_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                # Create a select menu to choose an event
+                options = [discord.SelectOption(label=event["name"], value=event["id"], 
+                          description=f"Start a 1-week {event['id']} event") 
+                          for event in SPECIAL_EVENTS]
+                
+                select = discord.ui.Select(placeholder="Choose an event to start", options=options)
+                
+                event_view = discord.ui.View(timeout=30)
+                event_view.add_item(select)
+                
+                async def select_callback(select_interaction):
+                    event_id = select.values[0]
+                    # Start event for 7 days (1 week)
+                    event_data = self.quest_manager.start_special_event(event_id, 7.0)
+                    
+                    if event_data:
+                        # Calculate end time
+                        end_time = datetime.datetime.fromisoformat(event_data["end_time"])
+                        duration_str = f"{(end_time - datetime.datetime.now()).days} days and {((end_time - datetime.datetime.now()).seconds // 3600)} hours"
+                        
+                        event_embed = discord.Embed(
+                            title=f"🎉 Event Started: {event_data['name']}",
+                            description=event_data["description"],
+                            color=discord.Color.gold()
+                        )
+                        
+                        event_embed.add_field(
+                            name="Duration",
+                            value=f"Event will last for {duration_str}",
+                            inline=False
+                        )
+                        
+                        # Add effect details
+                        effect_text = ""
+                        if event_data["effect"]["type"] == "exp_multiplier":
+                            effect_text = f"XP gain is multiplied by {event_data['effect']['value']}x!"
+                        elif event_data["effect"]["type"] == "gold_multiplier":
+                            effect_text = f"Gold gain is multiplied by {event_data['effect']['value']}x!"
+                        elif event_data["effect"]["type"] == "item_rarity_boost":
+                            effect_text = f"Chance of rare items is multiplied by {event_data['effect']['value']}x!"
+                        elif event_data["effect"]["type"] == "training_multiplier":
+                            effect_text = f"Training stat gains are multiplied by {event_data['effect']['value']}x!"
+                        elif event_data["effect"]["type"] == "world_boss":
+                            effect_text = f"A world boss '{event_data['effect']['boss_name']}' (Level {event_data['effect']['boss_level']}) has appeared!"
+                        
+                        if effect_text:
+                            event_embed.add_field(
+                                name="Effect",
+                                value=effect_text,
+                                inline=False
+                            )
+                            
+                        await select_interaction.response.send_message(embed=event_embed)
+                    else:
+                        await select_interaction.response.send_message(f"Error: Unknown event ID '{event_id}'", ephemeral=True)
+                
+                select.callback = select_callback
+                await interaction.response.send_message("Select an event to start for 1 week:", view=event_view, ephemeral=True)
+            
+            @discord.ui.button(label="End Active Event", style=discord.ButtonStyle.danger) 
+            async def end_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                # Get active events
+                active_events = self.quest_manager.get_active_events()
+                
+                if not active_events:
+                    await interaction.response.send_message("There are no active events to end.", ephemeral=True)
+                    return
+                
+                # Create select menu with active events
+                options = [discord.SelectOption(label=event["name"], value=event["id"], 
+                          description=f"End this event") for event in active_events]
+                
+                select = discord.ui.Select(placeholder="Choose an event to end", options=options)
+                end_view = discord.ui.View(timeout=30)
+                end_view.add_item(select)
+                
+                async def end_callback(end_interaction):
+                    event_id = select.values[0]
+                    
+                    # End the selected event
+                    if event_id in self.data_manager.active_events:
+                        del self.data_manager.active_events[event_id]
+                        self.data_manager.save_data()
+                        await end_interaction.response.send_message(f"Event '{event_id}' has been ended.")
+                    else:
+                        await end_interaction.response.send_message(f"Error: No active event with ID '{event_id}'", ephemeral=True)
+                
+                select.callback = end_callback
+                await interaction.response.send_message("Select an event to end:", view=end_view, ephemeral=True)
+        
+        # Send help embed with buttons
+        await ctx.send(embed=help_embed, view=EventCommandView(quest_manager, data_manager))
 
 # Command aliases
 async def achieve_command(ctx, data_manager: DataManager):

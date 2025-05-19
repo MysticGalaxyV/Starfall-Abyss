@@ -1145,7 +1145,7 @@ class ShopView(View):
         # Create embed
         embed = discord.Embed(
             title="🛒 Jujutsu Supplies Shop",
-            description=f"Cursed Energy: {self.player_data.cursed_energy}/{self.player_data.max_cursed_energy} 🔮\n"
+            description=f"Gold: {self.player_data.gold} 💰\n"
                        f"Filter: {self.selected_category.title() if self.selected_category != 'all' else 'All Items'}\n"
                        f"Click on an item to purchase it.",
             color=discord.Color.dark_purple()

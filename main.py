@@ -1596,7 +1596,7 @@ async def slash_encyclopedia(interaction: discord.Interaction,
     await interaction.response.send_message(embed=embed, view=view)
 
 
-@bot.command(name="help")
+@bot.command(name="help", aliases=["h"])
 async def help_command(ctx, category: str = None):
     """Show help information"""
     await _show_help(ctx, category)

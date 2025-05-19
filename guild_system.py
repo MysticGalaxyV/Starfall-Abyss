@@ -834,9 +834,168 @@ class GuildInfoView(View):
     
     async def upgrades_callback(self, interaction: discord.Interaction):
         """Show guild upgrades"""
+        # Create upgrade view with buttons
+        class GuildUpgradeView(discord.ui.View):
+            def __init__(self, parent_view):
+                super().__init__(timeout=60)
+                self.parent_view = parent_view
+                self.guild = parent_view.guild
+                self.guild_manager = parent_view.guild_manager
+                self.player_data = parent_view.player_data
+                self.is_leader = parent_view.is_leader
+                self.is_officer = parent_view.is_officer
+                
+                # Add back button
+                back_btn = discord.ui.Button(
+                    label="Back to Guild Info",
+                    style=discord.ButtonStyle.secondary,
+                    row=3
+                )
+                back_btn.callback = self.back_callback
+                self.add_item(back_btn)
+                
+                # Only add upgrade buttons if player has permission
+                if self.is_leader or self.is_officer:
+                    self.add_upgrade_buttons()
+            
+            def add_upgrade_buttons(self):
+                # Add upgrade buttons for each upgradeable item
+                row = 0
+                for upgrade_id, upgrade_info in GUILD_UPGRADES.items():
+                    # Get current level
+                    current_level = self.guild.upgrades.get(upgrade_id, 0)
+                    max_level = upgrade_info["max_level"]
+                    
+                    # Only add button if not at max level
+                    if current_level < max_level:
+                        next_cost = upgrade_info["cost_formula"](current_level + 1)
+                        
+                        # Create button with appropriate emoji
+                        emoji = "⬆️"
+                        if upgrade_id == "bank_level":
+                            emoji = "💰"
+                        elif upgrade_id == "member_capacity":
+                            emoji = "👥"
+                        elif upgrade_id == "exp_boost":
+                            emoji = "✨"
+                        elif upgrade_id == "gold_boost":
+                            emoji = "💵"
+                        
+                        # Create button
+                        upgrade_btn = discord.ui.Button(
+                            label=f"Upgrade {upgrade_info['name']}",
+                            style=discord.ButtonStyle.primary,
+                            emoji=emoji,
+                            row=row % 3
+                        )
+                        
+                        # Store the upgrade_id and cost for this button
+                        upgrade_btn.upgrade_id = upgrade_id
+                        upgrade_btn.cost = next_cost
+                        upgrade_btn.callback = self.make_upgrade_callback(upgrade_id, next_cost)
+                        self.add_item(upgrade_btn)
+                        row += 1
+            
+            def make_upgrade_callback(self, upgrade_id, cost):
+                async def upgrade_callback(btn_interaction):
+                    # Check if guild has enough gold
+                    if self.guild.bank < cost:
+                        await btn_interaction.response.send_message(
+                            f"❌ Not enough gold! This upgrade costs {cost} 💰, but the guild bank only has {self.guild.bank} 💰.",
+                            ephemeral=True
+                        )
+                        return
+                    
+                    # Purchase upgrade
+                    current_level = self.guild.upgrades.get(upgrade_id, 0)
+                    self.guild.upgrades[upgrade_id] = current_level + 1
+                    self.guild.bank -= cost
+                    
+                    # Save changes
+                    self.guild_manager.save_guilds()
+                    
+                    # Get the new stats
+                    upgrade_info = GUILD_UPGRADES[upgrade_id]
+                    new_level = self.guild.upgrades[upgrade_id]
+                    new_benefit = upgrade_info["benefit_formula"](new_level)
+                    
+                    # Recreate the upgrades embed with updated info
+                    upgrades_embed = discord.Embed(
+                        title=f"{self.guild.emblem} {self.guild.name} - Upgrades",
+                        description=f"Guild Bank: {self.guild.bank} 💰",
+                        color=discord.Color(self.guild.color)
+                    )
+                    
+                    # Add all upgrades to the embed
+                    for upg_id, level in self.guild.upgrades.items():
+                        if upg_id in GUILD_UPGRADES:
+                            upg = GUILD_UPGRADES[upg_id]
+                            max_lvl = upg["max_level"]
+                            next_lvl = level + 1 if level < max_lvl else level
+                            
+                            # Calculate benefit and cost
+                            current_ben = upg["benefit_formula"](level)
+                            
+                            if level < max_lvl:
+                                next_cst = upg["cost_formula"](next_lvl)
+                                upgrades_embed.add_field(
+                                    name=f"{upg['name']} (Level {level}/{max_lvl})",
+                                    value=f"**Current:** {current_ben}\n"
+                                          f"**Next Level Cost:** {next_cst} 💰\n"
+                                          f"*{upg['description']}*",
+                                    inline=False
+                                )
+                            else:
+                                upgrades_embed.add_field(
+                                    name=f"{upg['name']} (Level {level}/{max_lvl}) ✅",
+                                    value=f"**Maximum Level!** {current_ben}\n"
+                                          f"*{upg['description']}*",
+                                    inline=False
+                                )
+                    
+                    # Add success message to footer
+                    upgrades_embed.set_footer(text=f"Upgraded {upgrade_info['name']} to level {new_level}! New benefit: {new_benefit}")
+                    
+                    # Create a new upgrade view with updated buttons
+                    new_view = GuildUpgradeView(self.parent_view)
+                    await btn_interaction.response.edit_message(embed=upgrades_embed, view=new_view)
+                
+                return upgrade_callback
+            
+            async def back_callback(self, interaction):
+                # Go back to main guild view
+                info_embed = discord.Embed(
+                    title=f"{self.guild.emblem} {self.guild.name}",
+                    description=self.guild.description,
+                    color=discord.Color(self.guild.color)
+                )
+                
+                info_embed.add_field(
+                    name="Guild Info",
+                    value=f"**Level:** {self.guild.level}\n"
+                          f"**Members:** {len(self.guild.members)}/{self.guild.max_members}\n"
+                          f"**Founded:** {self.guild.created_at.strftime('%Y-%m-%d')}",
+                    inline=True
+                )
+                
+                info_embed.add_field(
+                    name="Guild Bank",
+                    value=f"{self.guild.bank} 💰",
+                    inline=True
+                )
+                
+                info_embed.add_field(
+                    name="Message of the Day",
+                    value=self.guild.motd,
+                    inline=False
+                )
+                
+                await interaction.response.edit_message(embed=info_embed, view=self.parent_view)
+        
+        # Create the initial upgrades embed
         upgrades_embed = discord.Embed(
             title=f"{self.guild.emblem} {self.guild.name} - Upgrades",
-            description=f"Guild Bank: {self.guild.bank} 🌀",
+            description=f"Guild Bank: {self.guild.bank} 💰",
             color=discord.Color(self.guild.color)
         )
         
@@ -855,7 +1014,7 @@ class GuildInfoView(View):
                     upgrades_embed.add_field(
                         name=f"{upgrade['name']} (Level {level}/{max_level})",
                         value=f"**Current:** {current_benefit}\n"
-                              f"**Next Level Cost:** {next_cost} 🌀\n"
+                              f"**Next Level Cost:** {next_cost} 💰\n"
                               f"*{upgrade['description']}*",
                         inline=False
                     )
@@ -867,11 +1026,13 @@ class GuildInfoView(View):
                         inline=False
                     )
         
-        # Add a note about upgrading
+        # Add info about upgrading
         if self.is_leader or self.is_officer:
-            upgrades_embed.set_footer(text="Use the !guild upgrade command to purchase guild upgrades")
+            upgrades_embed.set_footer(text="Click an upgrade button below to purchase")
         
-        await interaction.response.edit_message(embed=upgrades_embed, view=self)
+        # Create and send the upgrade view
+        upgrade_view = GuildUpgradeView(self)
+        await interaction.response.edit_message(embed=upgrades_embed, view=upgrade_view)
     
     async def contribute_callback(self, interaction: discord.Interaction):
         """Handle guild contribution"""

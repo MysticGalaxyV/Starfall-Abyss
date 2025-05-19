@@ -2,17 +2,314 @@
     "players": {
         "759434349069860945": {
             "class_name": "Flash Rogue",
-            "class_level": 1,
-            "class_exp": 59,
+            "class_level": 2,
+            "class_exp": 240,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 129,
-            "max_gold": 1000000,
-            "cursed_energy": 129,
-            "max_cursed_energy": 1000000,
+            "gold": 300,
+            "max_gold": 1000200,
+            "cursed_energy": 300,
+            "max_cursed_energy": 1000200,
             "unlocked_classes": [
                 "Flash Rogue"
             ],
+            "inventory": [
+                {
+                    "item": {
+                        "item_id": "yiMkvGQCOHrD",
+                        "name": "Wooden Sword",
+                        "description": "A basic training sword.",
+                        "item_type": "weapon",
+                        "rarity": "common",
+                        "stats": {
+                            "power": 3
+                        },
+                        "level_req": 1,
+                        "value": 50
+                    },
+                    "quantity": 1,
+                    "equipped": true
+                },
+                {
+                    "item": {
+                        "item_id": "GN2Y7iQi5KZv",
+                        "name": "Energy Potion",
+                        "description": "Restores 50 Energy during battle.",
+                        "item_type": "consumable",
+                        "rarity": "common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 30
+                    },
+                    "quantity": 0,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "CChMQeUTsBGi",
+                        "name": "Health Potion",
+                        "description": "Restores 50 HP during battle.",
+                        "item_type": "consumable",
+                        "rarity": "common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 30
+                    },
+                    "quantity": 0,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "ecd32342-f0ab-43f7-be14-2c0b34e133dd",
+                        "name": "Uncommon Stone",
+                        "description": "A uncommon quality stone used in crafting.",
+                        "item_type": "Material:Mining",
+                        "rarity": "Uncommon",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 10
+                    },
+                    "quantity": 3,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "a3140b38-52d7-4b37-b4c4-7a1d2ad148fb",
+                        "name": "Common Timber",
+                        "description": "A common quality timber used in crafting.",
+                        "item_type": "Material:Foraging",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 5
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "c1542ccf-943d-4c16-8f39-ae9a2253ab25",
+                        "name": "Uncommon Timber",
+                        "description": "A uncommon quality timber used in crafting.",
+                        "item_type": "Material:Foraging",
+                        "rarity": "Uncommon",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 10
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "c3365494-10b8-4c16-838a-37cbbee412b4",
+                        "name": "Common Mint Leaf",
+                        "description": "A common quality mint leaf used in crafting.",
+                        "item_type": "Material:Herbs",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 8
+                    },
+                    "quantity": 3,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "f8bac6bf-f968-43b9-b2ea-1a36f09716fe",
+                        "name": "Rare Wolf Fang",
+                        "description": "A rare quality wolf fang used in crafting.",
+                        "item_type": "Material:Monster Parts",
+                        "rarity": "Rare",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 50
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "0d5000ce-3c10-4f0b-94dc-621aab0f0fec",
+                        "name": "Uncommon Cotton",
+                        "description": "A uncommon quality cotton used in crafting.",
+                        "item_type": "Material:Fabrics",
+                        "rarity": "Uncommon",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 14
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "a6f517ee-eb39-4a6e-8a73-eeb01843b554",
+                        "name": "Common Cotton",
+                        "description": "A common quality cotton used in crafting.",
+                        "item_type": "Material:Fabrics",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 7
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "ea72133c-4543-43bf-b629-6dc84a60c13a",
+                        "name": "Epic Minor Magic Essence",
+                        "description": "A epic quality minor magic essence used in crafting.",
+                        "item_type": "Material:Magical",
+                        "rarity": "Epic",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 300
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "3d498e36-238f-4c02-bebb-7d4cb154853c",
+                        "name": "Rare Minor Magic Essence",
+                        "description": "A rare quality minor magic essence used in crafting.",
+                        "item_type": "Material:Magical",
+                        "rarity": "Rare",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 100
+                    },
+                    "quantity": 2,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "62d64fef-28c0-4bae-8426-9f69222da9da",
+                        "name": "Common Quartz",
+                        "description": "A common quality quartz used in crafting.",
+                        "item_type": "Material:Gems",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 15
+                    },
+                    "quantity": 2,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "07056c2b-b48c-48c4-a27c-c448824df8c2",
+                        "name": "Common Dust of Earth",
+                        "description": "A common quality dust of earth used in crafting.",
+                        "item_type": "Material:Elemental",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 25
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "9aea8c12-98a5-427b-ab14-e662c2ce9336",
+                        "name": "Rare Stone",
+                        "description": "A rare quality stone used in crafting.",
+                        "item_type": "Material:Mining",
+                        "rarity": "Rare",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 25
+                    },
+                    "quantity": 2,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "250e85ce-3746-42a0-8c56-3f7672f29a2d",
+                        "name": "Common Stone",
+                        "description": "A common quality stone used in crafting.",
+                        "item_type": "Material:Mining",
+                        "rarity": "Common",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 5
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "43036896-627d-4369-b0d8-e14e47181f24",
+                        "name": "Epic Stone",
+                        "description": "A epic quality stone used in crafting.",
+                        "item_type": "Material:Mining",
+                        "rarity": "Epic",
+                        "stats": {},
+                        "level_req": 1,
+                        "value": 75
+                    },
+                    "quantity": 1,
+                    "equipped": false
+                }
+            ],
+            "equipped_items": {
+                "weapon": "yiMkvGQCOHrD",
+                "armor": null,
+                "accessory": null
+            },
+            "achievements": [],
+            "skill_points": 0,
+            "allocated_stats": {
+                "power": 11,
+                "defense": 5,
+                "speed": 3,
+                "hp": 0
+            },
+            "skill_tree": {
+                "wisdom": {
+                    "Healing Touch": 1,
+                    "Spirit Link": 1,
+                    "Protective Aura": 1
+                }
+            },
+            "skill_points_spent": {
+                "wisdom": 3
+            },
+            "wins": 1,
+            "losses": 0,
+            "last_daily": "2025-05-19T19:19:39.773827",
+            "daily_streak": 1,
+            "last_train": "2025-05-19T19:20:58.120621",
+            "dungeon_clears": {},
+            "skill_cooldowns": {},
+            "special_abilities": {},
+            "active_effects": {},
+            "training_cooldowns": {
+                "Energy Cultivation": "2025-05-19T23:22:34.815359"
+            },
+            "battle_energy": 105,
+            "max_battle_energy": 105,
+            "technique_grade": "Grade 3",
+            "domain_expansion": null,
+            "pvp_history": [],
+            "pvp_wins": 0,
+            "pvp_losses": 0,
+            "last_pvp_battle": null
+        },
+        "1264209239971463188": {
+            "class_name": null,
+            "class_level": 1,
+            "class_exp": 0,
+            "user_level": 1,
+            "user_exp": 0,
+            "gold": 100,
+            "max_gold": 1000000,
+            "cursed_energy": 100,
+            "max_cursed_energy": 1000000,
+            "unlocked_classes": [],
             "inventory": [],
             "equipped_items": {
                 "weapon": null,
@@ -29,7 +326,7 @@
             },
             "skill_tree": {},
             "skill_points_spent": {},
-            "wins": 1,
+            "wins": 0,
             "losses": 0,
             "last_daily": null,
             "daily_streak": 0,
@@ -39,7 +336,7 @@
             "special_abilities": {},
             "active_effects": {},
             "training_cooldowns": {},
-            "battle_energy": -25,
+            "battle_energy": 100,
             "max_battle_energy": 100,
             "technique_grade": "Grade 3",
             "domain_expansion": null,
