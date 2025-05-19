@@ -138,24 +138,28 @@ class BattleMoveButton(Button):
     def __init__(self, move: BattleMove, row: int = 0):
         # Choose button style based on move type
         if "heal" in (move.effect or ""):
-            style = discord.ButtonStyle.success
+            style = discord.ButtonStyle.success  # Green
             emoji = "💚"
         elif "energy" in (move.effect or ""):
-            style = discord.ButtonStyle.primary
+            style = discord.ButtonStyle.primary  # Blue
             emoji = "⚡"
         elif "shield" in (move.effect or ""):
-            style = discord.ButtonStyle.secondary
+            style = discord.ButtonStyle.secondary  # Gray
             emoji = "🛡️"
         else:
-            style = discord.ButtonStyle.danger
+            style = discord.ButtonStyle.danger  # Red
             emoji = "⚔️"
             
+        # Keep label short to avoid button rendering issues
+        label = move.name
+        if len(label) > 10:
+            label = label[:10]  # Truncate long names
+        
         super().__init__(
             style=style,
-            label=f"{move.name} ({move.energy_cost} ⚡)",
+            label=f"{label} ({move.energy_cost}⚡)",
             emoji=emoji,
-            row=row,
-            disabled=False
+            row=row
         )
         self.move = move
         
@@ -170,32 +174,31 @@ class ItemButton(Button):
     def __init__(self, item_name: str, item_effect: str, row: int = 0):
         # Truncate the item name if it's too long for a button
         display_name = item_name
-        if len(display_name) > 20:
-            display_name = display_name[:17] + "..."
+        if len(display_name) > 10:
+            display_name = display_name[:8] + ".."
         
         # Choose style and emoji based on item effect
         if "heal" in item_effect.lower():
-            style = discord.ButtonStyle.success
+            style = discord.ButtonStyle.success  # Green
             emoji = "🧪"
         elif "energy" in item_effect.lower():
-            style = discord.ButtonStyle.primary
+            style = discord.ButtonStyle.primary  # Blue
             emoji = "⚡"
         elif "strength" in item_effect.lower() or "power" in item_effect.lower():
-            style = discord.ButtonStyle.danger
+            style = discord.ButtonStyle.danger  # Red
             emoji = "💪"
         elif "defense" in item_effect.lower() or "shield" in item_effect.lower():
-            style = discord.ButtonStyle.secondary
+            style = discord.ButtonStyle.secondary  # Gray
             emoji = "🛡️"
         else:
-            style = discord.ButtonStyle.primary
+            style = discord.ButtonStyle.primary  # Blue
             emoji = "🔮"
             
         super().__init__(
             style=style,
             label=display_name,
             emoji=emoji,
-            row=row,
-            disabled=False
+            row=row
         )
         self.item_name = item_name
         self.item_effect = item_effect
@@ -558,6 +561,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         player_stats,
         [
             BattleMove("Quick Strike", 0.8, 10, description="A fast attack that costs little energy"),
+            BattleMove("Shadow Step", 1.3, 20, effect="stun", description="A swift attack that can stun the enemy"),
             BattleMove("Heavy Blow", 1.5, 25, description="A powerful strike with high damage"),
             BattleMove("Focused Attack", 1.2, 15, effect="bleed", description="Causes bleeding damage over time"),
             BattleMove("Energy Drain", 0.6, 20, effect="energy_drain", description="Drains enemy energy")
@@ -607,7 +611,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     # Wait for the battle to complete
     result = await battle_view.wait()
     
-    # Update player data
+    # Update player data - only track current energy during battle, don't regenerate yet
     player_data.battle_energy = player_entity.current_energy
     
     # Save data
@@ -630,7 +634,10 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         # Update battle stats
         player_data.wins += 1
         
-        # Save data again with rewards
+        # Regenerate health and energy after battle victory - full regeneration
+        player_data.regenerate_health_and_energy(data_manager.class_data, 1.0)  # 100% regeneration
+        
+        # Save data again with rewards and regenerated stats
         data_manager.save_data()
         
         # Create rewards embed
@@ -689,6 +696,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         consolation_exp = int(calculate_exp_reward(enemy_level, player_data.class_level) * 0.25)
         player_data.add_exp(consolation_exp)
         
+        # Regenerate health and energy after battle defeat - partial recovery
+        player_data.regenerate_health_and_energy(data_manager.class_data, 0.5)  # 50% regeneration
+        
         # Save data with updated stats
         data_manager.save_data()
         
@@ -702,6 +712,12 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         defeat_embed.add_field(
             name="Consolation Reward",
             value=f"Experience: {consolation_exp} XP 📊",
+            inline=False
+        )
+        
+        defeat_embed.add_field(
+            name="Recovery",
+            value=f"Your HP and Energy have partially recovered (50%).",
             inline=False
         )
         

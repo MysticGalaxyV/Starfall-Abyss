@@ -374,14 +374,20 @@ async def check_secret_cutscene(ctx, player_data):
     # Check guild quests completion
     from guild_system import GuildManager
     guild_manager = GuildManager(data_manager)
-    guild = guild_manager.get_player_guild(player_data.user_id)
+    guild_data = guild_manager.get_player_guild(player_data.user_id)
     
     guild_quests_completed = False
-    if guild:
-        # Check if player has completed all guild quests
-        guild_quests = guild.get("quests", [])
-        completed_quests = [q for q in guild_quests if q.get("assigned_to") == player_data.user_id and q.get("completed", False)]
-        guild_quests_completed = len(completed_quests) >= len(guild_quests)
+    if guild_data:
+        # Guild data is a Guild object, not a dictionary
+        if hasattr(guild_data, 'quests'):
+            # Access quests as an attribute
+            guild_quests = guild_data.quests
+            # Filter for completed quests assigned to this player
+            completed_quests = [q for q in guild_quests if q.get("assigned_to") == player_data.user_id and q.get("completed", False)]
+            guild_quests_completed = len(completed_quests) >= len(guild_quests)
+        else:
+            # If there are no quests, consider it completed
+            guild_quests_completed = True
     
     # Check if all requirements are met
     if (not available_achievements and player_achievements and
@@ -453,7 +459,7 @@ async def profile_command(ctx, member: discord.Member = None):
         f"**Level:** {player.class_level} ({player.class_exp}/{int(100 * (player.class_level ** 1.5))} EXP)\n"
         f"**Technique Grade:** {player.technique_grade}\n"
         f"**Gold:** {player.cursed_energy} 🔮\n"
-        f"**Battle Energy:** {player.battle_energy}/{player.max_battle_energy} ⚡",
+        f"**Battle Energy:** {player.get_battle_energy()}/{player.get_max_battle_energy()} ⚡",
         color=discord.Color.dark_purple())
 
     # Add domain expansion if unlocked

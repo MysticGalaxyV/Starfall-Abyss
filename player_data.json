@@ -3,12 +3,12 @@
         "759434349069860945": {
             "class_name": "Flash Rogue",
             "class_level": 1,
-            "class_exp": 0,
+            "class_exp": 59,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 100,
+            "gold": 129,
             "max_gold": 1000000,
-            "cursed_energy": 100,
+            "cursed_energy": 129,
             "max_cursed_energy": 1000000,
             "unlocked_classes": [
                 "Flash Rogue"
@@ -29,7 +29,7 @@
             },
             "skill_tree": {},
             "skill_points_spent": {},
-            "wins": 0,
+            "wins": 1,
             "losses": 0,
             "last_daily": null,
             "daily_streak": 0,
@@ -39,7 +39,7 @@
             "special_abilities": {},
             "active_effects": {},
             "training_cooldowns": {},
-            "battle_energy": 100,
+            "battle_energy": -25,
             "max_battle_energy": 100,
             "technique_grade": "Grade 3",
             "domain_expansion": null,

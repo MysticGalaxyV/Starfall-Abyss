@@ -228,6 +228,8 @@ class PlayerData:
         self.last_pvp_battle = None
         self.earned_roles = []  # Server roles earned through achievements
         self.level = 1  # Alias for user_level to fix compatibility issues
+        self.current_hp = 100  # Current health points
+        self.dungeon_damage = 0  # Accumulated damage in dungeons
         # Additional attributes for achievements
         self.dungeons_completed = 0
         self.bosses_defeated = 0
@@ -270,6 +272,58 @@ class PlayerData:
         total_max_energy = base_energy + level_bonus + training_bonus
         
         return total_max_energy
+        
+    def get_battle_energy(self) -> int:
+        """
+        Get the player's current battle energy, ensuring it never returns a negative value.
+        This method should be used whenever displaying battle energy to the user.
+        """
+        return max(0, self.battle_energy)
+        
+    def get_max_hp(self, class_data: Dict[str, Any] = None) -> int:
+        """
+        Get the player's maximum HP based on their stats
+        If class_data is not provided, will return a default max HP of 100
+        """
+        if class_data is None:
+            # Return default HP if no class data available
+            return 100
+            
+        stats = self.get_stats(class_data)
+        return stats.get('hp', 100)
+        
+    def regenerate_health_and_energy(self, class_data: Dict[str, Any], percent: float = 1.0) -> None:
+        """
+        Regenerate the player's health and energy by the specified percentage
+        percent: 1.0 = full regeneration, 0.5 = half regeneration, etc.
+        """
+        # Regenerate HP
+        max_hp = self.get_max_hp(class_data)
+        self.current_hp = max(int(max_hp * percent), 1)  # Ensure at least 1 HP
+        
+        # Regenerate Energy
+        max_energy = self.get_max_battle_energy()
+        self.battle_energy = max(int(max_energy * percent), 10)  # Ensure at least 10 energy
+        
+    def add_dungeon_damage(self, damage: int, class_data: Dict[str, Any]) -> None:
+        """
+        Add accumulated damage from a dungeon encounter
+        """
+        self.dungeon_damage += damage
+        
+        # Reduce current HP by the damage amount
+        self.current_hp = max(self.current_hp - damage, 1)  # Ensure player always has at least 1 HP
+        
+    def reset_dungeon_damage(self, class_data: Dict[str, Any], full_heal: bool = True) -> None:
+        """
+        Reset accumulated dungeon damage and regenerate health
+        full_heal: If True, fully restore HP; if False, keep current HP
+        """
+        self.dungeon_damage = 0
+        
+        if full_heal:
+            # Fully restore HP
+            self.current_hp = self.get_max_hp(class_data)
     
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate total stats based on base class stats, allocated points and equipped items"""

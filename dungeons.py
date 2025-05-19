@@ -475,6 +475,10 @@ class DungeonProgressView(View):
                 
                 await channel.send(embed=defeat_embed)
                 
+                # Reset accumulated dungeon damage and restore health
+                from utils import GAME_CLASSES
+                self.player_data.reset_dungeon_damage(GAME_CLASSES, True)
+                
                 # Save player data
                 self.data_manager.save_data()
                 
@@ -502,11 +506,11 @@ class DungeonProgressView(View):
             max_hp = player_stats["hp"]
             damage = int(max_hp * trap["damage"])
             
-            # Apply cumulative damage to player's HP
-            if hasattr(self, 'player_current_hp'):
-                self.player_current_hp = max(1, self.player_current_hp - damage)  # Ensure HP doesn't go below 1
-            else:
-                self.player_current_hp = max(1, max_hp - damage)
+            # Add accumulated damage and update player's current HP
+            self.player_data.add_dungeon_damage(damage, GAME_CLASSES)
+            
+            # Get current HP after damage for display
+            current_hp = self.player_data.current_hp
             
             # Create embed for trap
             embed = discord.Embed(
@@ -517,7 +521,7 @@ class DungeonProgressView(View):
             
             embed.add_field(
                 name="Damage",
-                value=f"You took {damage} damage! 💥\nRemaining HP: {self.player_current_hp}/{max_hp}",
+                value=f"You took {damage} damage! 💥\nRemaining HP: {current_hp}/{max_hp}",
                 inline=False
             )
             
@@ -943,6 +947,10 @@ class DungeonProgressView(View):
                 completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_dungeons")
                 for quest in completed_weekly:
                     quest_manager.award_quest_rewards(self.player_data, quest)
+            
+            # Reset accumulated dungeon damage and restore full health
+            from utils import GAME_CLASSES
+            self.player_data.reset_dungeon_damage(GAME_CLASSES, True)
             
             # Save player data
             self.data_manager.save_data()
