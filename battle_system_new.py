@@ -549,13 +549,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     enemy_stats = generate_enemy_stats(enemy_name, enemy_level, player_data.class_level)
     enemy_moves = generate_enemy_moves(enemy_name)
     
-    # Create player entity
-    player_stats = {
-        "hp": player_data.hp,
-        "power": player_data.strength,
-        "defense": player_data.defense,
-        "speed": player_data.dexterity
-    }
+    # Create player entity - get stats from class data
+    from main import STARTER_CLASSES
+    player_stats = player_data.get_stats(STARTER_CLASSES)
     
     player_entity = BattleEntity(
         ctx.author.display_name,
@@ -632,9 +628,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         player_data.cursed_energy += cursed_energy
         
         # Update battle stats
-        if not hasattr(player_data, "battles_won"):
-            player_data.battles_won = 0
-        player_data.battles_won += 1
+        player_data.wins += 1
         
         # Save data again with rewards
         data_manager.save_data()
@@ -654,8 +648,19 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
             inline=False
         )
         
-        # Add level up message if applicable
-        if player_data.check_level_up():
+        # Check for level up
+        old_level = player_data.class_level
+        # Calculate XP needed for next level
+        xp_needed = int(100 * (old_level ** 1.5))
+        
+        # Check if player has enough XP to level up
+        if player_data.class_exp >= xp_needed and old_level < 50:  # Max level cap at 50
+            # Level up!
+            player_data.class_level += 1
+            player_data.class_exp -= xp_needed
+            player_data.skill_points += 2  # Award 2 skill points per level
+            
+            # Add level up message
             rewards_embed.add_field(
                 name="🎊 Level Up!",
                 value=f"You are now level {player_data.class_level}!\n"
@@ -678,9 +683,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     else:
         # Player lost
         # Update battle stats
-        if not hasattr(player_data, "battles_lost"):
-            player_data.battles_lost = 0
-        player_data.battles_lost += 1
+        player_data.losses += 1
         
         # Give some consolation rewards
         consolation_exp = int(calculate_exp_reward(enemy_level, player_data.class_level) * 0.25)
@@ -834,12 +837,8 @@ def calculate_cursed_energy_reward(enemy_level: int) -> int:
 async def start_pvp_battle(ctx, target_member, player_data, target_data, data_manager):
     """Start a PvP battle between two players"""
     # Create player entities from player data
-    player_stats = {
-        "hp": player_data.hp,
-        "power": player_data.strength,
-        "defense": player_data.defense,
-        "speed": player_data.dexterity
-    }
+    from main import STARTER_CLASSES
+    player_stats = player_data.get_stats(STARTER_CLASSES)
     
     player_entity = BattleEntity(
         ctx.author.display_name,

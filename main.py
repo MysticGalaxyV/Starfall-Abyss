@@ -353,6 +353,69 @@ async def p_cmd(ctx, member: discord.Member = None):
     """View your or another player's profile (alias)"""
     await profile_command(ctx, member)
     
+async def check_secret_cutscene(ctx, player_data):
+    """Check if player has completed all requirements for the secret cutscene"""
+    # Check if player has completed all achievements
+    from achievements import AchievementTracker, QuestManager
+    
+    # Create achievement tracker and quest manager
+    achievement_tracker = AchievementTracker(data_manager)
+    quest_manager = QuestManager(data_manager)
+    
+    # Get all player achievements
+    player_achievements = achievement_tracker.get_player_achievements(player_data)
+    available_achievements = achievement_tracker.get_player_available_achievements(player_data)
+    
+    # Get all player quests
+    daily_quests = quest_manager.get_daily_quests(player_data)
+    weekly_quests = quest_manager.get_weekly_quests(player_data)
+    long_term_quests = quest_manager.get_long_term_quests(player_data)
+    
+    # Check guild quests completion
+    from guild_system import GuildManager
+    guild_manager = GuildManager(data_manager)
+    guild = guild_manager.get_player_guild(player_data.user_id)
+    
+    guild_quests_completed = False
+    if guild:
+        # Check if player has completed all guild quests
+        guild_quests = guild.get("quests", [])
+        completed_quests = [q for q in guild_quests if q.get("assigned_to") == player_data.user_id and q.get("completed", False)]
+        guild_quests_completed = len(completed_quests) >= len(guild_quests)
+    
+    # Check if all requirements are met
+    if (not available_achievements and player_achievements and
+        not daily_quests and not weekly_quests and 
+        all(quest.get("completed", False) for quest in long_term_quests) and
+        guild_quests_completed):
+        
+        # Show the secret cutscene
+        embed = discord.Embed(
+            title="🌌 Secret Cutscene Unlocked 🌌",
+            description="The world around you begins to shimmer and fade...",
+            color=discord.Color.dark_purple()
+        )
+        
+        await ctx.send(embed=embed)
+        
+        # Dramatic pause
+        await asyncio.sleep(2)
+        
+        # Final message
+        final_embed = discord.Embed(
+            title="🌟 Domain Master Appears 🌟",
+            description="**You beat my domain expansion... I don't know how, but you did it...**\n\n"
+                        "The master of the Starfall Abyss looks at you with newfound respect.\n\n"
+                        "\"Not in a thousand years did I think someone would master every aspect of this domain.\"\n\n"
+                        "\"You've truly become a master of the Starfall Abyss.\"",
+            color=discord.Color.gold()
+        )
+        
+        await ctx.send(embed=final_embed)
+        return True
+    
+    return False
+
 async def profile_command(ctx, member: discord.Member = None):
     """Implementation of profile command"""
     # Get the target user
@@ -372,6 +435,13 @@ async def profile_command(ctx, member: discord.Member = None):
             await ctx.send(
                 f"❌ {target.display_name} hasn't started their adventure yet!")
         return
+        
+    # Check for secret cutscene if user is viewing their own profile
+    if target == ctx.author:
+        cutscene_shown = await check_secret_cutscene(ctx, player)
+        if cutscene_shown:
+            # If cutscene was shown, still continue to show profile
+            pass
 
     # Calculate stats including equipment bonuses
     stats = player.get_stats(GAME_CLASSES)
