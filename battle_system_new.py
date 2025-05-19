@@ -239,18 +239,38 @@ class BattleView(View):
         # Sort moves by energy cost
         sorted_moves = sorted(self.player.moves, key=lambda m: m.energy_cost)
         
-        for i, move in enumerate(sorted_moves):
-            # Check if player has enough energy for the move
-            disabled = self.player.current_energy < move.energy_cost
+        # Check if player has enough energy for ANY move
+        has_usable_move = any(self.player.current_energy >= move.energy_cost for move in sorted_moves)
+        
+        # If player has no usable moves, add a Rest button
+        if not has_usable_move:
+            rest_button = Button(
+                style=discord.ButtonStyle.primary,
+                label="Rest (Recover Energy)",
+                emoji="🔄",
+                row=0
+            )
             
-            # Place buttons in proper rows (max 5 per row)
-            if i >= 5:
-                row_index = 1
-            
-            button = BattleMoveButton(move, row=row_index)
-            button.disabled = disabled
-            self.add_item(button)
-            
+            # Set the callback for the rest button
+            async def rest_callback(interaction):
+                await self.rest_to_recover_energy(interaction)
+                
+            rest_button.callback = rest_callback
+            self.add_item(rest_button)
+        else:
+            # Add normal move buttons if player has enough energy
+            for i, move in enumerate(sorted_moves):
+                # Check if player has enough energy for the move
+                disabled = self.player.current_energy < move.energy_cost
+                
+                # Place buttons in proper rows (max 5 per row)
+                if i >= 5:
+                    row_index = 1
+                
+                button = BattleMoveButton(move, row=row_index)
+                button.disabled = disabled
+                self.add_item(button)
+        
         # Add Items button (row 2)
         items_button = Button(
             style=discord.ButtonStyle.success,
@@ -263,6 +283,75 @@ class BattleView(View):
         items_button.callback = self.show_items
         self.add_item(items_button)
         
+    async def rest_to_recover_energy(self, interaction: discord.Interaction):
+        """Handle player resting to recover energy when they can't make any moves"""
+        # Calculate energy recovery amount (30% of max energy)
+        recovery_amount = max(30, int(self.player.max_energy * 0.3))
+        old_energy = self.player.current_energy
+        self.player.current_energy = min(self.player.max_energy, old_energy + recovery_amount)
+        
+        # Update the view with the results
+        await interaction.response.edit_message(
+            content=f"🔄 You rest to recover energy! (+{recovery_amount} energy)\n" 
+                   f"Energy: {old_energy} → {self.player.current_energy}/{self.player.max_energy} ⚡",
+            view=self
+        )
+        
+        # Enemy turn
+        await asyncio.sleep(1)
+        
+        # Choose enemy move (prioritize moves they have energy for)
+        available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
+        if not available_moves:
+            # If no moves available, enemy also skips turn to regain energy
+            energy_gain = max(30, int(self.enemy.max_energy * 0.3))
+            self.enemy.current_energy = min(self.enemy.max_energy, self.enemy.current_energy + energy_gain)
+            
+            await interaction.edit_original_response(
+                content=f"🔄 You rest to recover energy! (+{recovery_amount} energy)\n" 
+                       f"🔄 {self.enemy.name} is also exhausted and regains {energy_gain} energy!",
+                view=self
+            )
+        else:
+            enemy_move = random.choice(available_moves)
+            enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
+            
+            await interaction.edit_original_response(
+                content=f"🔄 You rest to recover energy! (+{recovery_amount} energy)\n" 
+                       f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
+                view=self
+            )
+            
+            # Check if player is defeated
+            if not self.player.is_alive():
+                # Battle lost
+                self.stop()
+                await asyncio.sleep(1)
+                await interaction.edit_original_response(
+                    content=f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                    view=None
+                )
+                return
+                
+        # Update status effects, buttons, and battle stats
+        player_status_msg = self.player.update_status_effects()
+        enemy_status_msg = self.enemy.update_status_effects()
+        self.update_buttons()
+        
+        battle_stats = (
+            f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
+            f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
+            f"Energy: {self.enemy.current_energy}/{self.enemy.max_energy} ⚡"
+            f"{player_status_msg}{enemy_status_msg}"
+        )
+        
+        message_content = self.get_safe_message_content(interaction)
+        await interaction.edit_original_response(
+            content=message_content + f"\n\n{battle_stats}",
+            view=self
+        )
+
     async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
         # Apply the player's move
         damage, effect_msg = self.player.apply_move(move, self.enemy)
