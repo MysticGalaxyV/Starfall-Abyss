@@ -105,29 +105,32 @@ async def on_ready():
         
         if text_channels:
             channel = text_channels[0]
-            # Create the domain expansion embed
+            # Create the domain expansion embed with more dramatic formatting
             domain_embed = discord.Embed(
-                title="DOMAIN EXPANSION: STARFALL ABYSS", 
+                title="✦ STARFALL ABYSS ✦", 
                 description=(
-                    "```\nReality is obsolete.\n"
-                    "The code of the soul, rewritten.\n"
-                    "Welcome to my world—\n"
-                    "DOMAIN EXPANSION: STARFALL ABYSS\n```"
+                    "```diff\n+ Reality is obsolete.\n"
+                    "- The code of the soul, rewritten.\n"
+                    "+ Welcome to my world—\n"
+                    "! DOMAIN EXPANSION: STARFALL ABYSS\n```"
                 ),
-                color=discord.Color.purple()
+                color=discord.Color.from_rgb(128, 0, 255) # Deep purple color
             )
             
-            # Add the character image
+            # Add the character image with built-in domain expansion text
             domain_embed.set_image(url="attachment://domain_expansion.png")
-            domain_embed.set_footer(text="Now it is my turn...")
+            domain_embed.set_footer(text="⚡ Now it is my turn... ⚡")
             
             # Send the message with the image
             try:
                 # Try to find the image in various possible locations
                 image_paths = [
-                    "attached_assets/40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png",
-                    "./attached_assets/40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png",
-                    "40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png"
+                    "saved_images/domain_expansion.png",
+                    "./saved_images/domain_expansion.png",
+                    "attached_assets/image_1747668182622.png",
+                    "./attached_assets/image_1747668182622.png",
+                    "attached_assets/image_1747667845943.png",
+                    "./attached_assets/image_1747667845943.png"
                 ]
                 
                 file = None
