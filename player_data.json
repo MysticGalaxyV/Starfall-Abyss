@@ -537,7 +537,7 @@
             "last_pvp_battle": null
         },
         "1264209239971463188": {
-            "class_name": null,
+            "class_name": "Domain Tactician",
             "class_level": 1,
             "class_exp": 0,
             "user_level": 1,
@@ -546,7 +546,9 @@
             "max_gold": 100,
             "cursed_energy": 0,
             "max_cursed_energy": 100,
-            "unlocked_classes": [],
+            "unlocked_classes": [
+                "Domain Tactician"
+            ],
             "inventory": [],
             "equipped_items": {
                 "weapon": null,
