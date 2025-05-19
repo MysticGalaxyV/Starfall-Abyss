@@ -627,9 +627,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         cursed_energy = calculate_cursed_energy_reward(enemy_level)
         
         # Award rewards
+        # Add rewards - ensure we're adding all rewards properly
         player_data.add_exp(exp_reward)
         player_data.add_gold(gold_reward)
-        player_data.cursed_energy += cursed_energy
+        # Track for achievements
+        player_data.gold_earned += gold_reward
         
         # Update battle stats
         player_data.wins += 1
@@ -651,8 +653,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         rewards_embed.add_field(
             name="Rewards",
             value=f"Experience: {exp_reward} XP 📊\n"
-                  f"Gold: {gold_reward} 💰\n"
-                  f"Cursed Energy: {cursed_energy} ⚡",
+                  f"Gold: {gold_reward} 💰",
             inline=False
         )
         
@@ -698,7 +699,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         player_data.add_exp(consolation_exp)
         
         # Regenerate health and energy after battle defeat - partial recovery
-        player_data.regenerate_health_and_energy(data_manager.class_data, 0.5)  # 50% regeneration
+        from utils import GAME_CLASSES
+        player_data.regenerate_health_and_energy(GAME_CLASSES, 0.5)  # 50% regeneration
         
         # Save data with updated stats
         data_manager.save_data()

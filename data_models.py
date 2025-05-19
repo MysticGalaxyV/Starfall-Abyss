@@ -391,19 +391,20 @@ class PlayerData:
         self.battle_energy = min(self.max_battle_energy, self.battle_energy + amount)
         return self.battle_energy - old_value
 
+    def calculate_xp_for_level(self, level: int) -> int:
+        """
+        Calculate XP needed to level up from a specific level
+        This is the canonical XP formula that should be used throughout the game
+        """
+        # Standard XP formula
+        base_xp = 100
+        level_exponent = 1.5
+        return int(base_xp * (level ** level_exponent))
+        
     def xp_to_next_level(self) -> int:
         """Calculate XP needed for the next level."""
-        # Base XP requirement that increases with level
-        base_xp = 250  # Increased from 80 to make progression slower
-        level_multiplier = 2.0  # Increased from 1.3 to create much steeper curve
-        
-        # Calculate XP needed for next level with a much steeper scaling
-        next_level_xp = int(base_xp * (self.level ** level_multiplier))
-        
-        # Remove cap to allow for much higher XP requirements at high levels
-        # This will make higher levels take significantly longer to achieve
-        
-        return next_level_xp
+        # Use the standard formula
+        return self.calculate_xp_for_level(self.class_level)
         
     def remove_battle_energy(self, amount: int) -> bool:
         """Remove battle energy if available. Returns True if successful."""
@@ -424,37 +425,38 @@ class PlayerData:
         adjusted_exp = int(exp_amount * level_penalty)
         
         self.class_exp += adjusted_exp
-
-        MAX_LEVEL = 100
+        
+        # Calculate the required XP for the current level
+        MAX_LEVEL = 1000  # Maximum level cap
+        leveled_up = False
+        
         if self.class_level >= MAX_LEVEL:
             return False
-
-        # Calculate the required XP for the current level using the same formula as xp_to_next_level
-        while self.class_level < MAX_LEVEL:
-            # Using the updated formula with steeper scaling
-            base_xp = 250
-            level_multiplier = 2.0
-            xp_needed = int(base_xp * (self.class_level ** level_multiplier))
             
-            if self.class_exp < xp_needed:
-                break
-
+        # Calculate XP needed for next level using the standard formula
+        xp_needed = self.calculate_xp_for_level(self.class_level)
+        
+        # Level up while player has enough XP
+        while self.class_exp >= xp_needed and self.class_level < MAX_LEVEL:
             self.class_exp -= xp_needed
             self.class_level += 1
             leveled_up = True
             
-            # Increase rewards at level-up to compensate for slower progression
+            # Increase rewards at level-up
             self.skill_points += 3
             self.max_gold += 200
             self.gold = min(self.gold + 150, self.max_gold)
             
             # Increase max battle energy on level up
-            battle_energy_increase = 5 + (self.class_level // 10)  # More energy gain at higher levels
+            battle_energy_increase = 5 + (self.class_level // 10)
             self.max_battle_energy += battle_energy_increase
             # Refill battle energy on level up
             self.battle_energy = self.max_battle_energy
-            leveled_up = True
-
+            
+            # Calculate XP needed for the next level if not at max level
+            if self.class_level < MAX_LEVEL:
+                xp_needed = self.calculate_xp_for_level(self.class_level)
+            
         return leveled_up
 
     def to_dict(self) -> Dict[str, Any]:
