@@ -42,7 +42,7 @@ intents.message_content = True  # Required for prefix commands and @bot commands
 # In production, intents.members should be True and enabled in the Discord Developer Portal
 
 # Game name and welcome message
-GAME_NAME = "🌀 Ethereal Ascendancy"
+GAME_NAME = "✦ Starfall Abyss ✦"
 WELCOME_MESSAGE = f"Welcome to {GAME_NAME}"
 
 # Admin user ID - only this user can use admin commands
@@ -105,21 +105,21 @@ async def on_ready():
         
         if text_channels:
             channel = text_channels[0]
-            # Create the domain expansion embed with more dramatic formatting
+            # Create the domain expansion embed with your exact text
             domain_embed = discord.Embed(
-                title="✦ STARFALL ABYSS ✦", 
+                title="DOMAIN EXPANSION", 
                 description=(
-                    "```diff\n+ Reality is obsolete.\n"
-                    "- The code of the soul, rewritten.\n"
-                    "+ Welcome to my world—\n"
-                    "! DOMAIN EXPANSION: STARFALL ABYSS\n```"
+                    "```\nReality is obsolete.\n"
+                    "The code of the soul, rewritten.\n"
+                    "Welcome to my world—\n"
+                    "DOMAIN EXPANSION: STARFALL ABYSS\n```"
                 ),
                 color=discord.Color.from_rgb(128, 0, 255) # Deep purple color
             )
             
             # Add the character image with built-in domain expansion text
             domain_embed.set_image(url="attachment://domain_expansion.png")
-            domain_embed.set_footer(text="⚡ Now it is my turn... ⚡")
+            # No footer to keep the message clean and simple
             
             # Send the message with the image
             try:
@@ -145,9 +145,9 @@ async def on_ready():
                 # If we couldn't find the specific image, use the bot's avatar as fallback
                 if file is None:
                     domain_embed.set_image(url=bot.user.display_avatar.url)
-                    await channel.send("**The bot has awakened...**", embed=domain_embed)
+                    await channel.send(embed=domain_embed)
                 else:
-                    await channel.send("**The bot has awakened...**", embed=domain_embed, file=file)
+                    await channel.send(embed=domain_embed, file=file)
                 print(f"Domain expansion scene sent to {channel.name} in {guild.name}")
             except Exception as e:
                 print(f"Error sending domain expansion: {str(e)}")

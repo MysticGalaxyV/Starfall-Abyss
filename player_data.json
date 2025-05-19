@@ -687,7 +687,8 @@
             "members": [
                 759434349069860945,
                 1207020180174147634,
-                964901560566026320
+                964901560566026320,
+                600634012230221834
             ],
             "officers": [],
             "bank": 1000,
@@ -718,6 +719,7 @@
     "member_guild_map": {
         "759434349069860945": "Cursed Domain: Showdown",
         "1207020180174147634": "Cursed Domain: Showdown",
-        "964901560566026320": "Cursed Domain: Showdown"
+        "964901560566026320": "Cursed Domain: Showdown",
+        "600634012230221834": "Cursed Domain: Showdown"
     }
 }
