@@ -188,9 +188,9 @@ class PlayerData:
         self.class_exp = 0
         self.user_level = 1
         self.user_exp = 0
-        self.cursed_energy = 100  # Now used as Gold/currency
-        self.max_cursed_energy = 1000000  # Very high maximum as there's no cap on gold
-        self.gold = 0  # Currently unused - we'll use cursed_energy for compatibility
+        self.cursed_energy = 100  # Gold/Currency
+        self.max_cursed_energy = 1000000  # Very high maximum as there's no cap on currency
+        self.gold = 0  # Legacy field - we use cursed_energy consistently as currency
         self.battle_energy = 100  # Battle resource
         self.max_battle_energy = 100  # Base max battle resource
         self.energy_training = 0  # Additional energy from specialized training
@@ -250,18 +250,23 @@ class PlayerData:
     def get_max_battle_energy(self) -> int:
         """
         Calculate the player's maximum battle energy based on level and training.
-        Energy scales with player level and is increased by specialized training.
+        
+        IMPORTANT: Battle Energy is the resource used for combat abilities and skills.
+        It is completely separate from Cursed Energy, which is the game's currency.
+        
+        Battle Energy scales with player level (5 per level) and is permanently increased
+        through Energy Cultivation specialized training.
         """
         # Base energy from max_battle_energy attribute
         base_energy = self.max_battle_energy
         
-        # Energy bonus from player level (5 per level after level 1)
+        # Battle Energy bonus from player level (5 per level after level 1)
         level_bonus = (self.class_level - 1) * 5
         
-        # Energy bonus from specialized training
+        # Battle Energy bonus from Energy Cultivation specialized training
         training_bonus = self.energy_training
         
-        # Calculate total max energy
+        # Calculate total max battle energy
         total_max_energy = base_energy + level_bonus + training_bonus
         
         return total_max_energy
@@ -320,16 +325,16 @@ class PlayerData:
     def xp_to_next_level(self) -> int:
         """Calculate XP needed for the next level."""
         # Base XP requirement that increases with level
-        base_xp = 80  # Reduced from 100
-        level_multiplier = 1.3  # Reduced from 1.5 to flatten the curve
+        base_xp = 250  # Increased from 80 to make progression slower
+        level_multiplier = 2.0  # Increased from 1.3 to create much steeper curve
         
-        # Calculate XP needed for next level with a more gradual scaling
+        # Calculate XP needed for next level with a much steeper scaling
         next_level_xp = int(base_xp * (self.level ** level_multiplier))
         
-        # Apply a cap to prevent extreme XP requirements at high levels
-        max_xp_cap = 25000  # Maximum XP required for any level
+        # Remove cap to allow for much higher XP requirements at high levels
+        # This will make higher levels take significantly longer to achieve
         
-        return min(next_level_xp, max_xp_cap)
+        return next_level_xp
         
     def remove_battle_energy(self, amount: int) -> bool:
         """Remove battle energy if available. Returns True if successful."""
@@ -344,28 +349,35 @@ class PlayerData:
     def add_exp(self, exp_amount: int) -> bool:
         """Add experience points and handle level ups. Returns True if leveled up."""
         leveled_up = False
-        self.class_exp += exp_amount
+        
+        # Apply a small reduction to XP gain at higher levels to further slow progression
+        level_penalty = max(0.9, 1.0 - (self.class_level * 0.005))  # 0.5% reduction per level, min 90% of original XP
+        adjusted_exp = int(exp_amount * level_penalty)
+        
+        self.class_exp += adjusted_exp
 
         MAX_LEVEL = 100
         if self.class_level >= MAX_LEVEL:
             return False
 
-        # Calculate the required XP for the current level with improved formula
+        # Calculate the required XP for the current level using the same formula as xp_to_next_level
         while self.class_level < MAX_LEVEL:
-            # Using the same formula as xp_to_next_level for consistency
-            base_xp = 80
-            level_multiplier = 1.3
+            # Using the updated formula with steeper scaling
+            base_xp = 250
+            level_multiplier = 2.0
             xp_needed = int(base_xp * (self.class_level ** level_multiplier))
-            xp_needed = min(xp_needed, 25000)  # Apply the same cap as in xp_to_next_level
             
             if self.class_exp < xp_needed:
                 break
 
             self.class_exp -= xp_needed
             self.class_level += 1
-            self.skill_points += 3  # Increased from 2 to 3 to accelerate skill progression
-            self.max_cursed_energy += 100  # Increased gold bonus per level
-            self.cursed_energy = min(self.cursed_energy + 100, self.max_cursed_energy)  # More gold on level up
+            leveled_up = True
+            
+            # Increase rewards at level-up to compensate for slower progression
+            self.skill_points += 3
+            self.max_cursed_energy += 200
+            self.cursed_energy = min(self.cursed_energy + 150, self.max_cursed_energy)
             
             # Increase max battle energy on level up
             battle_energy_increase = 5 + (self.class_level // 10)  # More energy gain at higher levels
@@ -506,11 +518,22 @@ class DataManager:
 
     def save_data(self):
         try:
-            data = {}
+            # Save player data
+            player_data = {}
             for user_id, player in self.players.items():
-                data[str(user_id)] = player.to_dict()
+                player_data[str(user_id)] = player.to_dict()
+            
+            # Create complete data object with both player and guild data
+            complete_data = {
+                "players": player_data,
+                "guilds": self.guild_data,
+                "member_guild_map": self.member_guild_map
+            }
+            
             with open('player_data.json', 'w') as f:
-                json.dump(data, f, indent=4)
+                json.dump(complete_data, f, indent=4)
+                
+            print("Successfully saved player and guild data")
         except Exception as e:
             print(f"Error saving data: {e}")
 
@@ -518,9 +541,26 @@ class DataManager:
         try:
             with open('player_data.json', 'r') as f:
                 data = json.load(f)
-            for user_id, player_data in data.items():
-                self.players[int(user_id)] = PlayerData.from_dict(
-                    int(user_id), player_data)
+                
+            # Check if we have the new format with separate players and guilds
+            if isinstance(data, dict) and "players" in data:
+                # New format
+                player_data = data.get("players", {})
+                self.guild_data = data.get("guilds", {})
+                self.member_guild_map = data.get("member_guild_map", {})
+                
+                # Convert string keys to int for member_guild_map
+                if self.member_guild_map:
+                    self.member_guild_map = {int(k): v for k, v in self.member_guild_map.items()}
+                
+                for user_id, p_data in player_data.items():
+                    self.players[int(user_id)] = PlayerData.from_dict(int(user_id), p_data)
+            else:
+                # Old format - only player data
+                for user_id, player_data in data.items():
+                    self.players[int(user_id)] = PlayerData.from_dict(int(user_id), player_data)
+                
+            print(f"Loaded {len(self.players)} players and {len(self.guild_data)} guilds")
         except Exception as e:
             print(f"Error loading data: {e}")
 

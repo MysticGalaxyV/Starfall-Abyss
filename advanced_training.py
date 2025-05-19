@@ -96,7 +96,7 @@ TRAINING_MINIGAMES = {
         }
     },
     "Energy Cultivation": {
-        "description": "Meditate to increase your maximum battle energy capacity",
+        "description": "Meditate to increase your maximum battle energy capacity (not cursed energy/currency)",
         "primary_attribute": "energy",
         "secondary_attribute": "defense",
         "base_exp": 25,
@@ -382,14 +382,14 @@ class TrainingMinigameView(View):
         primary_gain = max(1, int(3 * performance))  # 0-3 points
         secondary_gain = max(0, int(2 * performance))  # 0-2 points
         
-        # Handle energy training differently - this increases max energy capacity
+        # Handle battle energy training differently - this increases max battle energy capacity
         energy_gain = 0
         if primary_attr == "energy":
             # Get the selected difficulty level from the training data
             difficulty_level = next((d for d in self.training_data["difficulty_levels"] 
                               if d["name"] == self.selected_difficulty), None)
             if difficulty_level and "energy_gain" in difficulty_level:
-                # Calculate energy gain based on performance and difficulty level
+                # Calculate battle energy gain based on performance and difficulty level
                 energy_gain = max(1, int(difficulty_level["energy_gain"] * performance))
         
         # Apply different increases for HP

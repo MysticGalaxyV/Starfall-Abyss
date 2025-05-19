@@ -447,7 +447,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     # Create battle embed
     embed = discord.Embed(
         title=f"⚔️ Battle: {player_entity.name} vs {enemy_entity.name}",
-        description=f"**Your Stats:**\nHP: {player_stats['hp']}\nPower: {player_stats['power']}\nDefense: {player_stats['defense']}\nSpeed: {player_stats['speed']}\n\n"
+        description=f"**Your Stats:**\nHP: {player_stats['hp']}\nPower: {player_stats['power']}\nDefense: {player_stats['defense']}\nSpeed: {player_stats['speed']}\nBattle Energy: {player_entity.current_energy}/{player_data.get_max_battle_energy()}\n\n"
                    f"**Enemy Stats:**\nHP: {enemy_stats['hp']}\nPower: {enemy_stats['power']}\nDefense: {enemy_stats['defense']}\nSpeed: {enemy_stats['speed']}",
         color=0xFF5500
     )
@@ -472,8 +472,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         level_up = player_data.add_exp(exp_reward)
         player_data.add_cursed_energy(cursed_energy)
         
-        # Save updated energy to player data
-        player_data.battle_energy = player_entity.current_energy
+        # Fully restore battle energy after victory
+        player_data.battle_energy = player_data.max_battle_energy + player_data.energy_training
         
         # Update win count
         player_data.wins += 1
@@ -509,8 +509,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         # Update loss count
         player_data.losses += 1
         
-        # Save updated energy to player data
-        player_data.battle_energy = player_entity.current_energy
+        # Fully restore battle energy even after defeat
+        player_data.battle_energy = player_data.max_battle_energy + player_data.energy_training
         
         # Save data
         data_manager.save_data()

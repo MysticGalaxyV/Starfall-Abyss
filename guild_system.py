@@ -3,6 +3,7 @@ from discord.ui import Button, View, Select
 import asyncio
 import datetime
 import random
+import math
 from typing import Dict, List, Optional, Tuple, Any, Union
 
 from data_models import PlayerData, DataManager
@@ -370,9 +371,9 @@ class GuildManager:
         if leader_id in self.member_guild_map:
             return False, "You are already in a guild. Leave your current guild first."
             
-        # Check if player meets level requirement (level 10)
-        if player_data.class_level < 10:
-            return False, f"You must be at least level 10 to create a guild. You are currently level {player_data.class_level}."
+        # Check if player meets level requirement (level 5) - lowered from 10 for better accessibility
+        if player_data.class_level < 5:
+            return False, f"You must be at least level 5 to create a guild. You are currently level {player_data.class_level}."
             
         # Check if player has enough cursed energy (1000)
         if player_data.cursed_energy < 1000:
@@ -386,7 +387,7 @@ class GuildManager:
         self.member_guild_map[leader_id] = name
         
         # Deduct cursed energy
-        player_data.cursed_energy -= 1000
+        player_data.remove_cursed_energy(1000)
         
         # Save data
         self.save_guilds()
@@ -1563,6 +1564,322 @@ class GuildManageView(View):
         
         await interaction.response.edit_message(embed=info_embed, view=info_view)
 
+class GuildShopView(View):
+    def __init__(self, player_data: PlayerData, guild: Guild, guild_manager: GuildManager, data_manager: DataManager):
+        super().__init__(timeout=120)
+        self.player_data = player_data
+        self.guild = guild
+        self.guild_manager = guild_manager
+        self.data_manager = data_manager
+        self.page = 0
+        self.items_per_page = 5
+        self.category = "All"
+        
+        # Guild shop items
+        self.shop_items = [
+            {
+                "name": "Guild Expansion Permit",
+                "description": "Increases maximum member capacity by 5",
+                "price": 5000,
+                "category": "Upgrade",
+                "function": self.purchase_guild_expansion
+            },
+            {
+                "name": "Guild Banner",
+                "description": "Decorative banner for your guild with +2% XP bonus",
+                "price": 2500,
+                "category": "Decoration",
+                "function": self.purchase_guild_banner
+            },
+            {
+                "name": "Guild Storage Expansion",
+                "description": "Adds 10 slots to guild storage",
+                "price": 3000,
+                "category": "Upgrade",
+                "function": self.purchase_storage_expansion
+            },
+            {
+                "name": "Guild XP Boost",
+                "description": "30% more guild XP for 7 days",
+                "price": 7500,
+                "category": "Boost",
+                "function": self.purchase_xp_boost
+            },
+            {
+                "name": "Rare Material Crate",
+                "description": "Contains assorted rare crafting materials for guild members",
+                "price": 4000,
+                "category": "Resources",
+                "function": self.purchase_material_crate
+            },
+            {
+                "name": "Guild Emblem Customization",
+                "description": "Allows changing the guild emblem",
+                "price": 1000,
+                "category": "Decoration",
+                "function": self.purchase_emblem_customization
+            },
+            {
+                "name": "Guild Dungeon Key",
+                "description": "Unlocks a special guild dungeon for 24 hours",
+                "price": 10000,
+                "category": "Special",
+                "function": self.purchase_dungeon_key
+            }
+        ]
+        
+        self.add_item(discord.ui.Select(
+            placeholder="Select Category",
+            options=[
+                discord.SelectOption(label="All", value="All"),
+                discord.SelectOption(label="Upgrade", value="Upgrade"),
+                discord.SelectOption(label="Decoration", value="Decoration"),
+                discord.SelectOption(label="Boost", value="Boost"),
+                discord.SelectOption(label="Resources", value="Resources"),
+                discord.SelectOption(label="Special", value="Special")
+            ],
+            custom_id="category_select"
+        ))
+        
+        self.category_select = self.children[0]
+        self.category_select.callback = self.category_callback
+        
+        self.add_navigation_buttons()
+        self.add_info_button()
+    
+    def add_navigation_buttons(self):
+        """Add previous and next page buttons"""
+        prev_button = discord.ui.Button(
+            style=discord.ButtonStyle.secondary,
+            label="Previous",
+            custom_id="prev_page",
+            disabled=True
+        )
+        prev_button.callback = self.prev_page_callback
+        self.add_item(prev_button)
+        
+        next_button = discord.ui.Button(
+            style=discord.ButtonStyle.secondary,
+            label="Next",
+            custom_id="next_page",
+            disabled=True
+        )
+        next_button.callback = self.next_page_callback
+        self.add_item(next_button)
+        
+        self.prev_button = prev_button
+        self.next_button = next_button
+        self.update_button_states()
+    
+    def add_info_button(self):
+        """Add button to show info about guild bank"""
+        info_button = discord.ui.Button(
+            style=discord.ButtonStyle.secondary,
+            label="Guild Bank Info",
+            custom_id="bank_info"
+        )
+        info_button.callback = self.bank_info_callback
+        self.add_item(info_button)
+    
+    def update_button_states(self):
+        """Update button states based on current page"""
+        filtered_items = self.get_filtered_items()
+        max_pages = math.ceil(len(filtered_items) / self.items_per_page)
+        
+        self.prev_button.disabled = self.page <= 0
+        self.next_button.disabled = self.page >= max_pages - 1 or max_pages == 0
+    
+    def get_filtered_items(self):
+        """Get items filtered by category"""
+        if self.category == "All":
+            return self.shop_items
+        return [item for item in self.shop_items if item["category"] == self.category]
+    
+    async def category_callback(self, interaction: discord.Interaction):
+        """Handle category selection"""
+        self.category = interaction.data["values"][0]
+        self.page = 0  # Reset page when category changes
+        self.update_button_states()
+        await interaction.response.edit_message(embed=self.create_shop_embed(), view=self)
+    
+    async def prev_page_callback(self, interaction: discord.Interaction):
+        """Handle previous page button"""
+        self.page -= 1
+        self.update_button_states()
+        await interaction.response.edit_message(embed=self.create_shop_embed(), view=self)
+    
+    async def next_page_callback(self, interaction: discord.Interaction):
+        """Handle next page button"""
+        self.page += 1
+        self.update_button_states()
+        await interaction.response.edit_message(embed=self.create_shop_embed(), view=self)
+    
+    async def bank_info_callback(self, interaction: discord.Interaction):
+        """Show information about guild bank"""
+        bank_embed = discord.Embed(
+            title=f"{self.guild.name} Bank",
+            description="Your guild's financial status",
+            color=discord.Color.gold()
+        )
+        
+        bank_embed.add_field(
+            name="Current Balance",
+            value=f"🔮 {self.guild.bank:,} Cursed Energy",
+            inline=False
+        )
+        
+        # Show recent transactions (placeholder)
+        bank_embed.add_field(
+            name="Member Contributions",
+            value="Use `!guild contribute <amount>` to add to the guild bank.",
+            inline=False
+        )
+        
+        await interaction.response.edit_message(embed=bank_embed, view=self)
+    
+    def create_shop_embed(self):
+        """Create shop embed for current view"""
+        filtered_items = self.get_filtered_items()
+        max_pages = math.ceil(len(filtered_items) / self.items_per_page)
+        
+        if max_pages == 0:
+            max_pages = 1
+        
+        shop_embed = discord.Embed(
+            title=f"{self.guild.name} Guild Shop",
+            description=f"Use guild funds to purchase upgrades and items.\n**Current Balance:** 🔮 {self.guild.bank:,} Cursed Energy",
+            color=discord.Color.blue()
+        )
+        
+        # Add guild shop items for current page
+        start_idx = self.page * self.items_per_page
+        page_items = filtered_items[start_idx:start_idx + self.items_per_page]
+        
+        if not page_items:
+            shop_embed.add_field(
+                name="No Items Available",
+                value="No items found in this category",
+                inline=False
+            )
+        else:
+            for i, item in enumerate(page_items, 1):
+                affordable = self.guild.bank >= item["price"]
+                price_text = f"🔮 {item['price']:,} Cursed Energy"
+                if not affordable:
+                    price_text = f"❌ {price_text} (Not enough funds)"
+                    
+                shop_embed.add_field(
+                    name=f"{i}. {item['name']} - {price_text}",
+                    value=f"{item['description']}\n`!guild buy {i + start_idx}`",
+                    inline=False
+                )
+        
+        shop_embed.set_footer(text=f"Page {self.page + 1}/{max_pages} • Category: {self.category}")
+        return shop_embed
+    
+    async def purchase_guild_expansion(self, interaction: discord.Interaction):
+        """Purchase guild expansion"""
+        # Check if user has permission
+        if not self.guild.can_manage_guild(self.player_data.user_id):
+            await interaction.response.send_message("❌ Only guild officers or the leader can purchase this upgrade.", ephemeral=True)
+            return False
+            
+        # Increase max members
+        self.guild.max_members += 5
+        
+        await interaction.response.send_message(f"✅ Guild capacity increased to {self.guild.max_members} members!")
+        return True
+    
+    async def purchase_guild_banner(self, interaction: discord.Interaction):
+        """Purchase guild banner"""
+        # Add banner to guild perks
+        if "guild_banner" not in self.guild.upgrades:
+            self.guild.upgrades["guild_banner"] = {"level": 1, "bonus": 0.02}
+        else:
+            # Upgrade existing banner
+            self.guild.upgrades["guild_banner"]["level"] += 1
+            self.guild.upgrades["guild_banner"]["bonus"] += 0.01
+        
+        await interaction.response.send_message(f"✅ Guild Banner purchased! Members now get +{self.guild.upgrades['guild_banner']['bonus'] * 100}% XP bonus.")
+        return True
+    
+    async def purchase_storage_expansion(self, interaction: discord.Interaction):
+        """Purchase storage expansion"""
+        # Initialize storage if it doesn't exist
+        if "storage" not in self.guild.upgrades:
+            self.guild.upgrades["storage"] = {"slots": 10}
+        else:
+            # Add more slots
+            self.guild.upgrades["storage"]["slots"] += 10
+        
+        await interaction.response.send_message(f"✅ Guild storage expanded! Total slots: {self.guild.upgrades['storage']['slots']}")
+        return True
+    
+    async def purchase_xp_boost(self, interaction: discord.Interaction):
+        """Purchase XP boost"""
+        # Set XP boost with expiration date
+        expiration = datetime.datetime.now() + datetime.timedelta(days=7)
+        self.guild.upgrades["xp_boost"] = {
+            "multiplier": 1.3,
+            "expires": expiration.isoformat()
+        }
+        
+        await interaction.response.send_message("✅ Guild XP Boost active for 7 days! All guild XP earned will be increased by 30%.")
+        return True
+    
+    async def purchase_material_crate(self, interaction: discord.Interaction):
+        """Purchase material crate for guild members"""
+        # Generate random rare materials
+        materials = [
+            "Dragon Scale", "Phoenix Feather", "Mithril Ore", 
+            "Enchanted Wood", "Void Crystal", "Moonsilver"
+        ]
+        
+        # Add to guild storage for distribution
+        if "storage_items" not in self.guild.upgrades:
+            self.guild.upgrades["storage_items"] = {}
+        
+        for material in materials:
+            quantity = random.randint(3, 8)
+            if material in self.guild.upgrades["storage_items"]:
+                self.guild.upgrades["storage_items"][material] += quantity
+            else:
+                self.guild.upgrades["storage_items"][material] = quantity
+        
+        materials_list = ", ".join([f"{random.randint(3, 8)}x {m}" for m in random.sample(materials, 3)])
+        await interaction.response.send_message(f"✅ Material Crate purchased! Added to guild storage: {materials_list} and more!")
+        return True
+    
+    async def purchase_emblem_customization(self, interaction: discord.Interaction):
+        """Purchase emblem customization"""
+        # Allow customization of guild emblem
+        self.guild.upgrades["custom_emblem"] = True
+        
+        await interaction.response.send_message("✅ Guild Emblem Customization purchased! Use `!guild emblem` to customize your guild's emblem.")
+        return True
+    
+    async def purchase_dungeon_key(self, interaction: discord.Interaction):
+        """Purchase special guild dungeon key"""
+        # Add special dungeon with expiration
+        expiration = datetime.datetime.now() + datetime.timedelta(hours=24)
+        
+        # Choose a random special dungeon
+        special_dungeons = [
+            "Crystal Caverns", "Ancient Treasury", "Forgotten Temple",
+            "Dragon's Lair", "Abyssal Depths"
+        ]
+        
+        dungeon = random.choice(special_dungeons)
+        
+        self.guild.upgrades["special_dungeon"] = {
+            "name": dungeon,
+            "expires": expiration.isoformat(),
+            "rewards_multiplier": 1.5
+        }
+        
+        await interaction.response.send_message(f"✅ Special Guild Dungeon Key purchased! '{dungeon}' is now available for 24 hours with 50% bonus rewards. Start with `!guild dungeon`!")
+        return True
+
 class GuildTeamDungeonView(View):
     def __init__(self, leader_data: PlayerData, guild: Guild, guild_manager: GuildManager, data_manager: DataManager):
         super().__init__(timeout=300)  # Longer timeout for team formation
@@ -1694,9 +2011,14 @@ class GuildTeamDungeonView(View):
         cancel_btn.callback = self.cancel_callback
         self.add_item(cancel_btn)
     
-    async def update_member_display_names(self, interaction: discord.Interaction):
+    async def update_member_display_names(self, interaction):
         """Update member IDs with display names in the view"""
-        bot = interaction.client
+        # Handle both Context and Interaction objects
+        if hasattr(interaction, 'bot'):
+            bot = interaction.bot  # For Context objects
+        else:
+            bot = interaction.client  # For Interaction objects
+            
         member_select = discord.utils.get(self.children, custom_id="member_select")
         
         if member_select:
@@ -2214,6 +2536,73 @@ async def guild_command(ctx, action: str = None, *args):
         
         await ctx.send(embed=list_embed)
     
+    elif action.lower() == "shop":
+        # Access the guild shop for purchasing items and upgrades
+        guild = guild_manager.get_player_guild(ctx.author.id)
+        if not guild:
+            await ctx.send("❌ You are not in a guild. Join or create a guild first!")
+            return
+        
+        # Create and show the guild shop
+        shop_view = GuildShopView(player_data, guild, guild_manager, data_manager)
+        shop_embed = shop_view.create_shop_embed()
+        await ctx.send(embed=shop_embed, view=shop_view)
+        
+    elif action.lower() == "buy":
+        # Handle guild item purchasing
+        guild = guild_manager.get_player_guild(ctx.author.id)
+        if not guild:
+            await ctx.send("❌ You are not in a guild. Join or create a guild first!")
+            return
+            
+        # Check if user has permission to make purchases
+        if not guild.can_manage_guild(ctx.author.id):
+            await ctx.send("❌ Only guild officers or the leader can make purchases for the guild.")
+            return
+            
+        # Check if we have an item ID
+        if not args:
+            await ctx.send("❌ Please specify the item number to buy. Use `!guild shop` to view available items.")
+            return
+            
+        try:
+            item_number = int(args[0])
+        except ValueError:
+            await ctx.send("❌ Please provide a valid item number.")
+            return
+            
+        # Create a temporary shop view to access the items
+        shop_view = GuildShopView(player_data, guild, guild_manager, data_manager)
+        all_items = shop_view.shop_items
+        
+        # Check if item exists
+        if item_number < 1 or item_number > len(all_items):
+            await ctx.send(f"❌ Invalid item number. Choose between 1-{len(all_items)}.")
+            return
+            
+        # Get the selected item (1-indexed for users, 0-indexed for list)
+        item = all_items[item_number - 1]
+        
+        # Check if guild has enough funds
+        if guild.bank < item["price"]:
+            await ctx.send(f"❌ Your guild doesn't have enough funds. The {item['name']} costs 🔮 {item['price']:,} Cursed Energy, but your guild only has 🔮 {guild.bank:,}.")
+            return
+            
+        # Deduct price from guild bank
+        guild.bank -= item["price"]
+        
+        # Use the item's purchase function
+        purchase_success = await item["function"](ctx)
+        
+        if purchase_success:
+            # Save guild data
+            guild_manager.save_guilds()
+            await ctx.send(f"✅ Successfully purchased {item['name']} for 🔮 {item['price']:,} Cursed Energy!")
+        else:
+            # Refund if the purchase function returned False
+            guild.bank += item["price"]
+            guild_manager.save_guilds()
+        
     elif action.lower() == "dungeon":
         # Check if in a guild
         guild = guild_manager.get_player_guild(ctx.author.id)
@@ -2250,8 +2639,8 @@ async def guild_command(ctx, action: str = None, *args):
             inline=False
         )
         
-        # Update member display names
-        await team_view.update_member_display_names(await ctx.bot._get_context(ctx.message))
+        # Update member display names - using the current context instead of trying to get a new one
+        await team_view.update_member_display_names(ctx)
         
         await ctx.send(embed=team_embed, view=team_view)
     
@@ -2277,7 +2666,9 @@ async def guild_command(ctx, action: str = None, *args):
         # Guild member commands
         help_embed.add_field(
             name="Member Commands",
-            value="• `!guild contribute <amount>` - Contribute gold to guild bank\n"
+            value="• `!guild contribute <amount>` - Contribute cursed energy to guild bank\n"
+                  "• `!guild shop` - Browse and purchase guild upgrades and items\n"
+                  "• `!guild buy <item#>` - Purchase items from the guild shop\n"
                   "• `!guild dungeon` - Form a team for guild dungeon run\n"
                   "• `!guild members` - View guild members",
             inline=False
