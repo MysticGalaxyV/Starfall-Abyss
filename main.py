@@ -1739,6 +1739,14 @@ async def _show_help(ctx, category: str = None):
                 "usage": "!balance (aliases: !bal) or /balance",
                 "notes": "View your current gold (🔮) and battle energy (✨)"
             },
+            "Leaderboard": {
+                "description":
+                "View the top players leaderboard and rankings",
+                "usage":
+                "!leaderboard [category] (aliases: !lb, !top, !rankings) or /leaderboard",
+                "notes":
+                "Categories: level, gold, wins, pvp_wins, dungeons_completed, bosses_defeated"
+            },
             "Levels": {
                 "description":
                 "View your level information and progression details",

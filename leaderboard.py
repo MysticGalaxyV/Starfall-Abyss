@@ -72,7 +72,7 @@ class LeaderboardView(View):
         players = []
         for user_id, player in self.data_manager.players.items():
             if self.category == "level":
-                value = player.user_level
+                value = player.class_level  # Fixed: changed from user_level to class_level
             elif self.category == "gold":
                 value = player.gold
             elif self.category == "wins":
@@ -143,7 +143,7 @@ class LeaderboardView(View):
                 name=f"{medal}Rank #{rank}: {player_name}",
                 value=f"**{category_display.get(self.category, 'Level')}:** {value_display}\n"
                       f"**Class:** {player.class_name or 'None'}\n"
-                      f"**Level:** {player.user_level}",
+                      f"**Level:** {player.class_level}",
                 inline=False
             )
         
@@ -158,7 +158,7 @@ async def leaderboard_command(ctx, data_manager: DataManager, category: str = "l
     """View the top players leaderboard"""
     # Validate category
     valid_categories = ["level", "gold", "wins", "pvp_wins", "dungeons_completed", "bosses_defeated"]
-    if category.lower() not in valid_categories:
+    if category and category.lower() not in valid_categories:
         category = "level"  # Default to level if invalid category
     
     view = LeaderboardView(data_manager, category=category.lower())
