@@ -107,453 +107,12 @@
                     },
                     "quantity": 1,
                     "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "eLRhRAjK",
-                        "name": "Cursed Tool: Novice Staff",
-                        "description": "A basic staff that channels cursed energy.",
-                        "item_type": "weapon",
-                        "rarity": "common",
-                        "stats": {
-                            "power": 3
-                        },
-                        "level_req": 1,
-                        "value": 50
-                    },
-                    "quantity": 0,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "ZM4lmZMw",
-                        "name": "Cursed Armband",
-                        "description": "An armband that helps control cursed energy flow.",
-                        "item_type": "accessory",
-                        "rarity": "common",
-                        "stats": {
-                            "power": 1,
-                            "defense": 1
-                        },
-                        "level_req": 1,
-                        "value": 45
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "hf5SCoxs",
-                        "name": "Jujutsu Sorcerer Uniform",
-                        "description": "Standard uniform worn by jujutsu students.",
-                        "item_type": "armor",
-                        "rarity": "common",
-                        "stats": {
-                            "defense": 3
-                        },
-                        "level_req": 1,
-                        "value": 50
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "dOSWShg8",
-                        "name": "Cursed Tool: Novice Staff",
-                        "description": "A basic staff that channels cursed energy.",
-                        "item_type": "weapon",
-                        "rarity": "common",
-                        "stats": {
-                            "power": 3
-                        },
-                        "level_req": 1,
-                        "value": 50
-                    },
-                    "quantity": 0,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "4FzfbhIG",
-                        "name": "Cursed Tool: Binding Threads",
-                        "description": "Strings imbued with cursed energy that immobilize opponents.",
-                        "item_type": "weapon",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "power": 7
-                        },
-                        "level_req": 4,
-                        "value": 200
-                    },
-                    "quantity": 0,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "xAOTbiQV",
-                        "name": "Grade 2 Sorcerer Robe",
-                        "description": "Protective garment worn by Grade 2 jujutsu sorcerers.",
-                        "item_type": "armor",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "defense": 7
-                        },
-                        "level_req": 4,
-                        "value": 200
-                    },
-                    "quantity": 1,
-                    "equipped": true
-                },
-                {
-                    "item": {
-                        "item_id": "ktNYQMy1",
-                        "name": "Star Power Charm",
-                        "description": "A lucky charm that enhances your natural abilities.",
-                        "item_type": "accessory",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "hp": 15,
-                            "speed": 3
-                        },
-                        "level_req": 5,
-                        "value": 225
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "VDug2tFM",
-                        "name": "Cursed Energy Conductor",
-                        "description": "A bracelet that helps channel cursed energy more efficiently.",
-                        "item_type": "accessory",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "power": 4,
-                            "defense": 3
-                        },
-                        "level_req": 4,
-                        "value": 210
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "2EH4SzTy",
-                        "name": "Domain Amplifier",
-                        "description": "A rare accessory that strengthens your domain abilities.",
-                        "item_type": "accessory",
-                        "rarity": "rare",
-                        "stats": {
-                            "power": 5,
-                            "speed": 5
-                        },
-                        "level_req": 8,
-                        "value": 500
-                    },
-                    "quantity": 1,
-                    "equipped": true
-                },
-                {
-                    "item": {
-                        "item_id": "51343040-c152-4ec2-9671-2440d9132b8f",
-                        "name": "Uncommon Stone",
-                        "description": "A uncommon quality stone used in crafting.",
-                        "item_type": "Material:Mining",
-                        "rarity": "Uncommon",
-                        "stats": {},
-                        "level_req": 1,
-                        "value": 10
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "ffd57dfb-5c90-43a2-8037-a462652059e4",
-                        "name": "Uncommon Cotton",
-                        "description": "A uncommon quality cotton used in crafting.",
-                        "item_type": "Material:Fabrics",
-                        "rarity": "Uncommon",
-                        "stats": {},
-                        "level_req": 1,
-                        "value": 14
-                    },
-                    "quantity": 2,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "efecad54-a9d9-4414-8451-a6138e8bb436",
-                        "name": "Uncommon Wool",
-                        "description": "A uncommon quality wool used in crafting.",
-                        "item_type": "Material:Fabrics",
-                        "rarity": "Uncommon",
-                        "stats": {},
-                        "level_req": 5,
-                        "value": 24
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "be7af91e-2066-4296-a7e6-f0391b94ed66",
-                        "name": "Common Wolf Fang",
-                        "description": "A common quality wolf fang used in crafting.",
-                        "item_type": "Material:Monster Parts",
-                        "rarity": "Common",
-                        "stats": {},
-                        "level_req": 1,
-                        "value": 10
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "nc0c22wR",
-                        "name": "Cursed Armband",
-                        "description": "An armband that helps control cursed energy flow.",
-                        "item_type": "accessory",
-                        "rarity": "common",
-                        "stats": {
-                            "power": 1,
-                            "defense": 1
-                        },
-                        "level_req": 1,
-                        "value": 45
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "77YgKghp",
-                        "name": "Superior Health Potion",
-                        "description": "Restores 200 HP during battle.",
-                        "item_type": "consumable",
-                        "rarity": "rare",
-                        "stats": {},
-                        "level_req": 8,
-                        "value": 250
-                    },
-                    "quantity": 2,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "8dStK809",
-                        "name": "Greater Health Potion",
-                        "description": "Restores 120 HP during battle.",
-                        "item_type": "consumable",
-                        "rarity": "uncommon",
-                        "stats": {},
-                        "level_req": 4,
-                        "value": 100
-                    },
-                    "quantity": 2,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "NmHf6u72",
-                        "name": "Strength Elixir",
-                        "description": "Increases strength for 3 turns during battle.",
-                        "item_type": "consumable",
-                        "rarity": "uncommon",
-                        "stats": {},
-                        "level_req": 5,
-                        "value": 150
-                    },
-                    "quantity": 2,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "13EyZfNF",
-                        "name": "Superior Energy Potion",
-                        "description": "Restores 150 energy during battle.",
-                        "item_type": "consumable",
-                        "rarity": "rare",
-                        "stats": {},
-                        "level_req": 8,
-                        "value": 250
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "L0S5pQj2",
-                        "name": "Guardian Shield Potion",
-                        "description": "Creates a defensive shield for 3 turns during battle.",
-                        "item_type": "consumable",
-                        "rarity": "rare",
-                        "stats": {},
-                        "level_req": 10,
-                        "value": 300
-                    },
-                    "quantity": 2,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "8AfJCxZT",
-                        "name": "Brawler's Combat Gloves",
-                        "description": "Enhances reflexes and striking power.",
-                        "item_type": "accessory",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "speed": 5,
-                            "power": 2
-                        },
-                        "level_req": 4,
-                        "value": 200
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "c1c2aa5c-f160-4345-854b-8090d09de24f",
-                        "name": "Common Lavender",
-                        "description": "A common quality lavender used in crafting.",
-                        "item_type": "Material:Herbs",
-                        "rarity": "Common",
-                        "stats": {},
-                        "level_req": 5,
-                        "value": 15
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "xd8Ngh8r",
-                        "name": "Cursed Energy Conductor",
-                        "description": "A bracelet that helps channel cursed energy more efficiently.",
-                        "item_type": "accessory",
-                        "rarity": "uncommon",
-                        "stats": {
-                            "power": 4,
-                            "defense": 3
-                        },
-                        "level_req": 4,
-                        "value": 210
-                    },
-                    "quantity": 1,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "2Ff76MfR",
-                        "name": "Spike Knuckles",
-                        "description": "Hand protection with offensive spikes.",
-                        "item_type": "weapon",
-                        "rarity": "common",
-                        "stats": {
-                            "power": 2,
-                            "speed": 1
-                        },
-                        "level_req": 1,
-                        "value": 45
-                    },
-                    "quantity": 1,
-                    "equipped": false
                 }
             ],
             "equipped_items": {
-                "weapon": null,
-                "armor": null,
+                "weapon": "oQXw7Yfi",
+                "armor": "xAOTbiQV",
                 "accessory": "2EH4SzTy"
-            },
-            "achievements": [],
-            "skill_points": 2,
-            "allocated_stats": {
-                "power": 43,
-                "defense": 6,
-                "speed": 27,
-                "hp": 99
-            },
-            "skill_tree": {
-                "strength": {
-                    "Power Strike": 1,
-                    "Brute Force": 1
-                },
-                "vitality": {
-                    "Iron Skin": 1,
-                    "Endurance": 1,
-                    "Regeneration": 1,
-                    "Unbreakable": 1,
-                    "Undying Will": 1
-                },
-                "wisdom": {
-                    "Healing Touch": 1,
-                    "Spirit Link": 1,
-                    "Protective Aura": 1,
-                    "Divine Intervention": 1,
-                    "Resurrection": 1
-                },
-                "intelligence": {
-                    "Arcane Mind": 1,
-                    "Spell Mastery": 1,
-                    "Elemental Affinity": 1,
-                    "Counterspell": 1
-                }
-            },
-            "skill_points_spent": {
-                "strength": 2,
-                "vitality": 5,
-                "wisdom": 5,
-                "intelligence": 4
-            },
-            "wins": 24,
-            "losses": 2,
-            "last_daily": "2025-05-19T08:55:51.419811",
-            "daily_streak": 2,
-            "last_train": "2025-05-18T19:18:54.134059",
-            "dungeon_clears": {
-                "Ancient Forest": 13,
-                "Forgotten Cave": 8
-            },
-            "skill_cooldowns": {},
-            "special_abilities": {},
-            "active_effects": {},
-            "training_cooldowns": {
-                "Cursed Energy Control": "2025-05-14T23:57:32.793165",
-                "Combat Training": "2025-05-18T14:23:49.549074",
-                "Tactical Analysis": "2025-05-18T20:42:04.447661"
-            },
-            "battle_energy": 36,
-            "max_battle_energy": 106,
-            "technique_grade": "Grade 3",
-            "domain_expansion": null,
-            "pvp_history": [],
-            "pvp_wins": 0,
-            "pvp_losses": 0,
-            "last_pvp_battle": null
-        },
-        "1264209239971463188": {
-            "class_name": "Domain Tactician",
-            "class_level": 1,
-            "class_exp": 0,
-            "user_level": 1,
-            "user_exp": 0,
-            "gold": 0,
-            "max_gold": 100,
-            "cursed_energy": 0,
-            "max_cursed_energy": 100,
-            "unlocked_classes": [
-                "Domain Tactician"
-            ],
-            "inventory": [],
-            "equipped_items": {
-                "weapon": null,
-                "armor": null,
-                "accessory": null
             },
             "achievements": [],
             "skill_points": 0,
@@ -584,16 +143,16 @@
             "pvp_losses": 0,
             "last_pvp_battle": null
         },
-        "1207020180174147634": {
+        "600634012230221834": {
             "class_name": null,
             "class_level": 1,
             "class_exp": 0,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 0,
-            "max_gold": 100,
-            "cursed_energy": 0,
-            "max_cursed_energy": 100,
+            "gold": 100,
+            "max_gold": 1000000,
+            "cursed_energy": 100,
+            "max_cursed_energy": 1000000,
             "unlocked_classes": [],
             "inventory": [],
             "equipped_items": {
@@ -630,18 +189,18 @@
             "pvp_losses": 0,
             "last_pvp_battle": null
         },
-        "600634012230221834": {
-            "class_name": "Flash Rogue",
+        "1264209239971463188": {
+            "class_name": "Domain Tactician",
             "class_level": 1,
-            "class_exp": 0,
+            "class_exp": 30,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 0,
+            "gold": 100,
             "max_gold": 1000000,
-            "cursed_energy": 0,
+            "cursed_energy": 100,
             "max_cursed_energy": 1000000,
             "unlocked_classes": [
-                "Flash Rogue"
+                "Domain Tactician"
             ],
             "inventory": [],
             "equipped_items": {
@@ -661,8 +220,8 @@
             "skill_points_spent": {},
             "wins": 0,
             "losses": 0,
-            "last_daily": null,
-            "daily_streak": 0,
+            "last_daily": "2025-05-19T17:42:43.073994",
+            "daily_streak": 1,
             "last_train": null,
             "dungeon_clears": {},
             "skill_cooldowns": {},
@@ -691,8 +250,7 @@
             "members": [
                 759434349069860945,
                 1207020180174147634,
-                964901560566026320,
-                600634012230221834
+                964901560566026320
             ],
             "officers": [],
             "bank": 1000,
@@ -723,7 +281,6 @@
     "member_guild_map": {
         "759434349069860945": "Cursed Domain: Showdown",
         "1207020180174147634": "Cursed Domain: Showdown",
-        "964901560566026320": "Cursed Domain: Showdown",
-        "600634012230221834": "Cursed Domain: Showdown"
+        "964901560566026320": "Cursed Domain: Showdown"
     }
 }

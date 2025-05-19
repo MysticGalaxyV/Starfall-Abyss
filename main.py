@@ -954,15 +954,30 @@ async def trade_cmd(ctx, target_member: discord.Member):
     await trade_command(ctx, target_member, data_manager)
 
 
-@bot.command(name="guild", aliases=["g"])
+@bot.command(name="guild")
 async def guild_cmd(ctx, action: str = None, *args):
     """Guild system - create or join a guild and adventure with others"""
     await guild_command(ctx, action, *args)
+    
+@bot.command(name="g")
+async def g_cmd(ctx, action: str = None, *args):
+    """Guild system - create or join a guild and adventure with others (alias)"""
+    await guild_command(ctx, action, *args)
 
 
-@bot.command(name="achievements", aliases=["achieve", "ach"])
+@bot.command(name="achievements")
 async def achievements_cmd(ctx):
     """View your achievements and badges"""
+    await achievements_command(ctx, data_manager)
+    
+@bot.command(name="achieve")
+async def achieve_cmd(ctx):
+    """View your achievements and badges (alias)"""
+    await achievements_command(ctx, data_manager)
+    
+@bot.command(name="ach")
+async def ach_cmd(ctx):
+    """View your achievements and badges (alias)"""
     await achievements_command(ctx, data_manager)
 
 
@@ -987,9 +1002,14 @@ async def give_gold_cmd(ctx, member: discord.Member, amount: int):
     await ctx.send(embed=embed)
 
 
-@bot.command(name="quests", aliases=["q"])
+@bot.command(name="quests")
 async def quests_cmd(ctx):
     """View your active quests and special events"""
+    await quests_command(ctx, data_manager)
+    
+@bot.command(name="q")
+async def q_cmd(ctx):
+    """View your active quests and special events (alias)"""
     await quests_command(ctx, data_manager)
 
 

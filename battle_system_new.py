@@ -136,9 +136,24 @@ class BattleEntity:
 
 class BattleMoveButton(Button):
     def __init__(self, move: BattleMove, row: int = 0):
+        # Choose button style based on move type
+        if "heal" in (move.effect or ""):
+            style = discord.ButtonStyle.success
+            emoji = "💚"
+        elif "energy" in (move.effect or ""):
+            style = discord.ButtonStyle.primary
+            emoji = "⚡"
+        elif "shield" in (move.effect or ""):
+            style = discord.ButtonStyle.secondary
+            emoji = "🛡️"
+        else:
+            style = discord.ButtonStyle.danger
+            emoji = "⚔️"
+            
         super().__init__(
-            style=discord.ButtonStyle.primary,
+            style=style,
             label=f"{move.name} ({move.energy_cost} ⚡)",
+            emoji=emoji,
             row=row,
             disabled=False
         )
@@ -153,11 +168,28 @@ class ItemButton(Button):
         display_name = item_name
         if len(display_name) > 20:
             display_name = display_name[:17] + "..."
+        
+        # Choose style and emoji based on item effect
+        if "heal" in item_effect.lower():
+            style = discord.ButtonStyle.success
+            emoji = "🧪"
+        elif "energy" in item_effect.lower():
+            style = discord.ButtonStyle.primary
+            emoji = "⚡"
+        elif "strength" in item_effect.lower() or "power" in item_effect.lower():
+            style = discord.ButtonStyle.danger
+            emoji = "💪"
+        elif "defense" in item_effect.lower() or "shield" in item_effect.lower():
+            style = discord.ButtonStyle.secondary
+            emoji = "🛡️"
+        else:
+            style = discord.ButtonStyle.primary
+            emoji = "🔮"
             
         super().__init__(
-            style=discord.ButtonStyle.success,
+            style=style,
             label=display_name,
-            emoji="🧪" if "heal" in item_effect.lower() else "⚡",
+            emoji=emoji,
             row=row,
             disabled=False
         )
