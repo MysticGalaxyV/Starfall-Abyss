@@ -28,6 +28,7 @@ from encyclopedia import encyclopedia_command, browser_command, codex_command, E
 from skill_tree import skill_tree_command, skills_tree_command
 from trading_system import trade_command, t_command, slash_trade
 from leaderboard import leaderboard_command
+from level_validation import validate_player_level, auto_correct_player_level
 
 # Bot setup
 # NOTE: This bot requires "Message Content Intent" and "Server Members Intent" to be enabled
@@ -91,6 +92,14 @@ async def on_ready():
     print(f'Logged in as {bot.user.name} ({bot.user.id})')
     print('------')
 
+    # Validate all player levels to ensure they match their XP
+    from level_validation import validate_all_players
+    corrections = validate_all_players(data_manager)
+    if corrections:
+        print(f"Corrected level inconsistencies for {len(corrections)} players:")
+        for user_id, (old_level, new_level) in corrections.items():
+            print(f"Player {user_id}: Level {old_level} → {new_level}")
+    
     # Sync slash commands with Discord
     try:
         synced = await bot.tree.sync()
@@ -1071,6 +1080,78 @@ async def leaderboard_cmd(ctx, category: str = "level"):
 async def rankings_cmd(ctx, category: str = "level"):
     """View the top players leaderboard (alias)"""
     await leaderboard_command(ctx, data_manager, category)
+    
+@bot.command(name="checkxp")
+async def checkxp_cmd(ctx):
+    """Check if your level is correct based on your XP"""
+    player = data_manager.get_player(ctx.author.id)
+    
+    if not player.class_name:
+        await ctx.send("❌ You need to start your adventure first with `!start`")
+        return
+    
+    old_level = player.class_level
+    old_xp = player.class_exp
+    
+    # Check if player's level is correct
+    was_corrected, old_level, new_level = validate_player_level(player)
+    
+    if was_corrected:
+        # Level was corrected
+        data_manager.save_data()
+        
+        embed = discord.Embed(
+            title="✅ Level Correction Applied",
+            description=f"Your level has been adjusted to match your XP.",
+            color=discord.Color.green()
+        )
+        
+        embed.add_field(
+            name="Previous Level",
+            value=f"Level: {old_level}\nXP: {old_xp}",
+            inline=True
+        )
+        
+        embed.add_field(
+            name="Corrected Level",
+            value=f"Level: {new_level}\nXP: {player.class_exp}",
+            inline=True
+        )
+        
+        # Add explanation
+        difference = new_level - old_level
+        if difference > 0:
+            embed.add_field(
+                name="What Happened?",
+                value=f"You gained {difference} level(s)! Your XP was higher than expected for your previous level.",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="What Happened?",
+                value=f"Your level was adjusted by {difference}. Your XP was lower than required for your previous level.",
+                inline=False
+            )
+        
+        await ctx.send(embed=embed)
+    else:
+        # Level is already correct
+        embed = discord.Embed(
+            title="✓ Level Check Complete",
+            description=f"Your level is correct based on your XP!",
+            color=discord.Color.blue()
+        )
+        
+        xp_needed = player.calculate_xp_for_level(player.class_level)
+        progress = int((player.class_exp / xp_needed) * 100) if xp_needed > 0 else 100
+        
+        embed.add_field(
+            name="Current Status",
+            value=f"Level: {player.class_level}\nXP: {player.class_exp}/{xp_needed}\nProgress to next level: {progress}%",
+            inline=False
+        )
+        
+        await ctx.send(embed=embed)
 
 
 @bot.command(name="levels")
