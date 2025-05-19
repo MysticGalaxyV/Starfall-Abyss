@@ -635,7 +635,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         player_data.wins += 1
         
         # Regenerate health and energy after battle victory - full regeneration
-        player_data.regenerate_health_and_energy(data_manager.class_data, 1.0)  # 100% regeneration
+        from utils import GAME_CLASSES
+        player_data.regenerate_health_and_energy(GAME_CLASSES, 1.0)  # 100% regeneration
         
         # Save data again with rewards and regenerated stats
         data_manager.save_data()
