@@ -104,16 +104,20 @@ async def on_ready():
             channel for channel in guild.text_channels
             if channel.permissions_for(guild.me).send_messages
         ]
-
-        # Create the domain expansion embed with your exact text
-        domain_embed = discord.Embed(
-            title="DOMAIN EXPANSION",
-            description=("```\nReality is obsolete.\n"
-                         "The code of the soul, rewritten.\n"
-                         "Welcome to my world—\n"
-                         "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
-            color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
-
+        
+        if text_channels:
+            channel = text_channels[0]
+            
+            # Create the domain expansion embed with your exact text
+            domain_embed = discord.Embed(
+                title="DOMAIN EXPANSION",
+                description=("```\nReality is obsolete.\n"
+                             "The code of the soul, rewritten.\n"
+                             "Welcome to my world—\n"
+                             "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
+                color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
+            )
+            
             # Add the character image with built-in domain expansion text
             domain_embed.set_image(url="attachment://domain_expansion.png")
             # No footer to keep the message clean and simple
