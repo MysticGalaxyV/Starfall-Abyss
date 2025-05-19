@@ -2013,11 +2013,18 @@ class GuildTeamDungeonView(View):
     
     async def update_member_display_names(self, interaction):
         """Update member IDs with display names in the view"""
-        # Handle both Context and Interaction objects
+        # Handle different types of context objects
         if hasattr(interaction, 'bot'):
             bot = interaction.bot  # For Context objects
-        else:
+        elif hasattr(interaction, 'client'):
             bot = interaction.client  # For Interaction objects
+        else:
+            # Fallback if neither attribute is available
+            bot = interaction.guild.me._state.client if hasattr(interaction, 'guild') and interaction.guild else None
+            
+        # If we still don't have a bot reference, return early
+        if not bot:
+            return
             
         member_select = discord.utils.get(self.children, custom_id="member_select")
         

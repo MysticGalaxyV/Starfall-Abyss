@@ -149,9 +149,15 @@ class BattleMoveButton(Button):
 
 class ItemButton(Button):
     def __init__(self, item_name: str, item_effect: str, row: int = 0):
+        # Truncate the item name if it's too long for a button
+        display_name = item_name
+        if len(display_name) > 20:
+            display_name = display_name[:17] + "..."
+            
         super().__init__(
             style=discord.ButtonStyle.success,
-            label=item_name,
+            label=display_name,
+            emoji="🧪" if "heal" in item_effect.lower() else "⚡",
             row=row,
             disabled=False
         )
@@ -184,27 +190,55 @@ class BattleView(View):
         self.clear_items()
         
         # Add move buttons
-        for i, move in enumerate(self.player.moves):
+        # Organize them in 2 rows (up to 5 per row) if needed
+        row_index = 0
+        
+        # Sort moves by energy cost
+        sorted_moves = sorted(self.player.moves, key=lambda m: m.energy_cost)
+        
+        for i, move in enumerate(sorted_moves):
             # Check if player has enough energy for the move
             disabled = self.player.current_energy < move.energy_cost
-            button = BattleMoveButton(move, row=0)
+            
+            # Place buttons in proper rows (max 5 per row)
+            if i >= 5:
+                row_index = 1
+            
+            button = BattleMoveButton(move, row=row_index)
             button.disabled = disabled
             self.add_item(button)
-            
+        
+        # Find the row for items (should be below moves)
+        item_row = min(2, row_index + 1)
+        
         # Enhanced check for usable items (potions)
         if self.player.is_player and self.player.player_data:
             player_data = self.player.player_data
             
-            # Use the improved potion detection function from enhancements
-            from battle_system_enhancements import find_potions_in_inventory
-            potion_items = find_potions_in_inventory(player_data)
-            
-            # Convert to the format expected by the button creation code
-            potions = [(potion['name'], potion['effect']) for potion in potion_items]
-            
-            # Add potion buttons (up to 5) - increased from 3 to improve visibility
-            for i, (potion_name, effect) in enumerate(potions[:5]):
-                self.add_item(ItemButton(potion_name, effect, row=1))
+            try:
+                # Use the improved potion detection function from enhancements
+                from battle_system_enhancements import find_potions_in_inventory
+                potion_items = find_potions_in_inventory(player_data)
+                
+                # If we have potions, add a section divider text
+                if potion_items:
+                    # Convert to the format expected by the button creation code
+                    potions = [(potion['name'], potion['effect']) for potion in potion_items]
+                    
+                    # Group similar potions to avoid duplicate buttons
+                    unique_potions = {}
+                    for name, effect in potions:
+                        key = name.lower()
+                        if key not in unique_potions:
+                            unique_potions[key] = (name, effect)
+                    
+                    # Add potion buttons (up to 5) in item row
+                    for i, (potion_name, effect) in enumerate(list(unique_potions.values())[:5]):
+                        self.add_item(ItemButton(potion_name, effect, row=item_row))
+            except Exception as e:
+                # Log the error but don't crash if potion loading fails
+                print(f"Error loading potions in battle: {e}")
+                # Continue without potions
             
     async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
         # Apply the player's move
@@ -293,84 +327,199 @@ class BattleView(View):
     
     async def on_item_selected(self, interaction: discord.Interaction, item_name: str, item_effect: str):
         # Process item use
-        player_data = self.player.player_data
-        
-        # Find the actual item in inventory
-        used_item = None
-        used_inv_item = None
-        for inv_item in player_data.inventory:
-            if inv_item.item.name == item_name:
-                used_item = inv_item.item
-                used_inv_item = inv_item
-                break
-        
-        if not used_item:
-            await interaction.response.edit_message(
-                content=f"❌ Item {item_name} not found in inventory!",
-                view=self
-            )
-            return
-        
-        # Apply item effect
-        effect_message = ""
-        if item_effect == "healing":
-            # Healing potions restore a percentage of max HP
-            heal_amount = int(self.player.stats["hp"] * 0.3)  # 30% of max HP
-            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
-            effect_message = f"🧪 Used {item_name} to restore {heal_amount} HP!"
-        elif item_effect == "energy":
-            # Energy potions restore a percentage of max energy
-            energy_amount = int(self.player.max_energy * 0.4)  # 40% of max energy
-            self.player.current_energy = min(self.player.max_energy, self.player.current_energy + energy_amount)
-            effect_message = f"⚡ Used {item_name} to restore {energy_amount} energy!"
-        
-        # Remove one of the item from inventory
-        if used_inv_item.quantity > 1:
-            used_inv_item.quantity -= 1
-        else:
-            player_data.inventory.remove(used_inv_item)
-        
-        # Update the view with the results
-        await interaction.response.edit_message(
-            content=effect_message,
-            view=self
-        )
-        
-        # Enemy turn after item use
-        await asyncio.sleep(1)
-        
-        # Choose enemy move
-        available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
-        if not available_moves:
-            self.enemy.current_energy = min(self.enemy.max_energy, 
-                                           self.enemy.current_energy + 30)
-            await interaction.edit_original_response(
-                content=f"{effect_message}\n"
-                       f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
-                view=self
-            )
-        else:
-            enemy_move = random.choice(available_moves)
-            enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
-            
-            await interaction.edit_original_response(
-                content=f"{effect_message}\n"
-                       f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
-                view=self
-            )
-            
-            if not self.player.is_alive():
-                self.stop()
-                await asyncio.sleep(1)
-                await interaction.edit_original_response(
-                    content=f"💀 Defeat! You were defeated by {self.enemy.name}!",
-                    view=None
+        try:
+            player_data = self.player.player_data
+            if not player_data:
+                await interaction.response.edit_message(
+                    content=f"❌ Error: Player data not available!",
+                    view=self
                 )
                 return
-        
-        # Update status effects and buttons
-        player_status_msg = self.player.update_status_effects()
-        enemy_status_msg = self.enemy.update_status_effects()
+            
+            # Find the actual item in inventory
+            used_item = None
+            used_inv_item = None
+            
+            try:
+                for inv_item in player_data.inventory:
+                    if inv_item.item.name == item_name:
+                        used_item = inv_item.item
+                        used_inv_item = inv_item
+                        break
+            except Exception as e:
+                print(f"Error finding item in inventory: {e}")
+                # Try to continue with item effect even if inventory search fails
+            
+            if not used_item:
+                try:
+                    await interaction.response.edit_message(
+                        content=f"❌ Item {item_name} not found in inventory!",
+                        view=self
+                    )
+                except:
+                    try:
+                        await interaction.followup.send(
+                            content=f"❌ Item {item_name} not found in inventory!",
+                            ephemeral=True
+                        )
+                    except:
+                        pass
+                return
+            
+            # Apply item effect
+            effect_message = ""
+            if item_effect == "healing":
+                # Healing potions restore a percentage of max HP
+                heal_amount = int(self.player.stats["hp"] * 0.3)  # 30% of max HP
+                old_hp = self.player.current_hp
+                self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
+                actual_heal = self.player.current_hp - old_hp
+                effect_message = f"🧪 Used {item_name} to restore {actual_heal} HP!"
+            elif item_effect == "energy":
+                # Energy potions restore a percentage of max energy
+                energy_amount = int(self.player.max_energy * 0.4)  # 40% of max energy
+                old_energy = self.player.current_energy
+                self.player.current_energy = min(self.player.max_energy, self.player.current_energy + energy_amount)
+                actual_energy = self.player.current_energy - old_energy
+                effect_message = f"⚡ Used {item_name} to restore {actual_energy} energy!"
+            
+            # Remove one of the item from inventory
+            try:
+                if used_inv_item.quantity > 1:
+                    used_inv_item.quantity -= 1
+                else:
+                    player_data.inventory.remove(used_inv_item)
+                    
+                # Make sure to save the player data change
+                from data_models import data_manager
+                data_manager.save_data()
+            except Exception as e:
+                print(f"Error updating inventory after item use: {e}")
+                # Continue with battle logic even if inventory update fails
+            
+            # Update the buttons to reflect new energy values
+            self.update_buttons()
+            
+            # Update the view with the results
+            try:
+                await interaction.response.edit_message(
+                    content=effect_message,
+                    view=self
+                )
+            except Exception as e:
+                print(f"Error updating message after item use: {e}")
+                try:
+                    # Fallback to follow-up message if edit fails
+                    await interaction.followup.send(
+                        content=effect_message,
+                        view=self
+                    )
+                except:
+                    pass
+            
+            # Enemy turn after item use
+            await asyncio.sleep(1)
+            
+            # Choose enemy move
+            available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
+            if not available_moves:
+                # Enemy has no available moves, regain energy
+                self.enemy.current_energy = min(self.enemy.max_energy, 
+                                               self.enemy.current_energy + 30)
+                
+                # Create battle status text
+                battle_stats = (
+                    f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+                    f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
+                    f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
+                    f"Energy: {self.enemy.current_energy}/{self.enemy.max_energy} ⚡"
+                )
+                
+                try:
+                    await interaction.edit_original_response(
+                        content=f"{effect_message}\n"
+                               f"🔄 {self.enemy.name} is exhausted and regains 30 energy!\n\n"
+                               f"{battle_stats}",
+                        view=self
+                    )
+                except Exception as e:
+                    print(f"Error updating message after enemy energy regen: {e}")
+                    # Continue without updating the message
+            else:
+                # Enemy has moves available, pick one randomly
+                enemy_move = random.choice(available_moves)
+                enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
+                
+                # Create battle status text
+                battle_stats = (
+                    f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+                    f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
+                    f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
+                    f"Energy: {self.enemy.current_energy}/{self.enemy.max_energy} ⚡"
+                )
+                
+                # Check if player is still alive
+                if not self.player.is_alive():
+                    # Player was defeated
+                    self.stop()
+                    
+                    # Make sure to update player's battle energy before ending
+                    if self.player.player_data:
+                        from battle_system_enhancements import update_player_energy_after_battle
+                        update_player_energy_after_battle(self.player.player_data, self.player)
+                        
+                        # Save the updated values
+                        from data_models import data_manager
+                        data_manager.save_data()
+                    
+                    try:
+                        await interaction.edit_original_response(
+                            content=f"{effect_message}\n"
+                                   f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}\n"
+                                   f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                            view=None
+                        )
+                    except Exception as e:
+                        print(f"Error updating message after player defeat: {e}")
+                        # Try fallback message
+                        try:
+                            await interaction.followup.send(
+                                content=f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                                view=None
+                            )
+                        except:
+                            pass
+                else:
+                    # Player survived, update battle view
+                    try:
+                        await interaction.edit_original_response(
+                            content=f"{effect_message}\n"
+                                   f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}\n\n"
+                                   f"{battle_stats}",
+                            view=self
+                        )
+                    except Exception as e:
+                        print(f"Error updating message after enemy turn: {e}")
+                        # Try fallback message
+                        try:
+                            await interaction.followup.send(
+                                content=f"⚔️ {self.enemy.name} attacked for {enemy_damage} damage!\n\n{battle_stats}",
+                                view=self
+                            )
+                        except:
+                            pass
+                    
+                    # Update buttons for next turn
+                    self.update_buttons()
+        except Exception as e:
+            print(f"Error in on_item_selected: {e}")
+            try:
+                await interaction.followup.send(
+                    content="An error occurred during battle. Please try again.",
+                    ephemeral=True
+                )
+            except:
+                pass
         self.update_buttons()
         
         # Show battle status with dynamic maximum energy

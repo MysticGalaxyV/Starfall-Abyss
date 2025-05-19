@@ -444,6 +444,120 @@ async def daily_command(ctx):
     await ctx.send(embed=embed)
 
 
+@bot.command(name="use", aliases=["u"])
+async def use_item_command(ctx, *, item_name: str = None):
+    """Use an item from your inventory, like potions or energy boosters"""
+    player = data_manager.get_player(ctx.author.id)
+    
+    if not item_name:
+        # Show usable items if no item specified
+        usable_items = []
+        for inv_item in player.inventory:
+            if "potion" in inv_item.item.name.lower() or "energy" in inv_item.item.name.lower():
+                usable_items.append(inv_item)
+        
+        if not usable_items:
+            await ctx.send("You don't have any usable items in your inventory.")
+            return
+            
+        embed = discord.Embed(
+            title="Usable Items in Inventory",
+            description="Use `!use [item name]` to use an item",
+            color=discord.Color.blue()
+        )
+        
+        for inv_item in usable_items:
+            embed.add_field(
+                name=f"{inv_item.item.name} (x{inv_item.quantity})",
+                value=inv_item.item.description,
+                inline=False
+            )
+            
+        await ctx.send(embed=embed)
+        return
+    
+    # Find the item in the player's inventory
+    item_found = None
+    for inv_item in player.inventory:
+        if item_name.lower() in inv_item.item.name.lower():
+            item_found = inv_item
+            break
+            
+    if not item_found:
+        await ctx.send(f"You don't have an item named '{item_name}' in your inventory.")
+        return
+        
+    # Check if item is usable
+    item = item_found.item
+    is_potion = "potion" in item.name.lower()
+    is_energy = "energy" in item.name.lower()
+    
+    if not (is_potion or is_energy):
+        await ctx.send(f"You can't use {item.name} directly. Try equipping it instead.")
+        return
+        
+    # Apply item effects
+    effect_description = ""
+    success = False
+    
+    if is_potion and "health" in item.name.lower():
+        # Health potion - restore HP in battle or do nothing outside battle
+        effect_description = "This potion restores health during battles."
+        await ctx.send(f"✅ {item.name} will be available in your next battle.")
+        success = True
+        
+    elif is_energy and "battle" in item.name.lower():
+        # Battle energy potion - restore battle energy
+        energy_restore = 50  # Default value
+        for key, value in item.stats.items():
+            if "energy" in key.lower():
+                energy_restore = value
+                break
+                
+        # Apply energy restoration
+        old_energy = player.battle_energy
+        max_energy = player.get_max_battle_energy()
+        player.battle_energy = min(max_energy, player.battle_energy + energy_restore)
+        actual_restored = player.battle_energy - old_energy
+        
+        effect_description = f"Restored {actual_restored} battle energy! ({player.battle_energy}/{max_energy})"
+        success = True
+        
+    elif is_potion and "cursed" in item.name.lower():
+        # Cursed energy potion - add cursed energy (currency)
+        energy_boost = 500  # Default value
+        for key, value in item.stats.items():
+            if "cursed" in key.lower() or "currency" in key.lower():
+                energy_boost = value
+                break
+                
+        # Apply currency boost
+        player.add_cursed_energy(energy_boost)
+        effect_description = f"Added {energy_boost} cursed energy (currency)! (Now have {player.cursed_energy})"
+        success = True
+        
+    else:
+        await ctx.send(f"This item cannot be used directly. Try using it in battle.")
+        return
+        
+    # If successfully used, remove from inventory
+    if success:
+        item_found.quantity -= 1
+        if item_found.quantity <= 0:
+            player.inventory.remove(item_found)
+            
+        # Save player data
+        data_manager.save_data()
+        
+        # Send success message
+        embed = discord.Embed(
+            title=f"Used {item.name}",
+            description=effect_description,
+            color=discord.Color.green()
+        )
+        await ctx.send(embed=embed)
+
+
 @bot.command(name="battle", aliases=["b"])
 async def battle_command(ctx, enemy_name: str = None, enemy_level: int = None):
     """Battle an enemy or another player. Mention a user to start PvP"""
@@ -1097,6 +1211,14 @@ async def slash_skill_tree(interaction: discord.Interaction):
 async def slash_change_class(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await class_change_command(ctx, data_manager)
+
+
+@bot.tree.command(name="use", description="Use an item from your inventory")
+@app_commands.describe(item_name="Name of the item to use (e.g., 'health potion')")
+async def slash_use_item(interaction: discord.Interaction, item_name: str = None):
+    await interaction.response.defer()
+    ctx = await bot.get_context(interaction)
+    await use_item_command(ctx, item_name=item_name)
 
 
 @bot.tree.command(name="special_items",

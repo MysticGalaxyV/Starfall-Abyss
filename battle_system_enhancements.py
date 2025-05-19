@@ -84,14 +84,28 @@ def find_potions_in_inventory(player_data: PlayerData):
         return potions
     
     for inv_item in player_data.inventory:
+        if not inv_item or not hasattr(inv_item, "item"):
+            continue
+            
         item = inv_item.item
-        # Check if it's a potion (potions typically have health or energy restore effects)
-        if (item.item_type.lower() == "potion" or 
-            "potion" in item.name.lower() or 
-            "elixir" in item.name.lower()):
+        # Check if it's a potion or usable item (health or energy effects)
+        if (hasattr(item, "item_type") and item.item_type and item.item_type.lower() == "potion" or 
+            hasattr(item, "name") and ("potion" in item.name.lower() or "elixir" in item.name.lower())):
+            
+            # Default to "energy" effect if we can't determine the type
+            effect_type = "energy"
+            
+            # Try to determine the effect type from description
+            if hasattr(item, "description") and item.description:
+                if "heal" in item.description.lower() or "health" in item.description.lower():
+                    effect_type = "healing"
+                elif "energy" in item.description.lower():
+                    effect_type = "energy"
+            
+            # Add the potion to our list
             potions.append({
-                "name": item.name,
-                "effect": "healing" if "heal" in item.description.lower() else "energy",
+                "name": item.name if hasattr(item, "name") else "Potion",
+                "effect": effect_type,
                 "item": item,
                 "inventory_item": inv_item
             })
