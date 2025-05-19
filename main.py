@@ -97,6 +97,61 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
+    # Send domain expansion startup scene to the first available text channel
+    for guild in bot.guilds:
+        # Find a suitable text channel
+        text_channels = [channel for channel in guild.text_channels 
+                        if channel.permissions_for(guild.me).send_messages]
+        
+        if text_channels:
+            channel = text_channels[0]
+            # Create the domain expansion embed
+            domain_embed = discord.Embed(
+                title="DOMAIN EXPANSION: STARFALL ABYSS", 
+                description=(
+                    "```\nReality is obsolete.\n"
+                    "The code of the soul, rewritten.\n"
+                    "Welcome to my world—\n"
+                    "DOMAIN EXPANSION: STARFALL ABYSS\n```"
+                ),
+                color=discord.Color.purple()
+            )
+            
+            # Add the character image
+            domain_embed.set_image(url="attachment://domain_expansion.png")
+            domain_embed.set_footer(text="Now it is my turn...")
+            
+            # Send the message with the image
+            try:
+                # Try to find the image in various possible locations
+                image_paths = [
+                    "attached_assets/40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png",
+                    "./attached_assets/40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png",
+                    "40889d62-e264-4b8b-8aca-f7680d358ac3_1747667537789.png"
+                ]
+                
+                file = None
+                for path in image_paths:
+                    try:
+                        if os.path.exists(path):
+                            file = discord.File(path, filename="domain_expansion.png")
+                            break
+                    except:
+                        continue
+                        
+                # If we couldn't find the specific image, use the bot's avatar as fallback
+                if file is None:
+                    domain_embed.set_image(url=bot.user.display_avatar.url)
+                    await channel.send("**The bot has awakened...**", embed=domain_embed)
+                else:
+                    await channel.send("**The bot has awakened...**", embed=domain_embed, file=file)
+                print(f"Domain expansion scene sent to {channel.name} in {guild.name}")
+            except Exception as e:
+                print(f"Error sending domain expansion: {str(e)}")
+            
+            # Only send to one guild to avoid spam
+            break
+    
     # Set status showing all three command methods
     await bot.change_presence(activity=discord.Game(
         name=f"{GAME_NAME} | !help, @{bot.user.name} help, or /help"))
