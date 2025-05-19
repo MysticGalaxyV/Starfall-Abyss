@@ -320,12 +320,16 @@ class PlayerData:
     def xp_to_next_level(self) -> int:
         """Calculate XP needed for the next level."""
         # Base XP requirement that increases with level
-        base_xp = 100
-        level_multiplier = 1.5  # Exponential growth factor
+        base_xp = 80  # Reduced from 100
+        level_multiplier = 1.3  # Reduced from 1.5 to flatten the curve
         
-        # Calculate XP needed for next level
+        # Calculate XP needed for next level with a more gradual scaling
         next_level_xp = int(base_xp * (self.level ** level_multiplier))
-        return next_level_xp
+        
+        # Apply a cap to prevent extreme XP requirements at high levels
+        max_xp_cap = 25000  # Maximum XP required for any level
+        
+        return min(next_level_xp, max_xp_cap)
         
     def remove_battle_energy(self, amount: int) -> bool:
         """Remove battle energy if available. Returns True if successful."""
@@ -346,17 +350,22 @@ class PlayerData:
         if self.class_level >= MAX_LEVEL:
             return False
 
-        # Calculate the required XP for the current level
+        # Calculate the required XP for the current level with improved formula
         while self.class_level < MAX_LEVEL:
-            xp_needed = int(100 * (self.class_level**1.5))
+            # Using the same formula as xp_to_next_level for consistency
+            base_xp = 80
+            level_multiplier = 1.3
+            xp_needed = int(base_xp * (self.class_level ** level_multiplier))
+            xp_needed = min(xp_needed, 25000)  # Apply the same cap as in xp_to_next_level
+            
             if self.class_exp < xp_needed:
                 break
 
             self.class_exp -= xp_needed
             self.class_level += 1
-            self.skill_points += 2
-            self.max_cursed_energy += 50  # Increase max gold with each level
-            self.cursed_energy = min(self.cursed_energy + 50, self.max_cursed_energy)  # Cap gold at max
+            self.skill_points += 3  # Increased from 2 to 3 to accelerate skill progression
+            self.max_cursed_energy += 100  # Increased gold bonus per level
+            self.cursed_energy = min(self.cursed_energy + 100, self.max_cursed_energy)  # More gold on level up
             
             # Increase max battle energy on level up
             battle_energy_increase = 5 + (self.class_level // 10)  # More energy gain at higher levels

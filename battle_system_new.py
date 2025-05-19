@@ -191,23 +191,19 @@ class BattleView(View):
             button.disabled = disabled
             self.add_item(button)
             
-        # Check for usable items (potions)
+        # Enhanced check for usable items (potions)
         if self.player.is_player and self.player.player_data:
             player_data = self.player.player_data
             
-            # Look for potions in inventory
-            potions = []
-            for inv_item in player_data.inventory:
-                item = inv_item.item
-                # Check if it's a potion (potions typically have healing or energy restore effects)
-                if (item.item_type.lower() == "potion" or 
-                    "potion" in item.name.lower() or 
-                    "elixir" in item.name.lower()):
-                    effect = "healing" if "heal" in item.description.lower() else "energy"
-                    potions.append((item.name, effect))
+            # Use the improved potion detection function from enhancements
+            from battle_system_enhancements import find_potions_in_inventory
+            potion_items = find_potions_in_inventory(player_data)
             
-            # Add potion buttons (up to 3)
-            for i, (potion_name, effect) in enumerate(potions[:3]):
+            # Convert to the format expected by the button creation code
+            potions = [(potion['name'], potion['effect']) for potion in potion_items]
+            
+            # Add potion buttons (up to 5) - increased from 3 to improve visibility
+            for i, (potion_name, effect) in enumerate(potions[:5]):
                 self.add_item(ItemButton(potion_name, effect, row=1))
             
     async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
@@ -394,8 +390,9 @@ class BattleView(View):
 
 async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_level: int, data_manager: DataManager):
     """Start a battle between the player and an enemy"""
-    # Get player class
-    class_data = data_manager.class_data
+    # Get player class data from utils instead of data_manager
+    from utils import GAME_CLASSES
+    class_data = GAME_CLASSES
     player_class = class_data.get(player_data.class_name, {"name": "Unknown", "base_stats": {}})
     
     # Generate player stats
@@ -403,11 +400,14 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
     
     # Generate player battle moves from skills
     player_moves = []
-    for skill_id, skill_data in data_manager.skills.items():
+    from utils import GAME_SKILLS
+    
+    # Use skills from utils instead of data_manager
+    for skill_id, skill_data in GAME_SKILLS.items():
         if skill_data["class"] == player_data.class_name or skill_data.get("universal", False):
             if player_data.class_level >= skill_data["level_req"]:
                 # Check if the skill is on cooldown
-                if skill_id in player_data.skill_cooldowns:
+                if hasattr(player_data, "skill_cooldowns") and skill_id in player_data.skill_cooldowns:
                     cooldown_end = player_data.skill_cooldowns[skill_id]
                     if cooldown_end > datetime.datetime.now().isoformat():
                         continue  # Skip this skill, it's on cooldown
@@ -493,16 +493,17 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         await ctx.send(embed=rewards_embed)
         
         # Update quest progress (daily wins)
-        if hasattr(data_manager, 'quest_manager'):
-            completed_quests = data_manager.quest_manager.update_quest_progress(player_data, "daily_wins")
-            for quest in completed_quests:
-                quest_embed = discord.Embed(
-                    title="✅ Quest Completed!",
-                    description=f"**{quest['name']}**\n{quest['description']}",
-                    color=0xFFD700
-                )
-                quest_embed.add_field(name="Rewards", value=f"XP: {quest['rewards'].get('xp', 0)}\nCursed Energy: {quest['rewards'].get('cursed_energy', 0)}")
-                await ctx.send(embed=quest_embed)
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        completed_quests = quest_manager.update_quest_progress(player_data, "daily_wins")
+        for quest in completed_quests:
+            quest_embed = discord.Embed(
+                title="✅ Quest Completed!",
+                description=f"**{quest['name']}**\n{quest['description']}",
+                color=0xFFD700
+            )
+            quest_embed.add_field(name="Rewards", value=f"XP: {quest['rewards'].get('xp', 0)}\nCursed Energy: {quest['rewards'].get('cursed_energy', 0)}")
+            await ctx.send(embed=quest_embed)
     
     elif not player_entity.is_alive():
         # Update loss count
@@ -587,22 +588,26 @@ def generate_enemy_moves(enemy_name: str) -> List[BattleMove]:
 
 def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     """Calculate experience reward based on enemy and player levels"""
-    base_exp = 10 + (enemy_level * 5)
+    # Increased base XP reward to accelerate progression
+    base_exp = 25 + (enemy_level * 12)
     
-    # Reduce XP if player is higher level than the enemy
+    # Reduce XP if player is higher level than the enemy (less penalty)
     if player_level > enemy_level:
         level_diff = player_level - enemy_level
-        exp_reduction = 0.1 * level_diff  # 10% reduction per level difference
-        exp_reduction = min(0.9, exp_reduction)  # Cap at 90% reduction
+        exp_reduction = 0.08 * level_diff  # 8% reduction per level difference (reduced penalty)
+        exp_reduction = min(0.8, exp_reduction)  # Cap at 80% reduction (improved from 90%)
         base_exp *= (1.0 - exp_reduction)
     
-    # Bonus XP if player is lower level than the enemy
+    # Bonus XP if player is lower level than the enemy (increased bonus)
     elif player_level < enemy_level:
         level_diff = enemy_level - player_level
-        exp_bonus = 0.2 * level_diff  # 20% bonus per level difference
+        exp_bonus = 0.3 * level_diff  # 30% bonus per level difference (increased bonus)
         base_exp *= (1.0 + exp_bonus)
     
-    return max(1, int(base_exp))
+    # Apply progression boost multiplier
+    progression_boost = 1.5  # 50% overall boost to experience gain
+    
+    return max(1, int(base_exp * progression_boost))
 
 def calculate_gold_reward(enemy_level: int) -> int:
     """Calculate cursed energy reward based on enemy level"""
@@ -610,12 +615,16 @@ def calculate_gold_reward(enemy_level: int) -> int:
 
 def calculate_cursed_energy_reward(enemy_level: int) -> int:
     """Calculate cursed energy reward based on enemy level"""
-    base_reward = 5 + (enemy_level * 3)
+    # Significantly increased base reward to accelerate progression
+    base_reward = 15 + (enemy_level * 8)
     
     # Add some randomness
-    variance = random.uniform(0.8, 1.2)
+    variance = random.uniform(0.9, 1.3)  # Improved random range for better rewards
     
-    return max(1, int(base_reward * variance))
+    # Apply progression boost multiplier
+    progression_boost = 1.4  # 40% overall boost to currency gain
+    
+    return max(1, int(base_reward * variance * progression_boost))
 
 async def start_pvp_battle(ctx, target_member, player_data, target_data, data_manager):
     """Start a PvP battle between two players"""

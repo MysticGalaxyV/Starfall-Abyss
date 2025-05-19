@@ -1234,8 +1234,8 @@ class AdvancedShopView(View):
                         from equipment import add_item_to_inventory
                         add_item_to_inventory(self.player_data, new_item)
                         
-                        # Deduct gold
-                        self.player_data.gold -= item_data["value"]
+                        # Deduct cursed energy (currency)
+                        self.player_data.cursed_energy -= item_data["value"]
                         
                         # Save data
                         self.data_manager.save_data()
@@ -1257,8 +1257,8 @@ class AdvancedShopView(View):
                         from equipment import add_item_to_inventory
                         add_item_to_inventory(self.player_data, new_item)
                         
-                        # Deduct gold
-                        self.player_data.gold -= item_data["value"]
+                        # Deduct cursed energy (currency)
+                        self.player_data.cursed_energy -= item_data["value"]
                         
                         # Save data
                         self.data_manager.save_data()

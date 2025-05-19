@@ -24,7 +24,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.0, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
+            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
         }
     },
     "Defensive Stance": {
@@ -41,7 +41,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
+            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
         }
     },
     "Agility Course": {
@@ -58,7 +58,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "time_window": 0.8, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
+            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
         }
     },
     "Cursed Energy Control": {
@@ -75,7 +75,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
+            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
         }
     },
     "Tactical Analysis": {
@@ -92,7 +92,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "questions": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
+            "perfect_score": {"cursed_energy": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
         }
     },
     "Energy Cultivation": {
@@ -109,7 +109,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 3, "energy_gain": 15}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
+            "perfect_score": {"cursed_energy": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
         }
     },
     "Shadow Technique": {
@@ -126,7 +126,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 8, "attribute_gain": 4}
         ],
         "special_rewards": {
-            "perfect_score": {"gold": 150, "effect": {"name": "Shadow Form", "duration": 2, "boost_type": "special_damage", "boost_amount": 25}}
+            "perfect_score": {"cursed_energy": 150, "effect": {"name": "Shadow Form", "duration": 2, "boost_type": "special_damage", "boost_amount": 25}}
         },
         "unlock_requirements": {
             "class_level": 10

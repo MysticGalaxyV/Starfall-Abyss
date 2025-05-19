@@ -136,6 +136,152 @@ ADVANCED_CLASSES = {
 # Merge starter and advanced classes for easy access
 GAME_CLASSES = {**STARTER_CLASSES, **ADVANCED_CLASSES}
 
+# Game skills and abilities
+GAME_SKILLS = {
+    "basic_attack": {
+        "name": "Basic Attack",
+        "description": "A simple attack with minimal energy cost",
+        "damage_multiplier": 1.0,
+        "energy_cost": 5,
+        "level_req": 1,
+        "cooldown": 0,
+        "class": None,
+        "universal": True
+    },
+    "power_strike": {
+        "name": "Power Strike",
+        "description": "A powerful strike with increased damage",
+        "damage_multiplier": 1.5,
+        "energy_cost": 10,
+        "level_req": 2,
+        "cooldown": 0,
+        "class": "Spirit Striker"
+    },
+    "barrier_pulse": {
+        "name": "Barrier Pulse",
+        "description": "Create a defensive barrier that reduces incoming damage",
+        "damage_multiplier": 0.8,
+        "energy_cost": 10,
+        "level_req": 2,
+        "cooldown": 2,
+        "effect": "defense_boost",
+        "class": "Domain Tactician"
+    },
+    "shadowstep": {
+        "name": "Shadowstep",
+        "description": "Quick strike with a chance to dodge the next attack",
+        "damage_multiplier": 1.2,
+        "energy_cost": 10,
+        "level_req": 2,
+        "cooldown": 1,
+        "effect": "dodge_next",
+        "class": "Flash Rogue"
+    },
+    "cursed_combo": {
+        "name": "Cursed Combo",
+        "description": "A series of cursed energy infused strikes",
+        "damage_multiplier": 1.8,
+        "energy_cost": 15,
+        "level_req": 5,
+        "cooldown": 1,
+        "class": "Spirit Striker"
+    },
+    "domain_expansion": {
+        "name": "Domain Expansion",
+        "description": "Expand your domain to gain significant defensive power",
+        "damage_multiplier": 1.0,
+        "energy_cost": 20,
+        "level_req": 10,
+        "cooldown": 3,
+        "effect": "major_defense_boost",
+        "class": "Domain Master"
+    },
+    "phantom_rush": {
+        "name": "Phantom Rush",
+        "description": "A lightning-fast series of attacks that's hard to defend against",
+        "damage_multiplier": 2.0,
+        "energy_cost": 18,
+        "level_req": 10,
+        "cooldown": 2,
+        "class": "Shadow Assassin"
+    },
+    "infinity": {
+        "name": "Infinity",
+        "description": "Tap into limitless cursed energy for a devastating attack",
+        "damage_multiplier": 2.5,
+        "energy_cost": 25,
+        "level_req": 20,
+        "cooldown": 4,
+        "class": "Limitless Sorcerer"
+    },
+    "reversed_curse": {
+        "name": "Reversed Curse",
+        "description": "Turn your opponent's energy against them",
+        "damage_multiplier": 1.7,
+        "energy_cost": 15,
+        "level_req": 10,
+        "effect": "energy_drain",
+        "cooldown": 2,
+        "class": "Cursed Specialist"
+    },
+    "arcane_mastery": {
+        "name": "Arcane Mastery",
+        "description": "Channel arcane energy for a powerful magical attack",
+        "damage_multiplier": 2.2,
+        "energy_cost": 20,
+        "level_req": 15,
+        "cooldown": 2,
+        "class": "Archmage"
+    },
+    "heavenly_restriction": {
+        "name": "Heavenly Restriction",
+        "description": "Unlock your full physical potential with this ultimate technique",
+        "damage_multiplier": 3.0,
+        "energy_cost": 30,
+        "level_req": 25,
+        "cooldown": 5,
+        "class": "Spirit Striker"
+    },
+    "black_flash": {
+        "name": "Black Flash",
+        "description": "The pinnacle of cursed energy manipulation",
+        "damage_multiplier": 3.5,
+        "energy_cost": 35,
+        "level_req": 30,
+        "cooldown": 6,
+        "class": None,
+        "universal": True
+    },
+    "hollow_purple": {
+        "name": "Hollow Purple",
+        "description": "The ultimate technique combining opposing forces",
+        "damage_multiplier": 4.0,
+        "energy_cost": 40,
+        "level_req": 40,
+        "cooldown": 8,
+        "class": "Limitless Sorcerer"
+    },
+    "malevolent_shrine": {
+        "name": "Malevolent Shrine",
+        "description": "The most powerful domain expansion technique",
+        "damage_multiplier": 5.0,
+        "energy_cost": 50,
+        "level_req": 50,
+        "cooldown": 10,
+        "class": "Domain Master"
+    },
+    "final_technique": {
+        "name": "Final Technique",
+        "description": "The ultimate attack that consumes all your energy",
+        "damage_multiplier": 10.0,
+        "energy_cost": 100,
+        "level_req": 100,
+        "cooldown": 20,
+        "class": None,
+        "universal": True
+    }
+}
+
 # Enemy encounter pools for different zones
 ENEMY_POOLS = {
     "Forest": [
