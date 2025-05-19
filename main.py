@@ -97,15 +97,26 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
-    # Send domain expansion startup scene to the first available text channel
+    # Send domain expansion startup scene to a specific channel (preferably welcome or general)
     for guild in bot.guilds:
-        # Find a suitable text channel
-        text_channels = [
-            channel for channel in guild.text_channels
-            if channel.permissions_for(guild.me).send_messages
-        ]
+        # Look for ideal channels first (welcome or general)
+        preferred_channels = ["welcome", "general", "chat", "bot-commands", "announcements"]
         
-        if text_channels:
+        for preferred_name in preferred_channels:
+            preferred_channel = discord.utils.get(guild.text_channels, name=preferred_name)
+            if preferred_channel and preferred_channel.permissions_for(guild.me).send_messages:
+                channel = preferred_channel
+                break
+        else:
+            # If no preferred channel found, use any channel with send permissions
+            text_channels = [
+                channel for channel in guild.text_channels
+                if channel.permissions_for(guild.me).send_messages
+            ]
+            
+            if not text_channels:
+                continue  # Skip this guild if no suitable channel found
+                
             channel = text_channels[0]
             
             # Create the domain expansion embed with your exact text
@@ -124,14 +135,10 @@ async def on_ready():
 
             # Send the message with the image
             try:
-                # Try to find the image in various possible locations
+                # Use the new domain expansion image
                 image_paths = [
-                    "saved_images/domain_expansion.png",
-                    "./saved_images/domain_expansion.png",
-                    "attached_assets/image_1747667845943.png",
-                    "./attached_assets/image_1747667845943.png",
-                    "attached_assets/image_1747667845943.png",
-                    "./attached_assets/image_1747667845943.png"
+                    "attached_assets/image_1747675410070.png",
+                    "./attached_assets/image_1747675410070.png"
                 ]
 
                 file = None
