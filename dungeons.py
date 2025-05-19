@@ -200,24 +200,53 @@ DUNGEONS = {
 }
 
 class DungeonProgressView(View):
-    def __init__(self, player_data: PlayerData, dungeon_data: Dict[str, Any], data_manager: DataManager):
+    def __init__(self, player_data: PlayerData, dungeon_data: Dict[str, Any], data_manager: DataManager, dungeon_name: str = None, guild=None, guild_bonus=None, team_player_data=None):
         super().__init__(timeout=180)
-        self.player_data = player_data
+        # Handle both single player and team modes
+        self.is_team_dungeon = team_player_data is not None and len(team_player_data) > 0
+        
+        if self.is_team_dungeon:
+            # Team dungeon mode
+            self.team_player_data = team_player_data  # List of PlayerData objects
+            self.player_data = team_player_data[0]  # Team leader is first player
+        else:
+            # Solo dungeon mode
+            self.team_player_data = [player_data]
+            self.player_data = player_data
+            
         self.dungeon_data = dungeon_data
         self.data_manager = data_manager
         self.current_floor = 0
         self.max_floors = dungeon_data["floors"]
-        self.dungeon_name = dungeon_data["name"]
+        self.dungeon_name = dungeon_name if dungeon_name else dungeon_data.get("name", "Unknown Dungeon")
         self.enemies_defeated = 0
         self.battles_won = True  # Track if player has won all battles
         self.messages = []  # Store message references for cleanup
         
+        # Guild-related data
+        self.guild = guild
+        self.guild_bonus = guild_bonus or {}
+        
         # Track player stats for cumulative damage
         from utils import GAME_CLASSES
-        player_stats = self.player_data.get_stats(GAME_CLASSES)
-        self.player_max_hp = player_stats["hp"]
-        self.player_current_hp = self.player_max_hp
-        self.player_current_energy = self.player_data.cursed_energy
+        
+        # Initialize team stats
+        self.team_max_hp = {}
+        self.team_current_hp = {}
+        self.team_current_energy = {}
+        
+        # Set up stats for all team members
+        for team_member in self.team_player_data:
+            member_id = team_member.user_id
+            member_stats = team_member.get_stats(GAME_CLASSES)
+            self.team_max_hp[member_id] = member_stats["hp"]
+            self.team_current_hp[member_id] = member_stats["hp"]
+            self.team_current_energy[member_id] = team_member.cursed_energy
+        
+        # For compatibility with existing code
+        self.player_max_hp = self.team_max_hp.get(self.player_data.user_id, 0)
+        self.player_current_hp = self.team_current_hp.get(self.player_data.user_id, 0)
+        self.player_current_energy = self.team_current_energy.get(self.player_data.user_id, 0)
         
         # Add continue button
         self.continue_btn = Button(
@@ -775,6 +804,16 @@ class DungeonProgressView(View):
                 self.player_data.dungeon_clears[self.dungeon_name] = 1
             else:
                 self.player_data.dungeon_clears[self.dungeon_name] += 1
+                
+            # Update quest progress for dungeons
+            from achievements import QuestManager
+            quest_manager = QuestManager(self.data_manager)
+            
+            # Update daily dungeon quests
+            completed_daily_quests = quest_manager.update_quest_progress(self.player_data, "daily_dungeons")
+            
+            # Update long-term dungeon quests
+            completed_longterm_quests = quest_manager.update_quest_progress(self.player_data, "total_dungeons")
             
             # Send victory message
             victory_embed = discord.Embed(
@@ -877,6 +916,33 @@ class DungeonProgressView(View):
                 )
             
             await channel.send(embed=victory_embed)
+            
+            # Handle quest progression
+            # Update quest progress for all participants
+            from achievements import QuestManager
+            quest_manager = QuestManager(self.data_manager)
+            
+            if self.is_team_dungeon:
+                # Update for all team members
+                for player in self.team_player_data:
+                    completed_quests = quest_manager.update_quest_progress(player, "daily_dungeons")
+                    for quest in completed_quests:
+                        quest_manager.award_quest_rewards(player, quest)
+                        
+                    # Also update for weekly_dungeons if applicable
+                    completed_weekly = quest_manager.update_quest_progress(player, "weekly_dungeons")
+                    for quest in completed_weekly:
+                        quest_manager.award_quest_rewards(player, quest)
+            else:
+                # Solo player
+                completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_dungeons")
+                for quest in completed_quests:
+                    quest_manager.award_quest_rewards(self.player_data, quest)
+                    
+                # Also update for weekly_dungeons if applicable
+                completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_dungeons")
+                for quest in completed_weekly:
+                    quest_manager.award_quest_rewards(self.player_data, quest)
             
             # Save player data
             self.data_manager.save_data()

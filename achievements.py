@@ -1035,19 +1035,23 @@ class QuestManager:
             
             player.add_exp(exp_amount)
         
-        # Award gold with event multiplier
+        # Award cursed energy with event multiplier
         if "gold" in reward:
-            gold_amount = reward["gold"]
+            energy_amount = reward["gold"]
             
             # Apply event multipliers if any
             if "active_events" in self.data_manager.__dict__:
                 for event_id, event_data in self.data_manager.active_events.items():
                     if event_data["effect"]["type"] == "gold_multiplier":
-                        gold_amount = int(gold_amount * event_data["effect"]["value"])
+                        energy_amount = int(energy_amount * event_data["effect"]["value"])
             
-            if not hasattr(player, "gold"):
-                player.gold = 0
-            player.gold += gold_amount
+            # Add to player's cursed energy (the main currency)
+            player.cursed_energy += energy_amount
+            
+            # Track gold earned for achievements
+            if not hasattr(player, "gold_earned"):
+                player.gold_earned = 0
+            player.gold_earned += energy_amount
         
         # Award special item if any
         if "special_item" in reward:

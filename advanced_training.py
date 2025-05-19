@@ -95,6 +95,23 @@ TRAINING_MINIGAMES = {
             "perfect_score": {"gold": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
         }
     },
+    "Energy Cultivation": {
+        "description": "Meditate to increase your maximum battle energy capacity",
+        "primary_attribute": "energy",
+        "secondary_attribute": "defense",
+        "base_exp": 25,
+        "cooldown": 4,  # hours
+        "emoji": "⚡",
+        "minigame_type": "precision",
+        "difficulty_levels": [
+            {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 1, "energy_gain": 5},
+            {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 2, "energy_gain": 10},
+            {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 3, "energy_gain": 15}
+        ],
+        "special_rewards": {
+            "perfect_score": {"gold": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
+        }
+    },
     "Shadow Technique": {
         "description": "Practice mysterious shadow techniques to enhance your abilities",
         "primary_attribute": "power",
@@ -276,6 +293,11 @@ class TrainingMinigameView(View):
         self.max_score = 5
         self.current_step = 0
         self.round_complete = False
+        # Default to the 'Basic' difficulty level
+        self.selected_difficulty = "Basic"
+        # Select the difficulty data
+        self.difficulty = next((d for d in self.training_data.get("difficulty_levels", []) 
+                          if d["name"] == self.selected_difficulty), {})
         
         # Add start button
         start_btn = Button(
@@ -360,6 +382,16 @@ class TrainingMinigameView(View):
         primary_gain = max(1, int(3 * performance))  # 0-3 points
         secondary_gain = max(0, int(2 * performance))  # 0-2 points
         
+        # Handle energy training differently - this increases max energy capacity
+        energy_gain = 0
+        if primary_attr == "energy":
+            # Get the selected difficulty level from the training data
+            difficulty_level = next((d for d in self.training_data["difficulty_levels"] 
+                              if d["name"] == self.selected_difficulty), None)
+            if difficulty_level and "energy_gain" in difficulty_level:
+                # Calculate energy gain based on performance and difficulty level
+                energy_gain = max(1, int(difficulty_level["energy_gain"] * performance))
+        
         # Apply different increases for HP
         if primary_attr == "hp":
             primary_gain *= 5  # 5x multiplier for HP
@@ -374,11 +406,36 @@ class TrainingMinigameView(View):
             self.player_data.allocated_stats = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
         
         # Apply attribute gains
-        self.player_data.allocated_stats[primary_attr] += primary_gain
-        self.player_data.allocated_stats[secondary_attr] += secondary_gain
+        if primary_attr == "energy" and energy_gain > 0:
+            # Increase the player's max energy capacity through energy_training field
+            if not hasattr(self.player_data, "energy_training"):
+                self.player_data.energy_training = 0
+            self.player_data.energy_training += energy_gain
+            # Also update battle energy to reflect the new maximum
+            max_energy = self.player_data.get_max_battle_energy()
+            self.player_data.battle_energy = min(max_energy, self.player_data.battle_energy + energy_gain)
+            
+            secondary_attr_to_apply = secondary_attr
+        else:
+            # Normal attribute increases
+            self.player_data.allocated_stats[primary_attr] += primary_gain
+            secondary_attr_to_apply = secondary_attr
+            
+        # Always apply secondary attribute gain
+        self.player_data.allocated_stats[secondary_attr_to_apply] += secondary_gain
         
         # Apply exp gain
         leveled_up = self.player_data.add_exp(exp_gain)
+        
+        # Update quest progress for training
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Update daily training quests
+        completed_daily_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        
+        # Update weekly advanced training quests
+        completed_weekly_quests = quest_manager.update_quest_progress(self.player_data, "weekly_advanced_training")
         
         # Update training cooldowns
         if not hasattr(self.player_data, "training_cooldowns"):
@@ -388,6 +445,20 @@ class TrainingMinigameView(View):
         now = datetime.datetime.now()
         self.player_data.training_cooldowns[self.training_type] = (now + datetime.timedelta(hours=self.training_data["cooldown"])).isoformat()
         
+        # Update quest progress
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Update daily training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        for quest in completed_quests:
+            quest_manager.award_quest_rewards(self.player_data, quest)
+        
+        # Update weekly training quests
+        completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_training")
+        for quest in completed_weekly:
+            quest_manager.award_quest_rewards(self.player_data, quest)
+            
         # Save player data
         self.data_manager.save_data()
         
@@ -397,6 +468,15 @@ class TrainingMinigameView(View):
             description=f"Score: {self.score}/{self.max_score} ({int(performance * 100)}%)",
             color=discord.Color.green() if performance >= 0.6 else discord.Color.gold() if performance >= 0.3 else discord.Color.red()
         )
+        
+        # Add energy gain info if this was energy training
+        if primary_attr == "energy" and energy_gain > 0:
+            embed.add_field(
+                name="⚡ Energy Capacity Increased!",
+                value=f"Your maximum battle energy capacity has increased by **{energy_gain}** points!\n"
+                      f"New maximum battle energy: **{self.player_data.get_max_battle_energy()}**",
+                inline=False
+            )
         
         # Add attribute gains
         embed.add_field(

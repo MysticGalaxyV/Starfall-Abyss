@@ -2,10 +2,10 @@
     "759434349069860945": {
         "class_name": "Flash Rogue",
         "class_level": 10,
-        "class_exp": 1401,
+        "class_exp": 1587,
         "user_level": 1,
         "user_exp": 0,
-        "cursed_energy": 5353,
+        "cursed_energy": 1663,
         "max_cursed_energy": 150,
         "gold": 0,
         "unlocked_classes": [
@@ -410,6 +410,23 @@
                 },
                 "quantity": 2,
                 "equipped": false
+            },
+            {
+                "item": {
+                    "item_id": "8AfJCxZT",
+                    "name": "Brawler's Combat Gloves",
+                    "description": "Enhances reflexes and striking power.",
+                    "item_type": "accessory",
+                    "rarity": "uncommon",
+                    "stats": {
+                        "speed": 5,
+                        "power": 2
+                    },
+                    "level_req": 4,
+                    "value": 200
+                },
+                "quantity": 1,
+                "equipped": false
             }
         ],
         "equipped_items": {
@@ -464,7 +481,7 @@
         "last_train": "2025-05-18T19:18:54.134059",
         "dungeon_clears": {
             "Ancient Forest": 11,
-            "Forgotten Cave": 6
+            "Forgotten Cave": 7
         },
         "skill_cooldowns": {},
         "special_abilities": {},

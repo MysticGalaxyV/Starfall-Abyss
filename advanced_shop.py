@@ -1057,9 +1057,9 @@ class AdvancedShopView(View):
         next_btn.callback = self.next_page_callback
         self.add_item(next_btn)
         
-        # Balance button (shows player gold)
+        # Balance button (shows player cursed energy)
         balance_btn = Button(
-            label=f"Balance: {self.player_data.gold} 🌀",
+            label=f"Balance: {self.player_data.cursed_energy} 🌀",
             style=discord.ButtonStyle.primary,
             emoji="💰",
             custom_id="balance",
@@ -1158,7 +1158,7 @@ class AdvancedShopView(View):
         # Update balance display
         balance_button = discord.utils.get(self.children, custom_id="balance")
         if balance_button:
-            balance_button.label = f"Balance: {self.player_data.gold} 🌀"
+            balance_button.label = f"Balance: {self.player_data.cursed_energy} 🌀"
         
         # Clear existing buy buttons and add new ones
         buy_buttons = [item for item in self.children if item.custom_id and item.custom_id.startswith("buy_")]
@@ -1190,7 +1190,7 @@ class AdvancedShopView(View):
                     style=discord.ButtonStyle.primary,
                     emoji=rarity_info["emoji"],
                     custom_id=f"buy_{i}",
-                    disabled=self.player_data.gold < item["value"]
+                    disabled=self.player_data.cursed_energy < item["value"]
                 )
                 buy_btn.callback = self.buy_callback
             
@@ -1208,8 +1208,8 @@ class AdvancedShopView(View):
         if actual_idx < len(items):
             item_data = items[actual_idx]
             
-            # Check if player has enough gold
-            if self.player_data.gold >= item_data["value"]:
+            # Check if player has enough cursed energy
+            if self.player_data.cursed_energy >= item_data["value"]:
                 # Create the item
                 from data_models import Item
                 
@@ -1280,8 +1280,8 @@ class AdvancedShopView(View):
                 from equipment import add_item_to_inventory
                 add_item_to_inventory(self.player_data, new_item)
                 
-                # Deduct gold
-                self.player_data.gold -= item_data["value"]
+                # Deduct cursed energy
+                self.player_data.cursed_energy -= item_data["value"]
                 
                 # Save data
                 self.data_manager.save_data()
@@ -1313,10 +1313,10 @@ class AdvancedShopView(View):
                 # Show the success message
                 await interaction.response.edit_message(embed=success_embed, view=self)
             else:
-                # Not enough gold
+                # Not enough cursed energy
                 error_embed = discord.Embed(
-                    title="Not Enough Gold",
-                    description=f"You need {item_data['value']} gold to purchase this item, but you only have {self.player_data.gold}.",
+                    title="Not Enough Cursed Energy",
+                    description=f"You need {item_data['value']} cursed energy to purchase this item, but you only have {self.player_data.cursed_energy}.",
                     color=discord.Color.red()
                 )
                 
@@ -1369,8 +1369,8 @@ class AdvancedShopView(View):
         
         # Add balance info
         embed.add_field(
-            name="Your Gold",
-            value=f"{self.player_data.gold} 🌀",
+            name="Your Cursed Energy",
+            value=f"{self.player_data.cursed_energy} 🌀",
             inline=True
         )
         

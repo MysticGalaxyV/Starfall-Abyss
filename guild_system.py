@@ -159,13 +159,13 @@ class Guild:
             return True
         return False
     
-    def deposit_gold(self, amount: int) -> bool:
-        """Deposit gold into guild bank"""
+    def deposit_cursed_energy(self, amount: int) -> bool:
+        """Deposit cursed energy into guild bank"""
         self.bank += amount
         return True
     
-    def withdraw_gold(self, amount: int) -> bool:
-        """Withdraw gold from guild bank if available"""
+    def withdraw_cursed_energy(self, amount: int) -> bool:
+        """Withdraw cursed energy from guild bank if available"""
         if self.bank >= amount:
             self.bank -= amount
             return True
@@ -219,7 +219,7 @@ GUILD_ACHIEVEMENTS = {
     },
     "treasure_hoard": {
         "name": "Treasure Hoard",
-        "description": "Accumulate 50,000 gold in the guild bank",
+        "description": "Accumulate 50,000 cursed energy in the guild bank",
         "reward": {"gold": 5000, "exp": 2000},
         "icon": "💰"
     }
@@ -232,7 +232,7 @@ GUILD_UPGRADES = {
         "description": "Increase guild bank capacity and interest rate",
         "max_level": 5,
         "cost_formula": lambda level: 5000 * level,
-        "benefit_formula": lambda level: f"Bank capacity: {100000 * level} gold, Interest: {0.5 * level}% daily"
+        "benefit_formula": lambda level: f"Bank capacity: {100000 * level} cursed energy, Interest: {0.5 * level}% daily"
     },
     "member_capacity": {
         "name": "Member Capacity",
@@ -321,7 +321,7 @@ GUILD_RAIDS = {
         "level_req": 15,
         "members_req": 10,
         "stages": 7,
-        "reward": {"exp": 20000, "gold": 40000, "special_item": "Trident of the Depths"},
+        "reward": {"exp": 20000, "cursed_energy": 40000, "special_item": "Trident of the Depths"},
         "enemy_types": ["aquatic", "eldritch"],
         "duration": 7  # days to complete
     }
@@ -527,8 +527,51 @@ class GuildManager:
         
         return True, "Guild leadership has been transferred."
     
-    def contribute_to_guild(self, player_id: int, gold_amount: int) -> Tuple[bool, str, int]:
-        """Contribute gold to guild and gain contribution points"""
+    def rename_guild(self, leader_id: int, new_name: str) -> Tuple[bool, str]:
+        """Rename a guild (leader only)"""
+        # Check if leader is in a guild
+        guild_name = self.member_guild_map.get(leader_id)
+        if not guild_name:
+            return False, "You are not in a guild."
+        
+        guild = self.guilds.get(guild_name)
+        if not guild:
+            return False, "Guild not found."
+        
+        # Check if user is the leader
+        if guild.leader_id != leader_id:
+            return False, "Only the guild leader can rename the guild."
+            
+        # Check if new name is already taken
+        if new_name in self.guilds and new_name != guild_name:
+            return False, f"The name '{new_name}' is already taken by another guild."
+            
+        # Check if new name is valid
+        if len(new_name) < 3 or len(new_name) > 32:
+            return False, "Guild name must be between 3 and 32 characters."
+        
+        # No need to rename if it's the same name
+        if new_name == guild_name:
+            return False, "That's already your guild's name."
+            
+        # Create new guild entry with same data but new name
+        self.guilds[new_name] = guild
+        self.guilds[new_name].name = new_name
+        
+        # Update member mappings
+        for member_id in guild.members:
+            self.member_guild_map[member_id] = new_name
+            
+        # Remove old guild entry
+        del self.guilds[guild_name]
+        
+        # Save data
+        self.save_guilds()
+        
+        return True, f"Guild has been renamed from '{guild_name}' to '{new_name}'."
+        
+    def contribute_to_guild(self, player_id: int, contribution_amount: int) -> Tuple[bool, str, int]:
+        """Contribute cursed energy to guild and gain contribution points"""
         # Check if player is in a guild
         guild_name = self.member_guild_map.get(player_id)
         if not guild_name:
@@ -549,17 +592,17 @@ class GuildManager:
         if str(player_id) not in guild.daily_contributions[today]:
             guild.daily_contributions[today][str(player_id)] = 0
         
-        # Add gold to guild bank
-        guild.bank += gold_amount
+        # Add cursed energy to guild bank
+        guild.bank += contribution_amount
         
-        # Add contribution points (1 point per 10 gold)
-        contribution_points = gold_amount // 10
+        # Add contribution points (1 point per 10 cursed energy)
+        contribution_points = contribution_amount // 10
         guild.daily_contributions[today][str(player_id)] += contribution_points
         
         # Save data
         self.save_guilds()
         
-        return True, f"You contributed {gold_amount} gold to the guild bank.", contribution_points
+        return True, f"You contributed {contribution_amount} 🌀 cursed energy to the guild bank.", contribution_points
     
     def add_guild_exp(self, guild_name: str, exp_amount: int) -> Tuple[bool, bool]:
         """Add experience to a guild. Returns (success, leveled_up)"""
@@ -821,49 +864,49 @@ class GuildInfoView(View):
     
     async def contribute_callback(self, interaction: discord.Interaction):
         """Handle guild contribution"""
-        # Create a modal for gold contribution
+        # Create a modal for cursed energy contribution
         class ContributeModal(discord.ui.Modal):
             def __init__(self, guild_view):
                 super().__init__(title=f"Contribute to {guild_view.guild.name}")
                 self.guild_view = guild_view
                 
-                self.gold_input = discord.ui.TextInput(
-                    label="Gold Amount",
-                    placeholder="Enter amount of gold to contribute",
+                self.energy_input = discord.ui.TextInput(
+                    label="Cursed Energy Amount",
+                    placeholder="Enter amount of cursed energy to contribute",
                     required=True,
                     min_length=1,
                     max_length=10
                 )
-                self.add_item(self.gold_input)
+                self.add_item(self.energy_input)
             
             async def on_submit(self, modal_interaction: discord.Interaction):
                 # Validate input
                 try:
-                    gold_amount = int(self.gold_input.value)
-                    if gold_amount <= 0:
+                    energy_amount = int(self.energy_input.value)
+                    if energy_amount <= 0:
                         await modal_interaction.response.send_message("Please enter a positive amount.", ephemeral=True)
                         return
                     
-                    # Check if player has enough gold
-                    if self.guild_view.player_data.gold < gold_amount:
-                        await modal_interaction.response.send_message(f"You don't have enough gold. You only have {self.guild_view.player_data.gold} 🌀", ephemeral=True)
+                    # Check if player has enough cursed energy
+                    if self.guild_view.player_data.cursed_energy < energy_amount:
+                        await modal_interaction.response.send_message(f"You don't have enough cursed energy. You only have {self.guild_view.player_data.cursed_energy} 🌀", ephemeral=True)
                         return
                     
                     # Contribute to guild
                     success, message, points = self.guild_view.guild_manager.contribute_to_guild(
                         self.guild_view.player_data.user_id, 
-                        gold_amount
+                        energy_amount
                     )
                     
                     if success:
-                        # Deduct gold from player
-                        self.guild_view.player_data.gold -= gold_amount
+                        # Deduct cursed energy from player
+                        self.guild_view.player_data.cursed_energy -= energy_amount
                         self.guild_view.guild_manager.data_manager.save_data()
                         
                         # Send success message
                         contrib_embed = discord.Embed(
                             title=f"Contribution to {self.guild_view.guild.name}",
-                            description=f"You contributed {gold_amount} 🌀 to the guild bank and earned {points} contribution points!",
+                            description=f"You contributed {energy_amount} 🌀 to the guild bank and earned {points} contribution points!",
                             color=discord.Color.green()
                         )
                         contrib_embed.add_field(
@@ -872,8 +915,8 @@ class GuildInfoView(View):
                             inline=True
                         )
                         contrib_embed.add_field(
-                            name="Your Remaining Gold",
-                            value=f"{self.guild_view.player_data.gold} 🌀",
+                            name="Your Remaining Cursed Energy",
+                            value=f"{self.guild_view.player_data.cursed_energy} 🌀",
                             inline=True
                         )
                         
@@ -2123,6 +2166,22 @@ async def guild_command(ctx, action: str = None, *args):
             await ctx.send(message)
         else:
             await ctx.send(f"Error: {message}")
+            
+    elif action.lower() == "rename":
+        # Check if a guild name was provided
+        if not args:
+            await ctx.send("Please provide a new name for your guild. Usage: `!guild rename <new_name>`")
+            return
+            
+        new_guild_name = " ".join(args)
+        
+        # Try to rename guild
+        success, message = guild_manager.rename_guild(ctx.author.id, new_guild_name)
+        
+        if success:
+            await ctx.send(f"✅ {message}")
+        else:
+            await ctx.send(f"❌ Error: {message}")
     
     elif action.lower() == "list":
         # Get top guilds
@@ -2236,7 +2295,8 @@ async def guild_command(ctx, action: str = None, *args):
                   "• `!guild demote <user_id>` - Demote officer to member\n"
                   "• `!guild motd <message>` - Set message of the day\n"
                   "• `!guild desc <description>` - Set guild description\n"
-                  "• `!guild emblem <emoji>` - Set guild emblem",
+                  "• `!guild emblem <emoji>` - Set guild emblem\n"
+                  "• `!guild rename <new_name>` - Change guild name (leader only)",
             inline=False
         )
         

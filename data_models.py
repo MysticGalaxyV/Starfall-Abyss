@@ -192,7 +192,8 @@ class PlayerData:
         self.max_cursed_energy = 1000000  # Very high maximum as there's no cap on gold
         self.gold = 0  # Currently unused - we'll use cursed_energy for compatibility
         self.battle_energy = 100  # Battle resource
-        self.max_battle_energy = 100  # Max battle resource
+        self.max_battle_energy = 100  # Base max battle resource
+        self.energy_training = 0  # Additional energy from specialized training
         self.unlocked_classes = []
         self.inventory = []  # List[InventoryItem]
         self.equipped_items = {
@@ -246,6 +247,25 @@ class PlayerData:
         self.achievement_progress = {}
         self.last_pvp_battle = None  # Timestamp of last PvP battle
 
+    def get_max_battle_energy(self) -> int:
+        """
+        Calculate the player's maximum battle energy based on level and training.
+        Energy scales with player level and is increased by specialized training.
+        """
+        # Base energy from max_battle_energy attribute
+        base_energy = self.max_battle_energy
+        
+        # Energy bonus from player level (5 per level after level 1)
+        level_bonus = (self.class_level - 1) * 5
+        
+        # Energy bonus from specialized training
+        training_bonus = self.energy_training
+        
+        # Calculate total max energy
+        total_max_energy = base_energy + level_bonus + training_bonus
+        
+        return total_max_energy
+    
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate total stats based on base class stats, allocated points and equipped items"""
         if not self.class_name or self.class_name not in class_data:

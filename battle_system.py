@@ -22,7 +22,15 @@ class BattleEntity:
         self.name = name
         self.stats = stats.copy()
         self.current_hp = stats["hp"]
-        self.current_energy = player_data.battle_energy if player_data else stats.get("energy", 100)
+        
+        # Use the player's dynamic max energy calculation if player is present
+        if player_data and is_player and hasattr(player_data, "get_max_battle_energy"):
+            self.max_energy = player_data.get_max_battle_energy()
+            self.current_energy = min(player_data.battle_energy, self.max_energy)
+        else:
+            self.max_energy = stats.get("energy", 100)
+            self.current_energy = self.max_energy
+            
         self.moves = moves or []
         self.is_player = is_player
         self.player_data = player_data
@@ -332,12 +340,35 @@ class BattleView(View):
             usable_items = []
             if hasattr(self.player.player_data, 'inventory') and self.player.player_data.inventory:
                 for inv_item in self.player.player_data.inventory:
-                    if hasattr(inv_item, 'item') and inv_item.item and hasattr(inv_item.item, 'item_type') and inv_item.item.item_type == "consumable" and inv_item.quantity > 0:
-                        usable_items.append((inv_item.item.name, inv_item.item.description))
+                    if inv_item.quantity > 0:
+                        # Check if item has necessary attributes
+                        if not hasattr(inv_item, 'item') or not inv_item.item:
+                            continue
+                            
+                        # Enhanced potion detection - this is the key fix for potion visibility
+                        item_name = inv_item.item.name.lower() if hasattr(inv_item.item, 'name') else ""
+                        item_desc = inv_item.item.description.lower() if hasattr(inv_item.item, 'description') else ""
+                        item_type = inv_item.item.item_type if hasattr(inv_item.item, 'item_type') else ""
+                        
+                        is_usable = False
+                        
+                        # First check item type (most reliable)
+                        if item_type == "consumable" or item_type == "potion":
+                            is_usable = True
+                        # Then check item name for potion-related terms
+                        elif any(term in item_name for term in ["potion", "elixir", "tonic", "vial", "flask"]):
+                            is_usable = True
+                        # Finally check description for effect-related terms
+                        elif any(term in item_desc for term in ["health", "heal", "energy", "restore", "strength", 
+                                                              "hp", "shield", "battle", "defense", "buff", "boost"]):
+                            is_usable = True
+                            
+                        if is_usable:
+                            usable_items.append((inv_item.item.name, getattr(inv_item.item, 'description', 'A usable item')))
             
-            # Add up to 3 item buttons
-            for i, (item_name, item_effect) in enumerate(usable_items[:3]):
-                self.add_item(ItemButton(item_name, item_effect, row=2))
+            # Add up to 5 item buttons (increased from 3)
+            for i, (item_name, item_effect) in enumerate(usable_items[:5]):
+                self.add_item(ItemButton(item_name, item_effect, row=2 + (i // 2)))
         
     async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
         # Check if player is in energy recovery mode (lost turns)
@@ -381,7 +412,7 @@ class BattleView(View):
             await interaction.edit_original_response(
                 content=f"🎉 Victory! You defeated {self.enemy.name}!\n"
                        f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-                       f"Energy: {self.player.current_energy}/100 ⚡",
+                       f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡",
                 view=None
             )
             return
@@ -449,11 +480,13 @@ class BattleView(View):
         
         # Find the item in inventory
         item_found = False
+        item_effect_applied = False
         if player_data and hasattr(player_data, 'inventory') and player_data.inventory:
             for inv_item in player_data.inventory:
                 if (hasattr(inv_item, 'item') and inv_item.item and 
                     hasattr(inv_item.item, 'name') and inv_item.item.name == item_name and 
                     inv_item.quantity > 0):
+                    # Found the item, reduce quantity
                     inv_item.quantity -= 1
                     item_found = True
                     break
@@ -464,36 +497,60 @@ class BattleView(View):
             
         # Apply item effect
         effect_msg = ""
-        if "heal" in item_effect.lower():
-            # Parse heal amount from description (e.g., "Heals 50 HP")
-            try:
-                heal_amount = int(''.join(filter(str.isdigit, item_effect)))
-            except ValueError:
-                heal_amount = int(self.player.stats["hp"] * 0.3)  # Default 30% heal
-                
+        item_effect_applied = True
+        
+        # Extract numerical values from effect description
+        import re
+        number_matches = re.findall(r'\d+', item_effect)
+        effect_number = int(number_matches[0]) if number_matches else 0
+        
+        # Determine effect type and apply it
+        item_effect_lower = item_effect.lower()
+        
+        # Healing items
+        if any(heal_term in item_effect_lower for heal_term in ["heal", "health", "hp", "restore health"]):
+            # Calculate healing amount
+            heal_amount = effect_number if effect_number > 0 else int(self.player.stats["hp"] * 0.3)  # Default 30% heal
             self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
             effect_msg = f"💚 You used {item_name} and healed for {heal_amount} HP!"
             
-        elif "energy" in item_effect.lower():
-            # Parse energy amount from description
-            try:
-                energy_amount = int(''.join(filter(str.isdigit, item_effect)))
-            except ValueError:
-                energy_amount = 50  # Default energy restore
-                
+        # Energy items
+        elif any(energy_term in item_effect_lower for energy_term in ["energy", "mana", "stamina", "restore energy"]):
+            # Calculate energy amount
+            energy_amount = effect_number if effect_number > 0 else 50  # Default energy restore
             self.player.current_energy = min(100, self.player.current_energy + energy_amount)
             effect_msg = f"⚡ You used {item_name} and restored {energy_amount} energy!"
             
-        elif "strength" in item_effect.lower():
-            self.player.status_effects["strength"] = (3, 0.3)  # 3 turns, 30% more damage
-            effect_msg = f"💪 You used {item_name} and gained increased strength for 3 turns!"
+        # Buff items
+        elif any(buff_term in item_effect_lower for buff_term in ["strength", "power", "damage", "attack"]):
+            # Apply strength buff
+            buff_duration = effect_number if effect_number > 0 else 3  # Default 3 turns
+            buff_strength = 0.3  # 30% more damage
+            self.player.status_effects["strength"] = (buff_duration, buff_strength)
+            effect_msg = f"💪 You used {item_name} and gained increased strength for {buff_duration} turns!"
             
-        elif "shield" in item_effect.lower():
-            self.player.status_effects["shield"] = (3, 0.4)  # 3 turns, 40% less damage
-            effect_msg = f"🛡️ You used {item_name} and gained a protective shield for 3 turns!"
+        # Defense items
+        elif any(def_term in item_effect_lower for def_term in ["shield", "defense", "protect", "barrier", "armor"]):
+            # Apply shield buff
+            shield_duration = effect_number if effect_number > 0 else 3  # Default 3 turns
+            shield_strength = 0.4  # 40% less damage
+            self.player.status_effects["shield"] = (shield_duration, shield_strength)
+            effect_msg = f"🛡️ You used {item_name} and gained a protective shield for {shield_duration} turns!"
+            
+        # Dual effect items (healing + energy)
+        elif any(dual_term in item_effect_lower for dual_term in ["potion", "elixir", "restoration", "recovery"]):
+            # Apply both healing and energy
+            heal_amount = int(self.player.stats["hp"] * 0.2)  # 20% heal
+            energy_amount = 30  # 30 energy
+            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
+            self.player.current_energy = min(100, self.player.current_energy + energy_amount)
+            effect_msg = f"✨ You used {item_name} and restored {heal_amount} HP and {energy_amount} energy!"
             
         else:
-            effect_msg = f"🧪 You used {item_name}, but nothing happened!"
+            # Generic effect for unknown item types
+            heal_amount = int(self.player.stats["hp"] * 0.1)  # Small heal as fallback
+            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
+            effect_msg = f"🧪 You used {item_name} and gained a minor effect (+{heal_amount} HP)!"
             
         await interaction.response.edit_message(
             content=f"{effect_msg}\nWaiting for enemy move...",
@@ -692,6 +749,18 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         
         # Update stats
         player_data.wins += 1
+        
+        # Update quest progress for daily and weekly quest tracking
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        
+        # Update various quest types that would be triggered by a battle win
+        completed_daily_quests = quest_manager.update_quest_progress(player_data, "daily_wins")
+        completed_weekly_quests = quest_manager.update_quest_progress(player_data, "weekly_wins")
+        
+        if "boss" in enemy_name.lower():
+            # This is a boss battle
+            completed_boss_quests = quest_manager.update_quest_progress(player_data, "weekly_bosses")
         
         # Check for item drops
         drop_msg = ""

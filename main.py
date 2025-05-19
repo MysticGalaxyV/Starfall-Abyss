@@ -11,7 +11,8 @@ from typing import Dict, List, Optional, Any, Union
 
 from data_models import DataManager, PlayerData, Item, InventoryItem
 from utils import GAME_CLASSES, STARTER_CLASSES, format_time_until
-from battle_system import start_battle, start_pvp_battle
+# Import the enhanced battle system with energy scaling
+from battle_system_new import start_battle, start_pvp_battle
 from dungeons import dungeon_command, DUNGEONS
 from equipment import equipment_command, shop_command, buy_command
 from training import train_command, skills_command
