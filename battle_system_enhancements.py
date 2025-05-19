@@ -53,10 +53,10 @@ def enhanced_battle_entity_init(self, name: str, stats: Dict[str, int], moves=No
 
 # Enhanced function to update player energy after battle
 def update_player_energy_after_battle(player_data: PlayerData, battle_entity):
-    """Update the player's energy after battle with their current battle energy"""
+    """Update the player's energy after battle - always restore to maximum"""
     if player_data and hasattr(player_data, "battle_energy"):
-        player_data.battle_energy = min(battle_entity.current_energy, 
-                                       player_data.get_max_battle_energy())
+        # Always set to maximum energy after battle
+        player_data.battle_energy = player_data.get_max_battle_energy()
 
 # Function to create battle status text
 def create_battle_stats_text(player, enemy, player_status_msg="", enemy_status_msg=""):

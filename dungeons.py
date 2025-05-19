@@ -658,7 +658,7 @@ class DungeonProgressView(View):
         embed.add_field(
             name=f"{interaction.user.display_name} (Level {self.player_data.class_level})",
             value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-                  f"Energy: {player_entity.current_energy}/{self.player_data.max_cursed_energy} ✨\n"
+                  f"Energy: {player_entity.current_energy}/{self.player_data.get_max_battle_energy()} ✨\n"
                   f"Power: {player_entity.stats['power']} ⚔️\n"
                   f"Defense: {player_entity.stats['defense']} 🛡️",
             inline=True
@@ -705,7 +705,7 @@ class DungeonProgressView(View):
             
             win_embed.add_field(
                 name="Minor Rewards",
-                value=f"Cursed Energy: +{minor_cursed_energy} 🌀\n"
+                value=f"Gold: +{minor_cursed_energy} 💰\n"
                       f"EXP: +{minor_exp} 📊",
                 inline=False
             )
@@ -755,11 +755,11 @@ class DungeonProgressView(View):
             
             # Calculate partial rewards (higher for making it to boss)
             progress_percent = 0.6  # 60% of rewards for reaching but losing to boss
-            cursed_energy_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+            gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
             exp_reward = int(self.dungeon_data["exp"] * progress_percent)
             
             # Award partial rewards
-            self.player_data.add_cursed_energy(cursed_energy_reward)
+            self.player_data.add_gold(gold_reward)
             self.player_data.add_exp(exp_reward)
             
             # Send defeat message
@@ -772,7 +772,7 @@ class DungeonProgressView(View):
             defeat_embed.add_field(
                 name="Partial Rewards",
                 value=f"EXP: +{exp_reward} 📊\n"
-                      f"Cursed Energy: +{cursed_energy_reward} 🔮",
+                      f"Gold: +{gold_reward} 💰",
                 inline=False
             )
             
@@ -784,19 +784,19 @@ class DungeonProgressView(View):
             # Player defeated boss - complete the dungeon!
             
             # Calculate full rewards
-            cursed_energy_reward = self.dungeon_data["max_rewards"]
+            gold_reward = self.dungeon_data["max_rewards"]
             exp_reward = self.dungeon_data["exp"]
             
             # Add bonus based on enemies defeated
             bonus_percent = min(0.3, self.enemies_defeated * 0.05)  # Max 30% bonus
-            bonus_cursed_energy = int(cursed_energy_reward * bonus_percent)
+            bonus_gold = int(gold_reward * bonus_percent)
             bonus_exp = int(exp_reward * bonus_percent)
             
-            total_cursed_energy = cursed_energy_reward + bonus_cursed_energy
+            total_gold = gold_reward + bonus_gold
             total_exp = exp_reward + bonus_exp
             
             # Award rewards
-            self.player_data.add_cursed_energy(total_cursed_energy)
+            self.player_data.add_gold(total_gold)
             leveled_up = self.player_data.add_exp(total_exp)
             
             # Update dungeon clear count
@@ -824,11 +824,11 @@ class DungeonProgressView(View):
             
             victory_embed.add_field(
                 name="Rewards",
-                value=f"Base Cursed Energy: {cursed_energy_reward} 🔮\n"
-                      f"Bonus Cursed Energy: +{bonus_cursed_energy} 🔮\n"
+                value=f"Base Gold: {gold_reward} 💰\n"
+                      f"Bonus Gold: +{bonus_gold} 💰\n"
                       f"Base EXP: {exp_reward} 📊\n"
                       f"Bonus EXP: +{bonus_exp} 📊\n"
-                      f"Total: {total_cursed_energy} 🔮 and {total_exp} EXP",
+                      f"Total: {total_gold} 💰 and {total_exp} EXP",
                 inline=False
             )
             

@@ -572,7 +572,7 @@ class GuildManager:
         return True, f"Guild has been renamed from '{guild_name}' to '{new_name}'."
         
     def contribute_to_guild(self, player_id: int, contribution_amount: int) -> Tuple[bool, str, int]:
-        """Contribute cursed energy to guild and gain contribution points"""
+        """Contribute gold to guild and gain contribution points"""
         # Check if player is in a guild
         guild_name = self.member_guild_map.get(player_id)
         if not guild_name:
@@ -593,17 +593,17 @@ class GuildManager:
         if str(player_id) not in guild.daily_contributions[today]:
             guild.daily_contributions[today][str(player_id)] = 0
         
-        # Add cursed energy to guild bank
+        # Add gold to guild bank
         guild.bank += contribution_amount
         
-        # Add contribution points (1 point per 10 cursed energy)
+        # Add contribution points (1 point per 10 gold)
         contribution_points = contribution_amount // 10
         guild.daily_contributions[today][str(player_id)] += contribution_points
         
         # Save data
         self.save_guilds()
         
-        return True, f"You contributed {contribution_amount} 🌀 cursed energy to the guild bank.", contribution_points
+        return True, f"You contributed {contribution_amount} 💰 gold to the guild bank.", contribution_points
     
     def add_guild_exp(self, guild_name: str, exp_amount: int) -> Tuple[bool, bool]:
         """Add experience to a guild. Returns (success, leveled_up)"""
@@ -688,7 +688,7 @@ class GuildInfoView(View):
             contribute_btn = Button(
                 label="Contribute",
                 style=discord.ButtonStyle.success,
-                emoji="🌀"
+                emoji="💰"
             )
             contribute_btn.callback = self.contribute_callback
             self.add_item(contribute_btn)
@@ -872,8 +872,8 @@ class GuildInfoView(View):
                 self.guild_view = guild_view
                 
                 self.energy_input = discord.ui.TextInput(
-                    label="Cursed Energy Amount",
-                    placeholder="Enter amount of cursed energy to contribute",
+                    label="Gold Amount",
+                    placeholder="Enter amount of gold to contribute",
                     required=True,
                     min_length=1,
                     max_length=10
@@ -888,9 +888,9 @@ class GuildInfoView(View):
                         await modal_interaction.response.send_message("Please enter a positive amount.", ephemeral=True)
                         return
                     
-                    # Check if player has enough cursed energy
-                    if self.guild_view.player_data.cursed_energy < energy_amount:
-                        await modal_interaction.response.send_message(f"You don't have enough cursed energy. You only have {self.guild_view.player_data.cursed_energy} 🌀", ephemeral=True)
+                    # Check if player has enough gold
+                    if self.guild_view.player_data.gold < energy_amount:
+                        await modal_interaction.response.send_message(f"You don't have enough gold. You only have {self.guild_view.player_data.gold} 💰", ephemeral=True)
                         return
                     
                     # Contribute to guild
@@ -900,24 +900,24 @@ class GuildInfoView(View):
                     )
                     
                     if success:
-                        # Deduct cursed energy from player
-                        self.guild_view.player_data.cursed_energy -= energy_amount
+                        # Deduct gold from player
+                        self.guild_view.player_data.remove_gold(energy_amount)
                         self.guild_view.guild_manager.data_manager.save_data()
                         
                         # Send success message
                         contrib_embed = discord.Embed(
                             title=f"Contribution to {self.guild_view.guild.name}",
-                            description=f"You contributed {energy_amount} 🌀 to the guild bank and earned {points} contribution points!",
+                            description=f"You contributed {energy_amount} 💰 to the guild bank and earned {points} contribution points!",
                             color=discord.Color.green()
                         )
                         contrib_embed.add_field(
                             name="Guild Bank Balance",
-                            value=f"{self.guild_view.guild.bank} 🌀",
+                            value=f"{self.guild_view.guild.bank} 💰",
                             inline=True
                         )
                         contrib_embed.add_field(
-                            name="Your Remaining Cursed Energy",
-                            value=f"{self.guild_view.player_data.cursed_energy} 🌀",
+                            name="Your Remaining Gold",
+                            value=f"{self.guild_view.player_data.gold} 💰",
                             inline=True
                         )
                         
@@ -1446,7 +1446,7 @@ class GuildManageView(View):
                     
                     info_embed.add_field(
                         name="Guild Bank",
-                        value=f"{self.guild.bank} 🌀",
+                        value=f"{self.guild.bank} 💰",
                         inline=True
                     )
                     
@@ -2592,7 +2592,7 @@ async def guild_command(ctx, action: str = None, *args):
         
         # Check if guild has enough funds
         if guild.bank < item["price"]:
-            await ctx.send(f"❌ Your guild doesn't have enough funds. The {item['name']} costs 🔮 {item['price']:,} Cursed Energy, but your guild only has 🔮 {guild.bank:,}.")
+            await ctx.send(f"❌ Your guild doesn't have enough funds. The {item['name']} costs 💰 {item['price']:,} Gold, but your guild only has 💰 {guild.bank:,}.")
             return
             
         # Deduct price from guild bank
@@ -2604,7 +2604,7 @@ async def guild_command(ctx, action: str = None, *args):
         if purchase_success:
             # Save guild data
             guild_manager.save_guilds()
-            await ctx.send(f"✅ Successfully purchased {item['name']} for 🔮 {item['price']:,} Cursed Energy!")
+            await ctx.send(f"✅ Successfully purchased {item['name']} for 💰 {item['price']:,} Gold!")
         else:
             # Refund if the purchase function returned False
             guild.bank += item["price"]

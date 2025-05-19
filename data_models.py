@@ -188,9 +188,9 @@ class PlayerData:
         self.class_exp = 0
         self.user_level = 1
         self.user_exp = 0
-        self.cursed_energy = 100  # Gold/Currency
-        self.max_cursed_energy = 1000000  # Very high maximum as there's no cap on currency
-        self.gold = 0  # Legacy field - we use cursed_energy consistently as currency
+        self.gold = 100  # Currency (changed from cursed_energy)
+        self.max_gold = 1000000  # Very high maximum as there's no cap on currency
+        self.cursed_energy = 0  # Legacy field - we now use gold consistently as currency
         self.battle_energy = 100  # Battle resource
         self.max_battle_energy = 100  # Base max battle resource
         self.energy_training = 0  # Additional energy from specialized training
@@ -294,24 +294,38 @@ class PlayerData:
 
         return base_stats
 
-    def add_cursed_energy(self, amount: int) -> int:
-        """Add cursed energy (gold) with no maximum limit. Returns the amount added."""
+    def add_gold(self, amount: int) -> int:
+        """Add gold with no maximum limit. Returns the amount added."""
         if amount <= 0:
             return 0
 
         # Simply add the amount (no limit)
-        self.cursed_energy += amount
+        self.gold += amount
+        # Track for achievements
+        self.gold_earned += amount
         return amount
 
-    def remove_cursed_energy(self, amount: int) -> bool:
-        """Remove cursed energy (gold) if available. Returns True if successful."""
+    def remove_gold(self, amount: int) -> bool:
+        """Remove gold if available. Returns True if successful."""
         if amount <= 0:
             return True
 
-        if self.cursed_energy >= amount:
-            self.cursed_energy -= amount
+        if self.gold >= amount:
+            self.gold -= amount
+            # Track for achievements
+            self.gold_spent += amount
             return True
         return False
+        
+    # Legacy method for backward compatibility
+    def add_cursed_energy(self, amount: int) -> int:
+        """Legacy method that calls add_gold"""
+        return self.add_gold(amount)
+        
+    # Legacy method for backward compatibility
+    def remove_cursed_energy(self, amount: int) -> bool:
+        """Legacy method that calls remove_gold"""
+        return self.remove_gold(amount)
         
     def add_battle_energy(self, amount: int) -> int:
         """Add battle energy up to maximum limit. Returns the actual amount added."""
@@ -376,8 +390,8 @@ class PlayerData:
             
             # Increase rewards at level-up to compensate for slower progression
             self.skill_points += 3
-            self.max_cursed_energy += 200
-            self.cursed_energy = min(self.cursed_energy + 150, self.max_cursed_energy)
+            self.max_gold += 200
+            self.gold = min(self.gold + 150, self.max_gold)
             
             # Increase max battle energy on level up
             battle_energy_increase = 5 + (self.class_level // 10)  # More energy gain at higher levels
@@ -395,9 +409,10 @@ class PlayerData:
             "class_exp": self.class_exp,
             "user_level": self.user_level,
             "user_exp": self.user_exp,
-            "cursed_energy": self.cursed_energy,
-            "max_cursed_energy": self.max_cursed_energy,
             "gold": self.gold,
+            "max_gold": self.max_gold,
+            "cursed_energy": self.gold,  # For backward compatibility
+            "max_cursed_energy": self.max_gold,  # For backward compatibility
             "unlocked_classes": self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
             "equipped_items": self.equipped_items,
@@ -424,10 +439,6 @@ class PlayerData:
             self.active_effects,
             "training_cooldowns":
             self.training_cooldowns,
-            "cursed_energy":
-            self.cursed_energy,
-            "max_cursed_energy":
-            self.max_cursed_energy,
             "battle_energy":
             self.battle_energy,
             "max_battle_energy":
@@ -450,16 +461,30 @@ class PlayerData:
     def from_dict(cls, user_id: int, data: Dict[str, Any]) -> 'PlayerData':
         player = cls(user_id)
 
+        # Handle currency conversion (from cursed_energy to gold)
+        if "gold" in data:
+            player.gold = data["gold"]
+        elif "cursed_energy" in data:
+            # Convert old cursed_energy to gold
+            player.gold = data["cursed_energy"]
+            
+        # Handle maximum currency
+        if "max_gold" in data:
+            player.max_gold = data["max_gold"]
+        elif "max_cursed_energy" in data:
+            # Convert old max_cursed_energy to max_gold
+            player.max_gold = data["max_cursed_energy"]
+
         # Set simple attributes
         for attr in [
                 "class_name", "class_level", "class_exp", "user_level",
-                "user_exp", "cursed_energy", "max_cursed_energy", 
-                "battle_energy", "max_battle_energy", "technique_grade",
+                "user_exp", "battle_energy", "max_battle_energy", "technique_grade",
                 "domain_expansion", "unlocked_classes", "equipped_items",
                 "skill_points", "allocated_stats", "skill_tree",
                 "skill_points_spent", "wins", "losses", "daily_streak",
                 "dungeon_clears", "special_abilities", "active_effects",
-                "training_cooldowns", "pvp_history", "pvp_wins", "pvp_losses"
+                "training_cooldowns", "pvp_history", "pvp_wins", "pvp_losses",
+                "energy_training" # Make sure we load energy training
         ]:
             if attr in data:
                 setattr(player, attr, data[attr])

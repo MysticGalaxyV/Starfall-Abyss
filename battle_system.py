@@ -745,7 +745,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.add_cursed_energy(gold_reward)  # Using new method that handles limits
+        player_data.add_gold(gold_reward)  # Using new gold method instead of cursed energy
         
         # Update stats
         player_data.wins += 1
@@ -815,7 +815,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_leve
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{gold_reward} 🔮{drop_msg}{special_drop_msg}",
+                  f"Gold: +{gold_reward} 💰{drop_msg}{special_drop_msg}",
             inline=False
         )
         
@@ -986,14 +986,14 @@ def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     return int(base_exp * exp_modifier)
 
 def calculate_gold_reward(enemy_level: int) -> int:
-    """Calculate cursed energy reward based on enemy level (keeping original function name for compatibility)"""
-    base_cursed_energy = 10 + (enemy_level * 5)
+    """Calculate gold reward based on enemy level"""
+    base_gold = 10 + (enemy_level * 5)
     variance = random.uniform(0.8, 1.2)
-    return int(base_cursed_energy * variance)
+    return int(base_gold * variance)
     
 def calculate_cursed_energy_reward(enemy_level: int) -> int:
-    """Calculate cursed energy reward based on enemy level"""
-    return calculate_gold_reward(enemy_level)  # Use existing function for now
+    """Legacy function for backward compatibility"""
+    return calculate_gold_reward(enemy_level)  # Redirect to gold reward function
 
 async def start_pvp_battle(ctx, target_member, player_data, target_data, data_manager):
     """Start a PvP battle between two players"""
@@ -1173,7 +1173,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "result": "win",
             "timestamp": current_time.isoformat(),
             "exp_gained": exp_reward,
-            "cursed_energy_gained": cursed_energy_reward,
+            "gold_gained": cursed_energy_reward,
             "opponent_level": target_data.class_level
         }
         player_data.pvp_history.append(battle_record)
@@ -1184,7 +1184,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "opponent_name": ctx.author.display_name,
             "result": "loss",
             "timestamp": current_time.isoformat(),
-            "cursed_energy_lost": cursed_energy_penalty,
+            "gold_lost": cursed_energy_penalty,
             "opponent_level": player_data.class_level
         }
         target_data.pvp_history.append(battle_record)
@@ -1202,7 +1202,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{cursed_energy_reward} 🔮",
+                  f"Gold: +{cursed_energy_reward} 💰",
             inline=False
         )
         
@@ -1293,7 +1293,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
         result_embed.add_field(
             name=f"Rewards for {target_member.display_name}",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Cursed Energy: +{gold_reward} 🔮",
+                  f"Gold: +{gold_reward} 💰",
             inline=False
         )
         

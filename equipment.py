@@ -1253,12 +1253,12 @@ async def buy_command(ctx, item_name: str, data_manager: DataManager):
     item_data = matching_items[0]
     
     # Check if player can afford it
-    if player_data.cursed_energy < item_data["value"]:
-        await ctx.send(f"❌ You can't afford this item! It costs {item_data['value']} cursed energy 🔮, but you only have {player_data.cursed_energy} 🔮.")
+    if player_data.gold < item_data["value"]:
+        await ctx.send(f"❌ You can't afford this item! It costs {item_data['value']} gold 💰, but you only have {player_data.gold} 💰.")
         return
     
     # Process purchase
-    player_data.cursed_energy -= item_data["value"]
+    player_data.remove_gold(item_data["value"])
     
     # Create and add item to inventory
     new_item = Item(
@@ -1280,7 +1280,7 @@ async def buy_command(ctx, item_name: str, data_manager: DataManager):
     # Create confirmation embed
     embed = discord.Embed(
         title="✅ Purchase Successful",
-        description=f"You have purchased {new_item.name} for {new_item.value} cursed energy! 🔮",
+        description=f"You have purchased {new_item.name} for {new_item.value} gold! 💰",
         color=discord.Color.dark_purple()
     )
     
