@@ -160,17 +160,27 @@ class Guild:
             return True
         return False
     
-    def deposit_cursed_energy(self, amount: int) -> bool:
-        """Deposit cursed energy into guild bank"""
+    def deposit_gold(self, amount: int) -> bool:
+        """Deposit gold into guild bank"""
         self.bank += amount
         return True
+        
+    # Legacy method for backward compatibility
+    def deposit_cursed_energy(self, amount: int) -> bool:
+        """Legacy method that calls deposit_gold"""
+        return self.deposit_gold(amount)
     
-    def withdraw_cursed_energy(self, amount: int) -> bool:
-        """Withdraw cursed energy from guild bank if available"""
+    def withdraw_gold(self, amount: int) -> bool:
+        """Withdraw gold from guild bank if available"""
         if self.bank >= amount:
             self.bank -= amount
             return True
         return False
+        
+    # Legacy method for backward compatibility
+    def withdraw_cursed_energy(self, amount: int) -> bool:
+        """Legacy method that calls withdraw_gold"""
+        return self.withdraw_gold(amount)
     
     def get_active_perks(self) -> List[Dict[str, str]]:
         """Get all perks active at current guild level"""
@@ -278,18 +288,18 @@ GUILD_WEEKLY_CHALLENGES = [
     },
     {
         "id": "gold_collectors",
-        "name": "Cursed Energy Collectors",
-        "description": "Collect 10,000 cursed energy as a guild",
+        "name": "Gold Collectors",
+        "description": "Collect 10,000 gold as a guild",
         "target": 10000,
-        "reward": {"exp": 2000, "cursed_energy": 5000},
-        "type": "cursed_energy_collected"
+        "reward": {"exp": 2000, "gold": 5000},
+        "type": "gold_collected"
     },
     {
         "id": "item_finders",
         "name": "Item Finders",
         "description": "Find 50 items of uncommon or higher rarity",
         "target": 50,
-        "reward": {"exp": 1800, "cursed_energy": 4000},
+        "reward": {"exp": 1800, "gold": 4000},
         "type": "items_found"
     }
 ]
@@ -376,8 +386,8 @@ class GuildManager:
             return False, f"You must be at least level 5 to create a guild. You are currently level {player_data.class_level}."
             
         # Check if player has enough cursed energy (1000)
-        if player_data.cursed_energy < 1000:
-            return False, f"You need 1000 cursed energy to create a guild. You currently have {player_data.cursed_energy}."
+        if player_data.gold < 1000:
+            return False, f"You need 1000 💰 gold to create a guild. You currently have {player_data.gold} 💰."
         
         # Create new guild
         new_guild = Guild(name, leader_id)
@@ -387,7 +397,7 @@ class GuildManager:
         self.member_guild_map[leader_id] = name
         
         # Deduct cursed energy
-        player_data.remove_cursed_energy(1000)
+        player_data.remove_gold(1000)
         
         # Save data
         self.save_guilds()
@@ -2183,73 +2193,116 @@ class GuildTeamDungeonView(View):
     
     async def start_callback(self, interaction: discord.Interaction):
         """Handle starting the dungeon"""
-        # Check if user is the team leader
-        if interaction.user.id != self.leader_data.user_id:
-            await interaction.response.send_message(
-                "Only the team leader can start the dungeon.",
-                ephemeral=True
-            )
+        try:
+            # Check if user is the team leader
+            if interaction.user.id != self.leader_data.user_id:
+                await interaction.response.send_message(
+                    "Only the team leader can start the dungeon.",
+                    ephemeral=True
+                )
+                return
+            
+            # Check if dungeon is selected
+            if not self.dungeon_name:
+                await interaction.response.send_message(
+                    "Please select a dungeon first.",
+                    ephemeral=True
+                )
+                return
+            
+            # Check if all members are ready
+            if len(self.ready_members) != len(self.team_members):
+                await interaction.response.send_message(
+                    "Not all team members are ready.",
+                    ephemeral=True
+                )
+                return
+            
+            # Import dungeon system
+            from dungeons import DUNGEONS, DungeonProgressView
+            
+            # Check if dungeon exists
+            if self.dungeon_name not in DUNGEONS:
+                await interaction.response.send_message(
+                    "Selected dungeon not found.",
+                    ephemeral=True
+                )
+                return
+                
+            # Acknowledge the interaction immediately to prevent timeout
+            await interaction.response.defer()
+            
+            # Create a list of player data for all team members
+            team_player_data = []
+            for member_id in self.team_members:
+                player_data = self.data_manager.get_player(member_id)
+                if player_data:
+                    team_player_data.append(player_data)
+        
+            # Start the dungeon with team
+            dungeon_data = DUNGEONS[self.dungeon_name]
+            
+            # Add guild bonus to dungeon
+            guild_dungeon_bonus = {}
+            
+            # Apply guild perks based on level
+            active_perks = self.guild.get_active_perks()
+            for perk in active_perks:
+                if perk["name"] == "United We Stand":
+                    guild_dungeon_bonus["exp_bonus"] = 0.01  # 1% XP bonus
+                elif perk["name"] == "Guild Tactics":
+                    guild_dungeon_bonus["damage_bonus"] = 0.02  # 2% damage bonus
+                elif perk["name"] == "Brotherhood":
+                    guild_dungeon_bonus["gold_bonus"] = 0.05  # 5% gold bonus
+        except Exception as e:
+            # Handle any exceptions by responding to the user
+            try:
+                await interaction.followup.send(f"❌ Error starting dungeon: {str(e)}", ephemeral=True)
+            except:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(f"❌ Error starting dungeon", ephemeral=True)
             return
         
-        # Check if dungeon is selected
-        if not self.dungeon_name:
-            await interaction.response.send_message(
-                "Please select a dungeon first.",
-                ephemeral=True
+        try:
+            # Create the dungeon progress view with guild team
+            dungeon_view = DungeonProgressView(
+                self.leader_data,  # Main player leading the run
+                DUNGEONS[self.dungeon_name],
+                self.data_manager,
+                self.dungeon_name,
+                guild=self.guild,
+                guild_bonus=guild_dungeon_bonus,
+                team_player_data=team_player_data
             )
-            return
-        
-        # Check if all members are ready
-        if len(self.ready_members) != len(self.team_members):
-            await interaction.response.send_message(
-                "Not all team members are ready.",
-                ephemeral=True
+            
+            # Send the dungeon view message
+            dungeon_embed = discord.Embed(
+                title=f"⚔️ Guild Dungeon: {self.dungeon_name}",
+                description=f"Your guild team is embarking on a dungeon adventure!",
+                color=discord.Color.blue()
             )
-            return
-        
-        # Import dungeon system
-        from dungeons import DUNGEONS, DungeonProgressView
-        
-        # Check if dungeon exists
-        if self.dungeon_name not in DUNGEONS:
-            await interaction.response.send_message(
-                "Selected dungeon not found.",
-                ephemeral=True
+            
+            # Show team members who are ready
+            members_str = ""
+            for i, member_id in enumerate(self.team_members):
+                try:
+                    member = await interaction.client.fetch_user(member_id)
+                    members_str += f"{i+1}. {member.display_name} ✅\n"
+                except:
+                    members_str += f"{i+1}. Member ID: {member_id} ✅\n"
+            
+            dungeon_embed.add_field(
+                name="Team Members",
+                value=members_str,
+                inline=False
             )
-            return
-        
-        # Create a list of player data for all team members
-        team_player_data = []
-        for member_id in self.team_members:
-            player_data = self.data_manager.get_player(member_id)
-            if player_data:
-                team_player_data.append(player_data)
-        
-        # Start the dungeon with team
-        dungeon_data = DUNGEONS[self.dungeon_name]
-        
-        # Add guild bonus to dungeon
-        guild_dungeon_bonus = {}
-        
-        # Apply guild perks based on level
-        active_perks = self.guild.get_active_perks()
-        for perk in active_perks:
-            if perk["name"] == "United We Stand":
-                guild_dungeon_bonus["exp_bonus"] = 0.01  # 1% XP bonus
-            elif perk["name"] == "Guild Tactics":
-                guild_dungeon_bonus["damage_bonus"] = 0.02  # 2% damage bonus
-            elif perk["name"] == "Brotherhood":
-                guild_dungeon_bonus["gold_bonus"] = 0.05  # 5% gold bonus
-        
-        # Create the dungeon progress view with guild team
-        dungeon_view = DungeonProgressView(
-            team_player_data,  # List of player data objects
-            dungeon_data,
-            self.data_manager,
-            self.dungeon_name,
-            guild=self.guild,
-            guild_bonus=guild_dungeon_bonus
-        )
+            
+            # Start the dungeon
+            await interaction.followup.send(embed=dungeon_embed, view=dungeon_view)
+            
+        except Exception as e:
+            # Handle errors in dungeon creation
+            await interaction.followup.send(f"❌ Error starting dungeon: {str(e)}", ephemeral=True)
         
         # Update guild achievement progress
         if "dungeon_conquerors" in self.guild.achievements_progress:
@@ -2271,7 +2324,11 @@ class GuildTeamDungeonView(View):
         # Add team members
         team_list = ""
         for i, player in enumerate(team_player_data):
-            team_list += f"{i+1}. **{player.username}** (Level {player.class_level} {player.class_name})\n"
+            # Get the member's username from interaction or use user_id as fallback
+            member_name = f"Member {player.user_id}"
+            if hasattr(player, 'username'):
+                member_name = player.username
+            team_list += f"{i+1}. **{member_name}** (Level {player.class_level} {player.class_name})\n"
         
         dungeon_embed.add_field(
             name="Guild Team",
@@ -2409,8 +2466,8 @@ async def guild_command(ctx, action: str = None, *args):
     
     elif action.lower() == "create":
         # Check if player has guild charter item
-        if player_data.cursed_energy < 1000:
-            await ctx.send("❌ You need 1,000 🌀 Cursed Energy to create a guild. Current balance: {} 🌀".format(player_data.cursed_energy))
+        if player_data.gold < 1000:
+            await ctx.send("❌ You need 1,000 💰 Gold to create a guild. Current balance: {} 💰".format(player_data.gold))
             return
 
         # Get guild name from arguments

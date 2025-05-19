@@ -252,7 +252,7 @@ class PlayerData:
         Calculate the player's maximum battle energy based on level and training.
         
         IMPORTANT: Battle Energy is the resource used for combat abilities and skills.
-        It is completely separate from Cursed Energy, which is the game's currency.
+        It is completely separate from Gold, which is the game's currency.
         
         Battle Energy scales with player level (5 per level) and is permanently increased
         through Energy Cultivation specialized training.

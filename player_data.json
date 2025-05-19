@@ -3,12 +3,13 @@
         "759434349069860945": {
             "class_name": "Flash Rogue",
             "class_level": 10,
-            "class_exp": 3209,
+            "class_exp": 3375,
             "user_level": 1,
             "user_exp": 0,
-            "cursed_energy": 8937,
+            "gold": 125,
+            "max_gold": 150,
+            "cursed_energy": 125,
             "max_cursed_energy": 150,
-            "gold": 0,
             "unlocked_classes": [
                 "Flash Rogue"
             ],
@@ -445,6 +446,23 @@
                     },
                     "quantity": 1,
                     "equipped": false
+                },
+                {
+                    "item": {
+                        "item_id": "2Ff76MfR",
+                        "name": "Spike Knuckles",
+                        "description": "Hand protection with offensive spikes.",
+                        "item_type": "weapon",
+                        "rarity": "common",
+                        "stats": {
+                            "power": 2,
+                            "speed": 1
+                        },
+                        "level_req": 1,
+                        "value": 45
+                    },
+                    "quantity": 1,
+                    "equipped": false
                 }
             ],
             "equipped_items": {
@@ -498,7 +516,7 @@
             "daily_streak": 2,
             "last_train": "2025-05-18T19:18:54.134059",
             "dungeon_clears": {
-                "Ancient Forest": 12,
+                "Ancient Forest": 13,
                 "Forgotten Cave": 8
             },
             "skill_cooldowns": {},
@@ -524,9 +542,10 @@
             "class_exp": 0,
             "user_level": 1,
             "user_exp": 0,
-            "cursed_energy": 100,
-            "max_cursed_energy": 100,
             "gold": 0,
+            "max_gold": 100,
+            "cursed_energy": 0,
+            "max_cursed_energy": 100,
             "unlocked_classes": [],
             "inventory": [],
             "equipped_items": {
@@ -569,9 +588,10 @@
             "class_exp": 0,
             "user_level": 1,
             "user_exp": 0,
-            "cursed_energy": 100,
-            "max_cursed_energy": 100,
             "gold": 0,
+            "max_gold": 100,
+            "cursed_energy": 0,
+            "max_cursed_energy": 100,
             "unlocked_classes": [],
             "inventory": [],
             "equipped_items": {
@@ -614,9 +634,10 @@
             "class_exp": 0,
             "user_level": 1,
             "user_exp": 0,
-            "cursed_energy": 1100,
-            "max_cursed_energy": 1000000,
             "gold": 0,
+            "max_gold": 1000000,
+            "cursed_energy": 0,
+            "max_cursed_energy": 1000000,
             "unlocked_classes": [],
             "inventory": [],
             "equipped_items": {
@@ -674,7 +695,9 @@
             "emblem": "\u2694\ufe0f",
             "color": 7419530,
             "achievements": [],
-            "achievements_progress": {},
+            "achievements_progress": {
+                "dungeon_conquerors": 1
+            },
             "upgrades": {
                 "bank_level": 1,
                 "member_capacity": 1,

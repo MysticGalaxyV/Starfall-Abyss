@@ -462,7 +462,7 @@ class BattleView(View):
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/100 ⚡\n"
+            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
             f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
             f"{player_status_msg}{enemy_status_msg}"
@@ -608,7 +608,7 @@ class BattleView(View):
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/100 ⚡\n"
+            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
             f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
             f"{player_status_msg}{enemy_status_msg}"

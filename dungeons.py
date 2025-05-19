@@ -691,10 +691,10 @@ class DungeonProgressView(View):
             self.player_current_hp = player_entity.current_hp
             
             # Small reward for each enemy defeated
-            minor_cursed_energy = int(self.dungeon_data["max_rewards"] * 0.1)
+            minor_gold = int(self.dungeon_data["max_rewards"] * 0.1)
             minor_exp = int(self.dungeon_data["exp"] * 0.1)
             
-            self.player_data.cursed_energy += minor_cursed_energy
+            self.player_data.add_gold(minor_gold)
             self.player_data.add_exp(minor_exp)
             
             win_embed = discord.Embed(
@@ -705,7 +705,7 @@ class DungeonProgressView(View):
             
             win_embed.add_field(
                 name="Minor Rewards",
-                value=f"Gold: +{minor_cursed_energy} 💰\n"
+                value=f"Gold: +{minor_gold} 💰\n"
                       f"EXP: +{minor_exp} 📊",
                 inline=False
             )
