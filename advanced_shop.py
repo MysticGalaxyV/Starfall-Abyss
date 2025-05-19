@@ -1280,8 +1280,8 @@ class AdvancedShopView(View):
                 from equipment import add_item_to_inventory
                 add_item_to_inventory(self.player_data, new_item)
                 
-                # Deduct cursed energy
-                self.player_data.cursed_energy -= item_data["value"]
+                # Deduct gold using the proper method
+                self.player_data.remove_gold(item_data["value"])
                 
                 # Save data
                 self.data_manager.save_data()
@@ -1313,10 +1313,10 @@ class AdvancedShopView(View):
                 # Show the success message
                 await interaction.response.edit_message(embed=success_embed, view=self)
             else:
-                # Not enough cursed energy
+                # Not enough gold
                 error_embed = discord.Embed(
-                    title="Not Enough Cursed Energy",
-                    description=f"You need {item_data['value']} cursed energy to purchase this item, but you only have {self.player_data.cursed_energy}.",
+                    title="Not Enough Gold",
+                    description=f"You need {item_data['value']} gold to purchase this item, but you only have {self.player_data.gold}.",
                     color=discord.Color.red()
                 )
                 
@@ -1344,7 +1344,7 @@ class AdvancedShopView(View):
         # Create the embed
         embed = discord.Embed(
             title=info["name"],
-            description=info["description"],
+            description=f"{info['description']}\nGold: {self.player_data.gold} 💰",
             color=info["color"]
         )
         

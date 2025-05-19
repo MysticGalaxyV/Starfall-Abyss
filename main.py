@@ -311,41 +311,7 @@ async def start_command(ctx):
         # Save player data
         data_manager.save_data()
 
-        # After class selection, first send domain expansion message
-        domain_embed = discord.Embed(
-            title="DOMAIN EXPANSION",
-            description=("```\nReality is obsolete.\n"
-                         "The code of the soul, rewritten.\n"
-                         "Welcome to my world—\n"
-                         "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
-            color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
-        )
-        
-        # Add the character image with built-in domain expansion text
-        domain_embed.set_image(url="attachment://domain_expansion.png")
-        
-        # Try to find the image in various possible locations
-        image_paths = [
-            "attached_assets/image_1747675410070.png",
-            "./attached_assets/image_1747675410070.png"
-        ]
-
-        file = None
-        for path in image_paths:
-            try:
-                if os.path.exists(path):
-                    file = discord.File(path, filename="domain_expansion.png")
-                    break
-            except:
-                continue
-
-        # Send domain expansion message first
-        if file:
-            await ctx.send(embed=domain_embed, file=file)
-        else:
-            domain_embed.set_image(url=bot.user.display_avatar.url)
-            await ctx.send(embed=domain_embed)
-        
+        # We already sent the domain expansion message at the beginning, no need to send it again
         # Brief delay to ensure messages appear in the right order
         await asyncio.sleep(1)
             
@@ -378,8 +344,17 @@ async def start_command(ctx):
 
 
 @bot.command(name="profile")
-async def profile_command(ctx, member: discord.Member = None):
+async def profile_cmd(ctx, member: discord.Member = None):
     """View your or another player's profile"""
+    await profile_command(ctx, member)
+    
+@bot.command(name="p")
+async def p_cmd(ctx, member: discord.Member = None):
+    """View your or another player's profile (alias)"""
+    await profile_command(ctx, member)
+    
+async def profile_command(ctx, member: discord.Member = None):
+    """Implementation of profile command"""
     # Get the target user
     target = member or ctx.author
     user_id = target.id
@@ -539,12 +514,10 @@ async def daily_command(ctx):
     exp_reward = int(base_exp * (1 + streak_bonus))
 
     # Add gold (no maximum limit)
-    player.cursed_energy += gold_reward
+    player.add_gold(gold_reward)
 
     # Add battle energy (with max limit check)
-    player.battle_energy += battle_energy_reward
-    if player.battle_energy > player.max_battle_energy:
-        player.battle_energy = player.max_battle_energy
+    player.add_battle_energy(battle_energy_reward)
 
     # Add experience
     leveled_up = player.add_exp(exp_reward)
@@ -1017,20 +990,22 @@ async def q_cmd(ctx):
 async def levels_cmd(ctx):
     """View your level information and progression details"""
     player = data_manager.get_player(ctx.author.id)
-
-    next_level_xp = player.xp_to_next_level()
-    progress_percentage = round((player.xp / next_level_xp) *
-                                100 if next_level_xp > 0 else 100)
+    
+    # Calculate next level XP based on class level
+    next_level_xp = int(100 * (player.class_level ** 1.5))
+    progress_percentage = round((player.class_exp / next_level_xp) *
+                              100 if next_level_xp > 0 else 100)
     progress_bar = "".join(
         ["█" if i < progress_percentage / 10 else "░" for i in range(10)])
 
     embed = discord.Embed(title=f"{ctx.author.name}'s Level Information",
                           color=discord.Color.blue())
 
-    embed.add_field(name="Level Progress",
-                    value=f"Level: {player.level}/100\n"
-                    f"XP: {player.xp}/{next_level_xp}\n"
-                    f"XP to next level: {next_level_xp - player.xp}\n"
+    embed.add_field(name="Class Level Progress",
+                    value=f"Class: {player.class_name}\n"
+                    f"Level: {player.class_level}/100\n"
+                    f"XP: {player.class_exp}/{next_level_xp}\n"
+                    f"XP to next level: {next_level_xp - player.class_exp}\n"
                     f"Progress: {progress_percentage}%\n"
                     f"[{progress_bar}]",
                     inline=False)
