@@ -27,6 +27,7 @@ from crafting_system import crafting_command, CraftingEntryView
 from encyclopedia import encyclopedia_command, browser_command, codex_command, EncyclopediaExploreView, ENCYCLOPEDIA_SECTIONS
 from skill_tree import skill_tree_command, skills_tree_command
 from trading_system import trade_command, t_command, slash_trade
+from leaderboard import leaderboard_command
 
 # Bot setup
 # NOTE: This bot requires "Message Content Intent" and "Server Members Intent" to be enabled
@@ -1060,6 +1061,16 @@ async def quests_cmd(ctx):
 async def q_cmd(ctx):
     """View your active quests and special events (alias)"""
     await quests_command(ctx, data_manager)
+    
+@bot.command(name="leaderboard", aliases=["lb", "top"])
+async def leaderboard_cmd(ctx, category: str = "level"):
+    """View the top players leaderboard"""
+    await leaderboard_command(ctx, data_manager, category)
+    
+@bot.command(name="rankings")
+async def rankings_cmd(ctx, category: str = "level"):
+    """View the top players leaderboard (alias)"""
+    await leaderboard_command(ctx, data_manager, category)
 
 
 @bot.command(name="levels")
