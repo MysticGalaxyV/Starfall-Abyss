@@ -3,12 +3,12 @@
         "759434349069860945": {
             "class_name": "Flash Rogue",
             "class_level": 2,
-            "class_exp": 240,
+            "class_exp": 372,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 300,
+            "gold": 398,
             "max_gold": 1000200,
-            "cursed_energy": 300,
+            "cursed_energy": 398,
             "max_cursed_energy": 1000200,
             "unlocked_classes": [
                 "Flash Rogue"
@@ -60,20 +60,6 @@
                 },
                 {
                     "item": {
-                        "item_id": "ecd32342-f0ab-43f7-be14-2c0b34e133dd",
-                        "name": "Uncommon Stone",
-                        "description": "A uncommon quality stone used in crafting.",
-                        "item_type": "Material:Mining",
-                        "rarity": "Uncommon",
-                        "stats": {},
-                        "level_req": 1,
-                        "value": 10
-                    },
-                    "quantity": 3,
-                    "equipped": false
-                },
-                {
-                    "item": {
                         "item_id": "a3140b38-52d7-4b37-b4c4-7a1d2ad148fb",
                         "name": "Common Timber",
                         "description": "A common quality timber used in crafting.",
@@ -112,20 +98,6 @@
                         "value": 8
                     },
                     "quantity": 3,
-                    "equipped": false
-                },
-                {
-                    "item": {
-                        "item_id": "f8bac6bf-f968-43b9-b2ea-1a36f09716fe",
-                        "name": "Rare Wolf Fang",
-                        "description": "A rare quality wolf fang used in crafting.",
-                        "item_type": "Material:Monster Parts",
-                        "rarity": "Rare",
-                        "stats": {},
-                        "level_req": 1,
-                        "value": 50
-                    },
-                    "quantity": 1,
                     "equipped": false
                 },
                 {
@@ -214,42 +186,47 @@
                 },
                 {
                     "item": {
-                        "item_id": "9aea8c12-98a5-427b-ab14-e662c2ce9336",
-                        "name": "Rare Stone",
-                        "description": "A rare quality stone used in crafting.",
-                        "item_type": "Material:Mining",
-                        "rarity": "Rare",
-                        "stats": {},
+                        "item_id": "YsqvQBLT",
+                        "name": "Cursed Tool: Novice Staff",
+                        "description": "A basic staff that channels cursed energy.",
+                        "item_type": "weapon",
+                        "rarity": "common",
+                        "stats": {
+                            "power": 3
+                        },
                         "level_req": 1,
-                        "value": 25
+                        "value": 50
                     },
-                    "quantity": 2,
+                    "quantity": 0,
                     "equipped": false
                 },
                 {
                     "item": {
-                        "item_id": "250e85ce-3746-42a0-8c56-3f7672f29a2d",
-                        "name": "Common Stone",
-                        "description": "A common quality stone used in crafting.",
-                        "item_type": "Material:Mining",
-                        "rarity": "Common",
+                        "item_id": "0f81ea07-03c3-47fb-a3c7-4f44ded20480",
+                        "name": "Uncommon Wolf Fang",
+                        "description": "A uncommon quality wolf fang used in crafting.",
+                        "item_type": "Material:Monster Parts",
+                        "rarity": "Uncommon",
                         "stats": {},
                         "level_req": 1,
-                        "value": 5
+                        "value": 20
                     },
                     "quantity": 1,
                     "equipped": false
                 },
                 {
                     "item": {
-                        "item_id": "43036896-627d-4369-b0d8-e14e47181f24",
-                        "name": "Epic Stone",
-                        "description": "A epic quality stone used in crafting.",
-                        "item_type": "Material:Mining",
-                        "rarity": "Epic",
-                        "stats": {},
+                        "item_id": "80ef7850-ede4-4265-bfb3-4fab8ba12509",
+                        "name": "Common Club",
+                        "description": "A common quality club. Deals damage based on strength, defense.",
+                        "item_type": "Weapons:Maces",
+                        "rarity": "Common",
+                        "stats": {
+                            "strength": 5,
+                            "defense": 5
+                        },
                         "level_req": 1,
-                        "value": 75
+                        "value": 111
                     },
                     "quantity": 1,
                     "equipped": false
@@ -278,7 +255,7 @@
             "skill_points_spent": {
                 "wisdom": 3
             },
-            "wins": 1,
+            "wins": 2,
             "losses": 0,
             "last_daily": "2025-05-19T19:19:39.773827",
             "daily_streak": 1,
@@ -290,7 +267,7 @@
             "training_cooldowns": {
                 "Energy Cultivation": "2025-05-19T23:22:34.815359"
             },
-            "battle_energy": 105,
+            "battle_energy": 45,
             "max_battle_energy": 105,
             "technique_grade": "Grade 3",
             "domain_expansion": null,
@@ -300,6 +277,52 @@
             "last_pvp_battle": null
         },
         "1264209239971463188": {
+            "class_name": null,
+            "class_level": 1,
+            "class_exp": 0,
+            "user_level": 1,
+            "user_exp": 0,
+            "gold": 100,
+            "max_gold": 1000000,
+            "cursed_energy": 100,
+            "max_cursed_energy": 1000000,
+            "unlocked_classes": [],
+            "inventory": [],
+            "equipped_items": {
+                "weapon": null,
+                "armor": null,
+                "accessory": null
+            },
+            "achievements": [],
+            "skill_points": 0,
+            "allocated_stats": {
+                "power": 0,
+                "defense": 0,
+                "speed": 0,
+                "hp": 0
+            },
+            "skill_tree": {},
+            "skill_points_spent": {},
+            "wins": 0,
+            "losses": 0,
+            "last_daily": null,
+            "daily_streak": 0,
+            "last_train": null,
+            "dungeon_clears": {},
+            "skill_cooldowns": {},
+            "special_abilities": {},
+            "active_effects": {},
+            "training_cooldowns": {},
+            "battle_energy": 100,
+            "max_battle_energy": 100,
+            "technique_grade": "Grade 3",
+            "domain_expansion": null,
+            "pvp_history": [],
+            "pvp_wins": 0,
+            "pvp_losses": 0,
+            "last_pvp_battle": null
+        },
+        "600634012230221834": {
             "class_name": null,
             "class_level": 1,
             "class_exp": 0,
