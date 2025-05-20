@@ -1,8 +1,12 @@
 [project]
 name = "repl-nix-workspace"
 version = "0.1.0"
-description = "Add your description here"
+description = ""
 requires-python = ">=3.11"
 dependencies = [
     "discord-py>=2.5.2",
+    "python-dotenv==1.0.1",
 ]
+
+[tool.setuptools.packages.find]
+include = ["saved_images", "attached_assets"]

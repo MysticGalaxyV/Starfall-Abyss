@@ -29,7 +29,9 @@ from skill_tree import skill_tree_command, skills_tree_command
 from trading_system import trade_command, t_command, slash_trade
 from leaderboard import leaderboard_command
 from level_validation import validate_player_level, auto_correct_player_level
+from dotenv import load_dotenv
 
+load_dotenv()
 # Bot setup
 # NOTE: This bot requires "Message Content Intent" and "Server Members Intent" to be enabled
 # in the Discord Developer Portal: https://discord.com/developers/applications/
