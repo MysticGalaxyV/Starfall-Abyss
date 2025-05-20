@@ -2,14 +2,14 @@
     "players": {
         "759434349069860945": {
             "class_name": "Flash Rogue",
-            "class_level": 3,
-            "class_exp": 192,
+            "class_level": 4,
+            "class_exp": 346,
             "user_level": 1,
             "user_exp": 0,
-            "gold": 443,
-            "max_gold": 1000200,
-            "cursed_energy": 443,
-            "max_cursed_energy": 1000200,
+            "gold": 665,
+            "max_gold": 1000400,
+            "cursed_energy": 665,
+            "max_cursed_energy": 1000400,
             "unlocked_classes": [
                 "Flash Rogue"
             ],
@@ -240,22 +240,24 @@
             "achievements": [],
             "skill_points": 0,
             "allocated_stats": {
-                "power": 11,
-                "defense": 5,
-                "speed": 3,
-                "hp": 0
+                "power": 21,
+                "defense": 15,
+                "speed": 8,
+                "hp": 45
             },
             "skill_tree": {
                 "wisdom": {
                     "Healing Touch": 1,
                     "Spirit Link": 1,
-                    "Protective Aura": 1
+                    "Protective Aura": 1,
+                    "Divine Intervention": 1,
+                    "Resurrection": 1
                 }
             },
             "skill_points_spent": {
-                "wisdom": 3
+                "wisdom": 5
             },
-            "wins": 4,
+            "wins": 6,
             "losses": 1,
             "last_daily": "2025-05-19T19:19:39.773827",
             "daily_streak": 1,
@@ -265,10 +267,16 @@
             "special_abilities": {},
             "active_effects": {},
             "training_cooldowns": {
-                "Energy Cultivation": "2025-05-19T23:22:34.815359"
+                "Energy Cultivation": "2025-05-20T04:10:04.363787",
+                "Tactical Analysis": "2025-05-20T01:49:24.649779",
+                "Combat Training": "2025-05-20T02:06:52.297693",
+                "Defensive Stance": "2025-05-20T02:07:43.886229",
+                "Agility Course": "2025-05-20T02:08:32.460421",
+                "Cursed Energy Control": "2025-05-20T02:09:18.388180",
+                "Shadow Technique": "2025-05-20T04:10:29.070060"
             },
-            "battle_energy": 115,
-            "max_battle_energy": 105,
+            "battle_energy": 125,
+            "max_battle_energy": 110,
             "technique_grade": "Grade 3",
             "domain_expansion": null,
             "pvp_history": [],
