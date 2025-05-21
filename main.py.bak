@@ -604,7 +604,7 @@ async def train_cmd(ctx):
     """Train to improve your stats"""
     await train_command(ctx, data_manager)
     
-@bot.command(name="advanced_training", aliases=["atrain"])
+@bot.command(name="advanced_training", aliases=["atrain", "at"])
 async def advanced_training_cmd(ctx):
     """Participate in advanced training exercises"""
     await advanced_training_command(ctx, data_manager)

@@ -101,7 +101,7 @@ async def on_ready():
         print(f"Corrected level inconsistencies for {len(corrections)} players:")
         for user_id, (old_level, new_level) in corrections.items():
             print(f"Player {user_id}: Level {old_level} → {new_level}")
-    
+
     # Sync slash commands with Discord
     try:
         synced = await bot.tree.sync()
@@ -113,7 +113,7 @@ async def on_ready():
     for guild in bot.guilds:
         # Look for ideal channels first (welcome or general)
         preferred_channels = ["welcome", "general", "chat", "bot-commands", "announcements"]
-        
+
         for preferred_name in preferred_channels:
             preferred_channel = discord.utils.get(guild.text_channels, name=preferred_name)
             if preferred_channel and preferred_channel.permissions_for(guild.me).send_messages:
@@ -125,12 +125,12 @@ async def on_ready():
                 channel for channel in guild.text_channels
                 if channel.permissions_for(guild.me).send_messages
             ]
-            
+
             if not text_channels:
                 continue  # Skip this guild if no suitable channel found
-                
+
             channel = text_channels[0]
-            
+
             # Create the domain expansion embed with your exact text
             domain_embed = discord.Embed(
                 title="DOMAIN EXPANSION",
@@ -140,7 +140,7 @@ async def on_ready():
                              "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
                 color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
             )
-            
+
             # Add the character image with built-in domain expansion text
             domain_embed.set_image(url="attachment://domain_expansion.png")
             # No footer to keep the message clean and simple
@@ -241,7 +241,7 @@ async def start_command(ctx):
             f"❌ You've already chosen the **{player.class_name}** class! You cannot start over."
         )
         return
-        
+
     # First send domain expansion message
     domain_embed = discord.Embed(
         title="DOMAIN EXPANSION",
@@ -251,10 +251,10 @@ async def start_command(ctx):
                      "DOMAIN EXPANSION: STARFALL ABYSS\n```"),
         color=discord.Color.from_rgb(128, 0, 255)  # Deep purple color
     )
-    
+
     # Add the character image with built-in domain expansion text
     domain_embed.set_image(url="attachment://domain_expansion.png")
-    
+
     # Try to find the image in various possible locations
     image_paths = [
         "attached_assets/image_1747675410070.png",
@@ -276,10 +276,10 @@ async def start_command(ctx):
     else:
         domain_embed.set_image(url=bot.user.display_avatar.url)
         await ctx.send(embed=domain_embed)
-    
+
     # Brief delay to ensure messages appear in the right order
     await asyncio.sleep(1)
-    
+
     # Create embed for class selection
     embed = discord.Embed(
         title="🔮 Choose Your Class",
@@ -326,7 +326,7 @@ async def start_command(ctx):
         # We already sent the domain expansion message at the beginning, no need to send it again
         # Brief delay to ensure messages appear in the right order
         await asyncio.sleep(1)
-            
+
         # Send welcome message
         welcome_embed = discord.Embed(
             title=WELCOME_MESSAGE,
@@ -359,35 +359,35 @@ async def start_command(ctx):
 async def profile_cmd(ctx, member: discord.Member = None):
     """View your or another player's profile"""
     await profile_command(ctx, member)
-    
+
 @bot.command(name="p")
 async def p_cmd(ctx, member: discord.Member = None):
     """View your or another player's profile (alias)"""
     await profile_command(ctx, member)
-    
+
 async def check_secret_cutscene(ctx, player_data):
     """Check if player has completed all requirements for the secret cutscene"""
     # Check if player has completed all achievements
     from achievements import AchievementTracker, QuestManager
-    
+
     # Create achievement tracker and quest manager
     achievement_tracker = AchievementTracker(data_manager)
     quest_manager = QuestManager(data_manager)
-    
+
     # Get all player achievements
     player_achievements = achievement_tracker.get_player_achievements(player_data)
     available_achievements = achievement_tracker.get_player_available_achievements(player_data)
-    
+
     # Get all player quests
     daily_quests = quest_manager.get_daily_quests(player_data)
     weekly_quests = quest_manager.get_weekly_quests(player_data)
     long_term_quests = quest_manager.get_long_term_quests(player_data)
-    
+
     # Check guild quests completion
     from guild_system import GuildManager
     guild_manager = GuildManager(data_manager)
     guild_data = guild_manager.get_player_guild(player_data.user_id)
-    
+
     guild_quests_completed = False
     if guild_data:
         # Guild data is a Guild object, not a dictionary
@@ -400,25 +400,25 @@ async def check_secret_cutscene(ctx, player_data):
         else:
             # If there are no quests, consider it completed
             guild_quests_completed = True
-    
+
     # Check if all requirements are met
     if (not available_achievements and player_achievements and
         not daily_quests and not weekly_quests and 
         all(quest.get("completed", False) for quest in long_term_quests) and
         guild_quests_completed):
-        
+
         # Show the secret cutscene
         embed = discord.Embed(
             title="🌌 Secret Cutscene Unlocked 🌌",
             description="The world around you begins to shimmer and fade...",
             color=discord.Color.dark_purple()
         )
-        
+
         await ctx.send(embed=embed)
-        
+
         # Dramatic pause
         await asyncio.sleep(2)
-        
+
         # Final message
         final_embed = discord.Embed(
             title="🌟 Domain Master Appears 🌟",
@@ -428,10 +428,10 @@ async def check_secret_cutscene(ctx, player_data):
                         "\"You've truly become a master of the Starfall Abyss.\"",
             color=discord.Color.gold()
         )
-        
+
         await ctx.send(embed=final_embed)
         return True
-    
+
     return False
 
 async def profile_command(ctx, member: discord.Member = None):
@@ -453,7 +453,7 @@ async def profile_command(ctx, member: discord.Member = None):
             await ctx.send(
                 f"❌ {target.display_name} hasn't started their adventure yet!")
         return
-        
+
     # Check for secret cutscene if user is viewing their own profile
     if target == ctx.author:
         cutscene_shown = await check_secret_cutscene(ctx, player)
@@ -979,7 +979,7 @@ async def train_cmd(ctx):
     await train_command(ctx, data_manager)
 
 
-@bot.command(name="advanced_training", aliases=["atrain"])
+@bot.command(name="advanced_training", aliases=["atrain", "at"])
 async def advanced_training_cmd(ctx):
     """Participate in advanced training exercises"""
     await advanced_training_command(ctx, data_manager)
@@ -1019,7 +1019,7 @@ async def trade_cmd(ctx, target_member: discord.Member):
 async def guild_cmd(ctx, action: str = None, *args):
     """Guild system - create or join a guild and adventure with others"""
     await guild_command(ctx, action, *args)
-    
+
 @bot.command(name="g")
 async def g_cmd(ctx, action: str = None, *args):
     """Guild system - create or join a guild and adventure with others (alias)"""
@@ -1030,12 +1030,12 @@ async def g_cmd(ctx, action: str = None, *args):
 async def achievements_cmd(ctx):
     """View your achievements and badges"""
     await achievements_command(ctx, data_manager)
-    
+
 @bot.command(name="achieve")
 async def achieve_cmd(ctx):
     """View your achievements and badges (alias)"""
     await achievements_command(ctx, data_manager)
-    
+
 @bot.command(name="ach")
 async def ach_cmd(ctx):
     """View your achievements and badges (alias)"""
@@ -1051,75 +1051,489 @@ async def give_gold_cmd(ctx, member: discord.Member, amount: int):
         return
 
     player = data_manager.get_player(member.id)
-    player.cursed_energy += amount
+    player.add_gold(amount)
     data_manager.save_data()
 
     embed = discord.Embed(
         title="💰 Gold Added",
         description=
-        f"Added **{amount}** gold to {member.mention}'s balance.\nNew balance: **{player.cursed_energy}** 🔮",
+        f"Added **{amount}** gold to {member.mention}'s balance.\nNew balance: **{player.gold}** 💰",
         color=discord.Color.gold())
 
     await ctx.send(embed=embed)
+
+
+@bot.command(name="give_xp")
+@commands.check(admin_check)
+async def give_xp_cmd(ctx, member: discord.Member, amount: int):
+    """[Admin] Give XP to a user"""
+    if amount <= 0:
+        await ctx.send("❌ Amount must be greater than 0.")
+        return
+
+    player = data_manager.get_player(member.id)
+    leveled_up = player.add_exp(amount)
+    data_manager.save_data()
+
+    # Create an embed for the XP award
+    embed = discord.Embed(
+        title="📊 XP Added",
+        description=
+        f"Added **{amount}** XP to {member.mention}.\nCurrent level: **{player.class_level}** | XP: **{player.class_exp}**/{player.xp_to_next_level()}",
+        color=discord.Color.green())
+
+    # If player leveled up, add that info to the embed
+    if leveled_up:
+        embed.add_field(
+            name="🆙 Level Up!",
+            value=f"{member.mention} leveled up to **Level {player.class_level}**!",
+            inline=False
+        )
+
+    await ctx.send(embed=embed)
+
+
+@bot.command(name="give_item")
+@commands.check(admin_check)
+async def give_item_cmd(ctx, member: discord.Member = None, *, item_name: str = None):
+    """[Admin] Give items to a user with an interactive menu"""
+    # If no member specified, show usage
+    if not member:
+        await ctx.send("❌ Usage: `!give_item @player [optional_search_term]`")
+        return
+
+    player = data_manager.get_player(member.id)
+
+    # Import necessary functions
+    from equipment import get_all_items, add_item_to_inventory, generate_item_id
+    from special_items import get_all_special_items
+
+    # Combine regular and special items
+    all_items = get_all_items() + get_all_special_items()
+
+    # Filter items if search term provided
+    filtered_items = all_items
+    if item_name:
+        filtered_items = [item for item in all_items if item_name.lower() in item["name"].lower()]
+        if not filtered_items:
+            await ctx.send(f"❌ No items found matching '{item_name}'. Showing all items.")
+            filtered_items = all_items
+
+    # Create an item browser view
+    class ItemBrowserView(View):
+        def __init__(self, items_list, target_member, target_player):
+            super().__init__(timeout=120)
+            self.items = items_list
+            self.current_page = 0
+            self.items_per_page = 10
+            self.total_pages = (len(items_list) + self.items_per_page - 1) // self.items_per_page
+            self.member = target_member
+            self.player = target_player
+            self.selected_item = None
+            self.category_filter = "All"
+            self.rarity_filter = "All"
+
+            # Add category filter
+            self.add_category_filter()
+
+            # Add rarity filter
+            self.add_rarity_filter()
+
+            # Add pagination buttons
+            self.add_navigation_buttons()
+
+        def add_category_filter(self):
+            """Add dropdown for item category filtering"""
+            # Get unique categories from items
+            categories = set()
+            for item in self.items:
+                categories.add(item["item_type"].title())
+
+            categories = sorted(list(categories))
+
+            # Create select menu
+            select = Select(
+                placeholder="Filter by Category",
+                options=[
+                    discord.SelectOption(
+                        label="All Categories",
+                        value="All",
+                        default=True
+                    )
+                ] + [
+                    discord.SelectOption(
+                        label=category,
+                        value=category
+                    ) for category in categories
+                ],
+                row=0
+            )
+
+            # Set callback
+            select.callback = self.category_callback
+            self.add_item(select)
+
+        def add_rarity_filter(self):
+            """Add dropdown for rarity filtering"""
+            # Common rarities
+            rarities = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+
+            # Create select menu
+            select = Select(
+                placeholder="Filter by Rarity",
+                options=[
+                    discord.SelectOption(
+                        label="All Rarities",
+                        value="All",
+                        default=True
+                    )
+                ] + [
+                    discord.SelectOption(
+                        label=rarity,
+                        value=rarity
+                    ) for rarity in rarities
+                ],
+                row=1
+            )
+
+            # Set callback
+            select.callback = self.rarity_callback
+            self.add_item(select)
+
+        def add_navigation_buttons(self):
+            """Add navigation and action buttons"""
+            # Previous page button
+            prev_button = Button(
+                style=discord.ButtonStyle.secondary,
+                label="◀ Previous",
+                disabled=self.current_page == 0,
+                row=2
+            )
+            prev_button.callback = self.prev_page_callback
+            self.add_item(prev_button)
+
+            # Next page button
+            next_button = Button(
+                style=discord.ButtonStyle.secondary,
+                label="Next ▶",
+                disabled=self.current_page >= self.total_pages - 1,
+                row=2
+            )
+            next_button.callback = self.next_page_callback
+            self.add_item(next_button)
+
+            # Give item button
+            give_button = Button(
+                style=discord.ButtonStyle.success,
+                label="Give Selected Item",
+                disabled=True,
+                row=3
+            )
+            give_button.callback = self.give_item_callback
+            self.add_item(give_button)
+
+            # Cancel button
+            cancel_button = Button(
+                style=discord.ButtonStyle.danger,
+                label="Cancel",
+                row=3
+            )
+            cancel_button.callback = self.cancel_callback
+            self.add_item(cancel_button)
+
+        async def category_callback(self, interaction: discord.Interaction):
+            """Handle category selection"""
+            self.category_filter = interaction.data["values"][0]
+            self.current_page = 0
+            await self.update_view(interaction)
+
+        async def rarity_callback(self, interaction: discord.Interaction):
+            """Handle rarity selection"""
+            self.rarity_filter = interaction.data["values"][0]
+            self.current_page = 0
+            await self.update_view(interaction)
+
+        async def prev_page_callback(self, interaction: discord.Interaction):
+            """Handle previous page button"""
+            self.current_page = max(0, self.current_page - 1)
+            await self.update_view(interaction)
+
+        async def next_page_callback(self, interaction: discord.Interaction):
+            """Handle next page button"""
+            self.current_page = min(self.total_pages - 1, self.current_page + 1)
+            await self.update_view(interaction)
+
+        async def item_select_callback(self, interaction: discord.Interaction):
+            """Handle item selection"""
+            item_index = int(interaction.data["custom_id"].split("_")[1])
+            filtered_items = self.get_filtered_items()
+            page_start = self.current_page * self.items_per_page
+
+            if 0 <= item_index < len(filtered_items):
+                self.selected_item = filtered_items[page_start + item_index]
+
+                # Update give button state
+                for child in self.children:
+                    if isinstance(child, Button) and child.label == "Give Selected Item":
+                        child.disabled = False
+
+                await interaction.response.edit_message(
+                    embed=self.create_browser_embed(),
+                    view=self
+                )
+            else:
+                await interaction.response.defer()
+
+        async def give_item_callback(self, interaction: discord.Interaction):
+            """Handle giving the item"""
+            if not self.selected_item:
+                await interaction.response.send_message("❌ No item selected!", ephemeral=True)
+                return
+
+            # Create the item and add to inventory
+            new_item = Item(
+                item_id=generate_item_id(),
+                name=self.selected_item["name"],
+                description=self.selected_item["description"],
+                item_type=self.selected_item["item_type"],
+                rarity=self.selected_item["rarity"],
+                stats=self.selected_item["stats"],
+                level_req=self.selected_item["level_req"],
+                value=self.selected_item["value"]
+            )
+
+            add_item_to_inventory(self.player, new_item)
+            data_manager.save_data()
+
+            # Create confirmation embed
+            embed = discord.Embed(
+                title="🎁 Item Given",
+                description=f"Added **{new_item.name}** to {self.member.mention}'s inventory.",
+                color=discord.Color.purple()
+            )
+
+            # Add item details
+            embed.add_field(
+                name="Item Details",
+                value=f"**Type:** {new_item.item_type.title()}\n"
+                    f"**Rarity:** {new_item.rarity.title()}\n"
+                    f"**Description:** {new_item.description}",
+                inline=False
+            )
+
+            # Add stats if any
+            if new_item.stats:
+                stats_text = "\n".join([f"**{stat.title()}:** +{value}" for stat, value in new_item.stats.items()])
+                embed.add_field(
+                    name="Stats",
+                    value=stats_text,
+                    inline=False
+                )
+
+            # Send confirmation and stop view
+            await interaction.response.edit_message(embed=embed, view=None)
+            self.stop()
+
+        async def cancel_callback(self, interaction: discord.Interaction):
+            """Handle cancellation"""
+            await interaction.response.edit_message(content="Item selection cancelled.", embed=None, view=None)
+            self.stop()
+
+        def get_filtered_items(self):
+            """Get items filtered by category and rarity"""
+            filtered = self.items
+
+            # Apply category filter
+            if self.category_filter != "All":
+                filtered = [item for item in filtered if item["item_type"].title() == self.category_filter]
+
+            # Apply rarity filter
+            if self.rarity_filter != "All":
+                filtered = [item for item in filtered if item["rarity"].title() == self.rarity_filter]
+
+            return filtered
+
+        async def update_view(self, interaction: discord.Interaction):
+            """Update the view with current filters and page"""
+            # Update filtered items and total pages
+            filtered_items = self.get_filtered_items()
+            self.total_pages = max(1, (len(filtered_items) + self.items_per_page - 1) // self.items_per_page)
+
+            # Ensure current_page is valid
+            if self.current_page >= self.total_pages:
+                self.current_page = max(0, self.total_pages - 1)
+
+            # Clear item buttons (rows 4-5)
+            self.clear_items()
+
+            # Re-add filters and navigation
+            self.add_category_filter()
+            self.add_rarity_filter()
+            self.add_navigation_buttons()
+
+            # Add item buttons for current page
+            page_start = self.current_page * self.items_per_page
+            page_end = min(page_start + self.items_per_page, len(filtered_items))
+
+            for i, idx in enumerate(range(page_start, page_end)):
+                item = filtered_items[idx]
+                row = 4 + (i // 2)  # Arrange buttons in pairs
+
+                # Get button style based on rarity
+                style_map = {
+                    "common": discord.ButtonStyle.secondary,
+                    "uncommon": discord.ButtonStyle.primary,
+                    "rare": discord.ButtonStyle.primary,
+                    "epic": discord.ButtonStyle.danger,
+                    "legendary": discord.ButtonStyle.success
+                }
+                style = style_map.get(item["rarity"].lower(), discord.ButtonStyle.secondary)
+
+                # Get emoji based on item type
+                emoji_map = {
+                    "weapon": "⚔️",
+                    "armor": "🛡️",
+                    "accessory": "💍",
+                    "consumable": "🧪",
+                    "material": "🧶",
+                    "special": "✨"
+                }
+                emoji = emoji_map.get(item["item_type"].lower(), "📦")
+
+                # Create button
+                is_selected = self.selected_item and self.selected_item["name"] == item["name"]
+                button_label = item["name"]
+                if is_selected:
+                    button_label = f"✅ {button_label}"
+
+                # Truncate long names
+                if len(button_label) > 25:
+                    button_label = button_label[:22] + "..."
+
+                button = Button(
+                    style=style,
+                    label=button_label,
+                    emoji=emoji,
+                    custom_id=f"item_{i}",
+                    row=row
+                )
+                button.callback = self.item_select_callback
+                self.add_item(button)
+
+            # Update the embed
+            await interaction.response.edit_message(
+                embed=self.create_browser_embed(),
+                view=self
+            )
+
+        def create_browser_embed(self):
+            """Create the item browser embed"""
+            filtered_items = self.get_filtered_items()
+
+            embed = discord.Embed(
+                title=f"🎮 Item Browser - Giving to {self.member.display_name}",
+                description=f"Browse and select an item to give. Page {self.current_page + 1}/{self.total_pages}",
+                color=discord.Color.blurple()
+            )
+
+            # Add filter info
+            embed.add_field(
+                name="📋 Filters",
+                value=f"**Category:** {self.category_filter}\n"
+                      f"**Rarity:** {self.rarity_filter}\n"
+                      f"**Items Found:** {len(filtered_items)}",
+                inline=False
+            )
+
+            # Add selected item details if any
+            if self.selected_item:
+                embed.add_field(
+                    name="🎯 Selected Item",
+                    value=f"**{self.selected_item['name']}** ({self.selected_item['rarity'].title()} {self.selected_item['item_type'].title()})",
+                    inline=False
+                )
+
+                embed.add_field(
+                    name="📝 Description",
+                    value=self.selected_item['description'],
+                    inline=False
+                )
+
+                # Add stats if any
+                if self.selected_item['stats']:
+                    stats_text = "\n".join([f"**{stat.title()}:** +{value}" for stat, value in self.selected_item['stats'].items()])
+                    embed.add_field(
+                        name="📊 Stats",
+                        value=stats_text,
+                        inline=False
+                    )
+
+            return embed
+
+    # Start the item browser
+    view = ItemBrowserView(filtered_items, member, player)
+    embed = view.create_browser_embed()
+
+    await ctx.send(embed=embed, view=view)
 
 
 @bot.command(name="quests")
 async def quests_cmd(ctx):
     """View your active quests and special events"""
     await quests_command(ctx, data_manager)
-    
+
 @bot.command(name="q")
 async def q_cmd(ctx):
     """View your active quests and special events (alias)"""
     await quests_command(ctx, data_manager)
-    
+
 @bot.command(name="leaderboard", aliases=["lb", "top"])
 async def leaderboard_cmd(ctx, category: str = "level"):
     """View the top players leaderboard"""
     await leaderboard_command(ctx, data_manager, category)
-    
+
 @bot.command(name="rankings")
 async def rankings_cmd(ctx, category: str = "level"):
     """View the top players leaderboard (alias)"""
     await leaderboard_command(ctx, data_manager, category)
-    
+
 @bot.command(name="checkxp")
 async def checkxp_cmd(ctx):
     """Check if your level is correct based on your XP"""
     player = data_manager.get_player(ctx.author.id)
-    
+
     if not player.class_name:
         await ctx.send("❌ You need to start your adventure first with `!start`")
         return
-    
+
     old_level = player.class_level
     old_xp = player.class_exp
-    
+
     # Check if player's level is correct
     was_corrected, old_level, new_level = validate_player_level(player)
-    
+
     if was_corrected:
         # Level was corrected
         data_manager.save_data()
-        
+
         embed = discord.Embed(
             title="✅ Level Correction Applied",
             description=f"Your level has been adjusted to match your XP.",
             color=discord.Color.green()
         )
-        
+
         embed.add_field(
             name="Previous Level",
             value=f"Level: {old_level}\nXP: {old_xp}",
             inline=True
         )
-        
+
         embed.add_field(
             name="Corrected Level",
             value=f"Level: {new_level}\nXP: {player.class_exp}",
             inline=True
         )
-        
+
         # Add explanation
         difference = new_level - old_level
         if difference > 0:
@@ -1134,7 +1548,7 @@ async def checkxp_cmd(ctx):
                 value=f"Your level was adjusted by {difference}. Your XP was lower than required for your previous level.",
                 inline=False
             )
-        
+
         await ctx.send(embed=embed)
     else:
         # Level is already correct
@@ -1143,16 +1557,16 @@ async def checkxp_cmd(ctx):
             description=f"Your level is correct based on your XP!",
             color=discord.Color.blue()
         )
-        
+
         xp_needed = player.calculate_xp_for_level(player.class_level)
         progress = int((player.class_exp / xp_needed) * 100) if xp_needed > 0 else 100
-        
+
         embed.add_field(
             name="Current Status",
             value=f"Level: {player.class_level}\nXP: {player.class_exp}/{xp_needed}\nProgress to next level: {progress}%",
             inline=False
         )
-        
+
         await ctx.send(embed=embed)
 
 
@@ -1160,7 +1574,7 @@ async def checkxp_cmd(ctx):
 async def levels_cmd(ctx):
     """View your level information and progression details"""
     player = data_manager.get_player(ctx.author.id)
-    
+
     # Calculate next level XP based on class level
     next_level_xp = int(100 * (player.class_level ** 1.5))
     progress_percentage = round((player.class_exp / next_level_xp) *
@@ -1382,7 +1796,7 @@ async def balance_cmd(ctx):
     player = data_manager.get_player(ctx.author.id)
 
     embed = discord.Embed(title=f"{ctx.author.display_name}'s Balance",
-                          description=f"🔮 **Gold:** {player.cursed_energy}",
+                          description=f"💰 **Gold:** {player.gold}",
                           color=discord.Color.dark_purple())
 
     # Show achievement points if any
@@ -1578,8 +1992,8 @@ async def slash_achievements(interaction: discord.Interaction):
 async def slash_quests(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await quests_command(ctx, data_manager)
-    
-    
+
+
 @bot.tree.command(name="leaderboard", description="View the top players leaderboard")
 @app_commands.describe(category="Category to rank players by")
 @app_commands.choices(category=[
