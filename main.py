@@ -22,7 +22,7 @@ from advanced_training import advanced_training_command
 from advanced_shop import advanced_shop_command
 from guild_system import guild_command, g_command
 from achievements import achievements_command, quests_command, event_command, achieve_command, ach_command, q_command
-from materials import materials_command, gather_command
+from materials import materials_command, gather_command, tools_command
 from crafting_system import crafting_command, CraftingEntryView
 from encyclopedia import encyclopedia_command, browser_command, codex_command, EncyclopediaExploreView, ENCYCLOPEDIA_SECTIONS
 from skill_tree import skill_tree_command, skills_tree_command
@@ -1852,6 +1852,12 @@ async def gather_cmd(ctx):
     await gather_command(ctx, data_manager)
 
 
+@bot.command(name="tools", aliases=["tool"])
+async def tools_cmd(ctx):
+    """Equip and manage your gathering tools"""
+    await tools_command(ctx, data_manager)
+
+
 @bot.command(name="craft", aliases=["crafting"])
 async def craft_cmd(ctx):
     """Craft items from gathered materials"""
@@ -2102,6 +2108,12 @@ async def slash_gather(interaction: discord.Interaction):
     await gather_command(ctx, data_manager)
 
 
+@bot.tree.command(name="tools", description="Equip and manage your gathering tools")
+async def slash_tools(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await tools_command(ctx, data_manager)
+
+
 @bot.tree.command(name="craft",
                   description="Craft items from gathered materials")
 async def slash_craft(interaction: discord.Interaction):
@@ -2172,7 +2184,7 @@ async def _show_help(ctx, category: str = None):
             },
             "Profile": {
                 "description": "View your stats and progress",
-                "usage": "!profile [user] or /profile",
+                "usage": "!profile [user] (alias: !p) or /profile",
                 "notes": "Shows character level, class, stats, and equipment"
             },
             "Daily": {
@@ -2363,6 +2375,31 @@ async def _show_help(ctx, category: str = None):
                 "usage": "!give_gold <user> <amount>",
                 "notes": "Admin only: Add gold to player's balance"
             },
+            "Give Item": {
+                "description": "[Admin] Give an item to a user",
+                "usage": "!give_item <user> <item_name> [quantity]",
+                "notes": "Admin only: Add specific items to player's inventory"
+            },
+            "Give XP": {
+                "description": "[Admin] Give experience points to a user",
+                "usage": "!give_xp <user> <amount>",
+                "notes": "Admin only: Grant XP which may cause level-ups"
+            },
+            "Give Class": {
+                "description": "[Admin] Give a class to a user",
+                "usage": "!give_class <user> <class_name>",
+                "notes": "Admin only: Unlock a new class for a player"
+            },
+            "Give Skill": {
+                "description": "[Admin] Give a skill to a user",
+                "usage": "!give_skill <user> <skill_id>",
+                "notes": "Admin only: Grant a specific skill to a player"
+            },
+            "Give Achievement": {
+                "description": "[Admin] Award an achievement to a user",
+                "usage": "!give_achievement <user> <achievement_id>",
+                "notes": "Admin only: Grant a specific achievement"
+            },
             "Event Admin": {
                 "description": "[Admin] Manage server-wide special events",
                 "usage": "!event [action] [event_id] [duration]",
@@ -2389,6 +2426,21 @@ async def _show_help(ctx, category: str = None):
                 "usage": "!materials (aliases: !mats, !mat) or /materials",
                 "notes":
                 "Browse all available crafting materials and their uses"
+            },
+            "Gather": {
+                "description": "Gather materials for crafting",
+                "usage": "!gather (aliases: !collect) or /gather",
+                "notes": "Collect resources from different environments"
+            },
+            "Tools": {
+                "description": "Manage your gathering tools",
+                "usage": "!tools (aliases: !tool) or /tools",
+                "notes": "Equip tools to improve gathering efficiency"
+            },
+            "Craft": {
+                "description": "Craft items using materials",
+                "usage": "!craft (aliases: !crafting) or /craft",
+                "notes": "Create equipment and items from gathered materials"
             },
         }
     }

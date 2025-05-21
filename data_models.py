@@ -201,6 +201,14 @@ class PlayerData:
             "armor": None,
             "accessory": None
         }
+        # Gathering tools equipment slots
+        self.equipped_gathering_tools = {
+            "Mining": None,
+            "Foraging": None,
+            "Herbs": None, 
+            "Hunting": None,
+            "Magical": None
+        }
         self.achievements = []  # List[Achievement]
         self.special_abilities = {}  # Dict[str, Dict[str, Any]]
         self.active_effects = {}  # Dict[str, Dict[str, Any]]
@@ -230,6 +238,7 @@ class PlayerData:
         self.level = 1  # Alias for user_level to fix compatibility issues
         self.current_hp = 100  # Current health points
         self.dungeon_damage = 0  # Accumulated damage in dungeons
+        self.equipped_gathering_tools = {}  # Map of category to equipped tool name
         # Additional attributes for achievements
         self.dungeons_completed = 0
         self.bosses_defeated = 0
@@ -252,34 +261,34 @@ class PlayerData:
     def get_max_battle_energy(self) -> int:
         """
         Calculate the player's maximum battle energy based on level and training.
-        
+
         IMPORTANT: Battle Energy is the resource used for combat abilities and skills.
         It is completely separate from Gold, which is the game's currency.
-        
+
         Battle Energy scales with player level (5 per level) and is permanently increased
         through Energy Cultivation specialized training.
         """
         # Base energy from max_battle_energy attribute
         base_energy = self.max_battle_energy
-        
+
         # Battle Energy bonus from player level (5 per level after level 1)
         level_bonus = (self.class_level - 1) * 5
-        
+
         # Battle Energy bonus from Energy Cultivation specialized training
         training_bonus = self.energy_training
-        
+
         # Calculate total max battle energy
         total_max_energy = base_energy + level_bonus + training_bonus
-        
+
         return total_max_energy
-        
+
     def get_battle_energy(self) -> int:
         """
         Get the player's current battle energy, ensuring it never returns a negative value.
         This method should be used whenever displaying battle energy to the user.
         """
         return max(0, self.battle_energy)
-        
+
     def get_max_hp(self, class_data: Dict[str, Any] = None) -> int:
         """
         Get the player's maximum HP based on their stats
@@ -288,10 +297,10 @@ class PlayerData:
         if class_data is None:
             # Return default HP if no class data available
             return 100
-            
+
         stats = self.get_stats(class_data)
         return stats.get('hp', 100)
-        
+
     def regenerate_health_and_energy(self, class_data: Dict[str, Any], percent: float = 1.0) -> None:
         """
         Regenerate the player's health and energy by the specified percentage
@@ -300,32 +309,32 @@ class PlayerData:
         # Regenerate HP
         max_hp = self.get_max_hp(class_data)
         self.current_hp = max(int(max_hp * percent), 1)  # Ensure at least 1 HP
-        
+
         # Regenerate Energy - battles should always restore to full energy
         # Regardless of percent parameter, energy is always fully restored
         max_energy = self.get_max_battle_energy()
         self.battle_energy = max_energy  # Always ensure full energy regeneration
-        
+
     def add_dungeon_damage(self, damage: int, class_data: Dict[str, Any]) -> None:
         """
         Add accumulated damage from a dungeon encounter
         """
         self.dungeon_damage += damage
-        
+
         # Reduce current HP by the damage amount
         self.current_hp = max(self.current_hp - damage, 1)  # Ensure player always has at least 1 HP
-        
+
     def reset_dungeon_damage(self, class_data: Dict[str, Any], full_heal: bool = True) -> None:
         """
         Reset accumulated dungeon damage and regenerate health
         full_heal: If True, fully restore HP; if False, keep current HP
         """
         self.dungeon_damage = 0
-        
+
         if full_heal:
             # Fully restore HP
             self.current_hp = self.get_max_hp(class_data)
-    
+
     def get_stats(self, class_data: Dict[str, Any]) -> Dict[str, int]:
         """Calculate total stats based on base class stats, allocated points and equipped items"""
         if not self.class_name or self.class_name not in class_data:
@@ -371,22 +380,22 @@ class PlayerData:
             self.gold_spent += amount
             return True
         return False
-        
+
     # Legacy method for backward compatibility
     def add_cursed_energy(self, amount: int) -> int:
         """Legacy method that calls add_gold"""
         return self.add_gold(amount)
-        
+
     # Legacy method for backward compatibility
     def remove_cursed_energy(self, amount: int) -> bool:
         """Legacy method that calls remove_gold"""
         return self.remove_gold(amount)
-        
+
     def add_battle_energy(self, amount: int) -> int:
         """Add battle energy up to maximum limit. Returns the actual amount added."""
         if amount <= 0:
             return 0
-            
+
         old_value = self.battle_energy
         self.battle_energy = min(self.max_battle_energy, self.battle_energy + amount)
         return self.battle_energy - old_value
@@ -400,17 +409,17 @@ class PlayerData:
         base_xp = 75  # Reduced from 100 to make progression easier
         level_exponent = 1.35  # Reduced from 1.5 to flatten the curve for high levels
         return int(base_xp * (level ** level_exponent))
-        
+
     def xp_to_next_level(self) -> int:
         """Calculate XP needed for the next level."""
         # Use the standard formula
         return self.calculate_xp_for_level(self.class_level)
-        
+
     def remove_battle_energy(self, amount: int) -> bool:
         """Remove battle energy if available. Returns True if successful."""
         if amount <= 0:
             return True
-            
+
         if self.battle_energy >= amount:
             self.battle_energy -= amount
             return True
@@ -419,44 +428,44 @@ class PlayerData:
     def add_exp(self, exp_amount: int) -> bool:
         """Add experience points and handle level ups. Returns True if leveled up."""
         leveled_up = False
-        
+
         # Reduce the XP penalty for higher levels to make progression easier
         level_penalty = max(0.95, 1.0 - (self.class_level * 0.002))  # 0.2% reduction per level, min 95% of original XP
         adjusted_exp = int(exp_amount * level_penalty)
-        
+
         self.class_exp += adjusted_exp
-        
+
         # Calculate the required XP for the current level
         MAX_LEVEL = 1000  # Maximum level cap
         leveled_up = False
-        
+
         if self.class_level >= MAX_LEVEL:
             return False
-            
+
         # Calculate XP needed for next level using the standard formula
         xp_needed = self.calculate_xp_for_level(self.class_level)
-        
+
         # Level up while player has enough XP
         while self.class_exp >= xp_needed and self.class_level < MAX_LEVEL:
             self.class_exp -= xp_needed
             self.class_level += 1
             leveled_up = True
-            
+
             # Increase rewards at level-up
             self.skill_points += 3
             self.max_gold += 200
             self.gold = min(self.gold + 150, self.max_gold)
-            
+
             # Increase max battle energy on level up
             battle_energy_increase = 5 + (self.class_level // 10)
             self.max_battle_energy += battle_energy_increase
             # Refill battle energy on level up
             self.battle_energy = self.max_battle_energy
-            
+
             # Calculate XP needed for the next level if not at max level
             if self.class_level < MAX_LEVEL:
                 xp_needed = self.calculate_xp_for_level(self.class_level)
-            
+
         return leveled_up
 
     def to_dict(self) -> Dict[str, Any]:
@@ -511,7 +520,9 @@ class PlayerData:
             "pvp_losses":
             self.pvp_losses,
             "last_pvp_battle":
-            self.last_pvp_battle.isoformat() if self.last_pvp_battle else None
+            self.last_pvp_battle.isoformat() if self.last_pvp_battle else None,
+            "equipped_gathering_tools":
+            self.equipped_gathering_tools
         }
 
     @classmethod
@@ -524,7 +535,7 @@ class PlayerData:
         elif "cursed_energy" in data:
             # Convert old cursed_energy to gold
             player.gold = data["cursed_energy"]
-            
+
         # Handle maximum currency
         if "max_gold" in data:
             player.max_gold = data["max_gold"]
@@ -541,7 +552,7 @@ class PlayerData:
                 "skill_points_spent", "wins", "losses", "daily_streak",
                 "dungeon_clears", "special_abilities", "active_effects",
                 "training_cooldowns", "pvp_history", "pvp_wins", "pvp_losses",
-                "energy_training" # Make sure we load energy training
+                "energy_training", "equipped_gathering_tools" # Make sure we load equipped tools
         ]:
             if attr in data:
                 setattr(player, attr, data[attr])
@@ -591,7 +602,7 @@ class DataManager:
         self.member_guild_map = {}  # Maps member IDs to guild IDs
         self.guild_data = {}  # Guild data storage
         self.player_data = {}  # For compatibility with existing code
-        
+
         if not os.path.exists('player_data.json'):
             with open('player_data.json', 'w') as f:
                 json.dump({}, f)
@@ -604,17 +615,17 @@ class DataManager:
             player_data = {}
             for user_id, player in self.players.items():
                 player_data[str(user_id)] = player.to_dict()
-            
+
             # Create complete data object with both player and guild data
             complete_data = {
                 "players": player_data,
                 "guilds": self.guild_data,
                 "member_guild_map": self.member_guild_map
             }
-            
+
             with open('player_data.json', 'w') as f:
                 json.dump(complete_data, f, indent=4)
-                
+
             print("Successfully saved player and guild data")
         except Exception as e:
             print(f"Error saving data: {e}")
@@ -623,25 +634,25 @@ class DataManager:
         try:
             with open('player_data.json', 'r') as f:
                 data = json.load(f)
-                
+
             # Check if we have the new format with separate players and guilds
             if isinstance(data, dict) and "players" in data:
                 # New format
                 player_data = data.get("players", {})
                 self.guild_data = data.get("guilds", {})
                 self.member_guild_map = data.get("member_guild_map", {})
-                
+
                 # Convert string keys to int for member_guild_map
                 if self.member_guild_map:
                     self.member_guild_map = {int(k): v for k, v in self.member_guild_map.items()}
-                
+
                 for user_id, p_data in player_data.items():
                     self.players[int(user_id)] = PlayerData.from_dict(int(user_id), p_data)
             else:
                 # Old format - only player data
                 for user_id, player_data in data.items():
                     self.players[int(user_id)] = PlayerData.from_dict(int(user_id), player_data)
-                
+
             print(f"Loaded {len(self.players)} players and {len(self.guild_data)} guilds")
         except Exception as e:
             print(f"Error loading data: {e}")

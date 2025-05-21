@@ -1,1183 +1,4 @@
-    import discord
-    from discord.ui import Button, View, Select
-    import random
-    import asyncio
-    import datetime
-    from typing import Dict, List, Optional, Tuple, Any
-
-    from data_models import PlayerData, DataManager
-    from utils import GAME_CLASSES
-
-    # Training minigames for different skills
-    TRAINING_MINIGAMES = {
-        "Combat Training": {
-            "description": "Test your timing and reflexes to land critical hits",
-            "primary_attribute": "power",
-            "secondary_attribute": "speed",
-            "base_exp": 20,
-            "cooldown": 2,  # hours
-            "emoji": "⚔️",
-            "minigame_type": "reaction",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.0, "attribute_gain": 1},
-                {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.0, "attribute_gain": 2},
-                {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.0, "attribute_gain": 3}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
-            }
-        },
-        "Defensive Stance": {
-            "description": "Practice your defensive techniques to withstand attacks",
-            "primary_attribute": "defense",
-            "secondary_attribute": "hp",
-            "base_exp": 20,
-            "cooldown": 2,  # hours
-            "emoji": "🛡️",
-            "minigame_type": "sequence",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "sequence_length": 3, "attribute_gain": 1},
-                {"name": "Advanced", "exp_multiplier": 1.5, "sequence_length": 5, "attribute_gain": 2},
-                {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 7, "attribute_gain": 3}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
-            }
-        },
-        "Agility Course": {
-            "description": "Navigate obstacles to improve your speed and reflexes",
-            "primary_attribute": "speed",
-            "secondary_attribute": "defense",
-            "base_exp": 20,
-            "cooldown": 2,  # hours
-            "emoji": "🏃",
-            "minigame_type": "reaction",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "time_window": 2.5, "attribute_gain": 1},
-                {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 1.5, "attribute_gain": 2},
-                {"name": "Master", "exp_multiplier": 2.5, "time_window": 0.8, "attribute_gain": 3}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
-            }
-        },
-        "Cursed Energy Control": {
-            "description": "Meditate to enhance your cursed energy reserves",
-            "primary_attribute": "hp",
-            "secondary_attribute": "power",
-            "base_exp": 20,
-            "cooldown": 2,  # hours
-            "emoji": "✨",
-            "minigame_type": "timing",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 1},
-                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 2},
-                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 3}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
-            }
-        },
-        "Tactical Analysis": {
-            "description": "Study battle tactics to gain an edge in combat",
-            "primary_attribute": "defense",
-            "secondary_attribute": "power",
-            "base_exp": 25,
-            "cooldown": 3,  # hours
-            "emoji": "📖",
-            "minigame_type": "quiz",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "questions": 3, "attribute_gain": 1},
-                {"name": "Advanced", "exp_multiplier": 1.5, "questions": 5, "attribute_gain": 2},
-                {"name": "Master", "exp_multiplier": 2.5, "questions": 7, "attribute_gain": 3}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
-            }
-        },
-        "Energy Cultivation": {
-            "description": "Meditate to increase your maximum battle energy capacity (not cursed energy/currency)",
-            "primary_attribute": "energy",
-            "secondary_attribute": "defense",
-            "base_exp": 25,
-            "cooldown": 4,  # hours
-            "emoji": "⚡",
-            "minigame_type": "precision",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 1, "energy_gain": 5},
-                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 2, "energy_gain": 10},
-                {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 3, "energy_gain": 15}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
-            }
-        },
-        "Shadow Technique": {
-            "description": "Practice mysterious shadow techniques to enhance your abilities",
-            "primary_attribute": "power",
-            "secondary_attribute": "hp",
-            "base_exp": 30,
-            "cooldown": 4,  # hours
-            "emoji": "🌑",
-            "minigame_type": "sequence",
-            "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "sequence_length": 4, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "sequence_length": 6, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 8, "attribute_gain": 4}
-            ],
-            "special_rewards": {
-                "perfect_score": {"cursed_energy": 150, "effect": {"name": "Shadow Form", "duration": 2, "boost_type": "special_damage", "boost_amount": 25}}
-            },
-            "unlock_requirements": {
-                "class_level": 10
-            }
-        }
-    }
-
-    # Class-specific advanced training
-    CLASS_TRAINING = {
-        "Spirit Striker": {
-            "Combo Mastery": {
-                "description": "Perfect your attack combinations for maximum damage",
-                "primary_attribute": "power",
-                "secondary_attribute": "speed",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 5,
-                "emoji": "💥"
-            },
-            "Soul Resonance": {
-                "description": "Align your soul with your cursed energy for greater power",
-                "primary_attribute": "hp",
-                "secondary_attribute": "power",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 10,
-                "emoji": "🔮"
-            }
-        },
-        "Domain Tactician": {
-            "Barrier Techniques": {
-                "description": "Strengthen your defensive barriers",
-                "primary_attribute": "defense",
-                "secondary_attribute": "hp",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 5,
-                "emoji": "🔄"
-            },
-            "Domain Creation": {
-                "description": "Practice creating and maintaining your domain",
-                "primary_attribute": "hp",
-                "secondary_attribute": "defense",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 10,
-                "emoji": "🌌"
-            }
-        },
-        "Flash Rogue": {
-            "Shadowstep": {
-                "description": "Master the art of moving through shadows",
-                "primary_attribute": "speed",
-                "secondary_attribute": "power",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 5,
-                "emoji": "👻"
-            },
-            "Assassination Techniques": {
-                "description": "Hone your skills for deadly precision strikes",
-                "primary_attribute": "power",
-                "secondary_attribute": "speed",
-                "base_exp": 30,
-                "cooldown": 4,  # hours
-                "level_req": 10,
-                "emoji": "🗡️"
-            }
-        },
-        # Advanced class training
-        "Cursed Specialist": {
-            "Reverse Technique": {
-                "description": "Learn to use cursed energy for healing",
-                "primary_attribute": "hp",
-                "secondary_attribute": "defense",
-                "base_exp": 40,
-                "cooldown": 6,  # hours
-                "level_req": 12,
-                "emoji": "💚"
-            }
-        },
-        "Domain Master": {
-            "Domain Expansion": {
-                "description": "Perfect your domain expansion technique",
-                "primary_attribute": "power",
-                "secondary_attribute": "hp",
-                "base_exp": 40,
-                "cooldown": 6,  # hours
-                "level_req": 12,
-                "emoji": "🌐"
-            }
-        },
-        "Shadow Assassin": {
-            "Ten Shadows": {
-                "description": "Master the technique of summoning shadow creatures",
-                "primary_attribute": "power",
-                "secondary_attribute": "speed",
-                "base_exp": 40,
-                "cooldown": 6,  # hours
-                "level_req": 12,
-                "emoji": "🐺"
-            }
-        },
-        "Limitless Sorcerer": {
-            "Infinity": {
-                "description": "Explore the concept of infinity with your abilities",
-                "primary_attribute": "power",
-                "secondary_attribute": "defense",
-                "base_exp": 50,
-                "cooldown": 8,  # hours
-                "level_req": 20,
-                "emoji": "♾️"
-            }
-        }
-    }
-
-    # REACTION MINIGAME - Find and click targets
-    class TargetButton(Button):
-        def __init__(self, is_target: bool, parent_view, row: int = 0):
-            # Define the button appearance
-            if is_target:
-                super().__init__(
-                    label="Target!",
-                    style=discord.ButtonStyle.green,
-                    emoji="🎯",
-                    row=row
-                )
-            else:
-                super().__init__(
-                    label="Miss",
-                    style=discord.ButtonStyle.gray,
-                    emoji="❌",
-                    row=row
-                )
-
-            self.is_target = is_target
-            self.parent_view = parent_view
-
-        async def callback(self, interaction: discord.Interaction):
-            # Handle the button click
-            if self.is_target:
-                self.parent_view.score += 1
-                await interaction.response.edit_message(
-                    content=f"🎯 Hit! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-            else:
-                await interaction.response.edit_message(
-                    content=f"❌ Miss! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-
-            self.parent_view.round_complete = True
-            self.parent_view.stop()
-
-    # SEQUENCE MINIGAME - Remember and repeat patterns
-    class SequenceButton(Button):
-        def __init__(self, symbol: str, order: int, parent_view, row: int = 0):
-            # Default style for all sequence buttons
-            super().__init__(
-                label=symbol,
-                style=discord.ButtonStyle.primary,
-                row=row
-            )
-
-            self.symbol = symbol
-            self.order = order
-            self.parent_view = parent_view
-
-        async def callback(self, interaction: discord.Interaction):
-            # Handle the button click
-            if self.parent_view.expected_next == self.order:
-                # Correct sequence step
-                self.parent_view.current_sequence_position += 1
-
-                # If completed the whole sequence
-                if self.parent_view.current_sequence_position >= len(self.parent_view.current_sequence):
-                    self.parent_view.score += 1
-                    await interaction.response.edit_message(
-                        content=f"✅ Sequence complete! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                        view=None
-                    )
-                    self.parent_view.round_complete = True
-                    self.parent_view.stop()
-                else:
-                    # Update expected next button
-                    self.parent_view.expected_next = self.parent_view.current_sequence[self.parent_view.current_sequence_position]
-                    await interaction.response.defer()  # Just acknowledge without changing the message
-            else:
-                # Incorrect sequence step
-                await interaction.response.edit_message(
-                    content=f"❌ Incorrect sequence! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-                self.parent_view.round_complete = True
-                self.parent_view.stop()
-
-    # TIMING MINIGAME - Stop the moving indicator at the right time
-    class TimingBar(View):
-        def __init__(self, parent_view, target_zone: float, timeout: float = 10):
-            super().__init__(timeout=timeout)
-            self.parent_view = parent_view
-            self.target_zone = target_zone  # Size of the target zone (0.0-1.0)
-            self.position = 0.0  # 0.0 to 1.0 representing position on bar
-            self.direction = 1  # 1 for right, -1 for left
-            self.speed = 0.05  # How fast the indicator moves per step
-            self.task = None
-            self.stopped = False
-
-            # Add the stop button
-            stop_btn = Button(label="STOP", style=discord.ButtonStyle.danger)
-            stop_btn.callback = self.stop_callback
-            self.add_item(stop_btn)
-
-        async def start(self, interaction: discord.Interaction):
-            # Initial render
-            self.position = 0.0
-            await interaction.response.send_message(
-                content=self.render_bar(),
-                view=self
-            )
-
-            # Start the animation
-            self.task = asyncio.create_task(self.animate(interaction))
-
-        def render_bar(self) -> str:
-            """Render a text-based timing bar"""
-            bar_length = 20
-            target_start = int((0.5 - self.target_zone/2) * bar_length)
-            target_end = int((0.5 + self.target_zone/2) * bar_length)
-
-            # Create the bar with target zone
-            bar = ["□"] * bar_length
-            for i in range(target_start, target_end+1):
-                bar[i] = "■"
-
-            # Add the indicator
-            indicator_pos = min(bar_length-1, int(self.position * bar_length))
-            bar[indicator_pos] = "🔴"
-
-            return f"⏱️ Stop the indicator in the target zone!\n\n|{''.join(bar)}|"
-
-        async def animate(self, interaction: discord.Interaction):
-            """Animate the timing bar"""
-            try:
-                while not self.stopped:
-                    # Move the indicator
-                    self.position += self.direction * self.speed
-
-                    # Bounce at the edges
-                    if self.position >= 1.0:
-                        self.position = 1.0
-                        self.direction = -1
-                    elif self.position <= 0.0:
-                        self.position = 0.0
-                        self.direction = 1
-
-                    # Update the message
-                    await interaction.edit_original_response(content=self.render_bar())
-
-                    # Small delay between frames
-                    await asyncio.sleep(0.1)
-            except Exception as e:
-                print(f"Animation error: {e}")
-
-        async def stop_callback(self, interaction: discord.Interaction):
-            """Handle stopping the timing bar"""
-            self.stopped = True
-            if self.task:
-                self.task.cancel()
-
-            # Calculate if successful (indicator in target zone)
-            center = 0.5
-            half_target = self.target_zone / 2
-            in_target = (center - half_target) <= self.position <= (center + half_target)
-
-            if in_target:
-                self.parent_view.score += 1
-                await interaction.response.edit_message(
-                    content=f"🎯 Perfect timing! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-            else:
-                await interaction.response.edit_message(
-                    content=f"❌ Missed the target zone! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-
-            self.parent_view.round_complete = True
-            self.parent_view.stop()
-
-    # QUIZ MINIGAME - Answer RPG-themed questions 
-    class QuizButton(Button):
-        def __init__(self, answer: str, is_correct: bool, parent_view, row: int = 0):
-            super().__init__(
-                label=answer,
-                style=discord.ButtonStyle.secondary,
-                row=row
-            )
-
-            self.is_correct = is_correct
-            self.parent_view = parent_view
-
-        async def callback(self, interaction: discord.Interaction):
-            if self.is_correct:
-                self.parent_view.score += 1
-                await interaction.response.edit_message(
-                    content=f"✅ Correct! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-            else:
-                await interaction.response.edit_message(
-                    content=f"❌ Incorrect! The correct answer was: {self.parent_view.current_correct_answer}\nScore: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-
-            self.parent_view.round_complete = True
-            self.parent_view.stop()
-
-    # PRECISION MINIGAME - Hit moving targets to enhance precision
-    class MovingTargetButton(Button):
-        def __init__(self, is_active: bool, position: Tuple[int, int], parent_view):
-            row = position[0]
-            # Default button style
-            super().__init__(
-                label="○" if is_active else "·",
-                style=discord.ButtonStyle.secondary if is_active else discord.ButtonStyle.gray,
-                row=row
-            )
-
-            self.is_active = is_active
-            self.parent_view = parent_view
-            self.position = position
-
-        async def callback(self, interaction: discord.Interaction):
-            if self.is_active:
-                self.parent_view.score += 1
-                await interaction.response.edit_message(
-                    content=f"🎯 Precise hit! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-            else:
-                await interaction.response.edit_message(
-                    content=f"❌ Missed the active target! Score: {self.parent_view.score}/{self.parent_view.max_score}",
-                    view=None
-                )
-
-            self.parent_view.round_complete = True
-            self.parent_view.stop()
-
-    class TrainingMinigameView(View):
-        def __init__(self, player_data: PlayerData, training_type: str, training_data: Dict[str, Any], data_manager: DataManager):
-            super().__init__(timeout=60)
-            self.player_data = player_data
-            self.training_type = training_type
-            self.training_data = training_data
-            self.data_manager = data_manager
-            self.result = None
-            self.score = 0
-            self.max_score = 5
-            self.current_step = 0
-            self.round_complete = False
-            # Default to the 'Basic' difficulty level
-            self.selected_difficulty = "Basic"
-            # Select the difficulty data
-            self.difficulty = next((d for d in self.training_data.get("difficulty_levels", []) 
-                              if d["name"] == self.selected_difficulty), {})
-
-            # Add start button
-            start_btn = Button(
-                label="Start Training",
-                style=discord.ButtonStyle.green,
-                emoji=training_data["emoji"]
-            )
-            start_btn.callback = self.start_callback
-            self.add_item(start_btn)
-
-            # Add cancel button
-            cancel_btn = Button(
-                label="Cancel",
-                style=discord.ButtonStyle.red,
-                emoji="❌"
-            )
-            cancel_btn.callback = self.cancel_callback
-            self.add_item(cancel_btn)
-
-        async def start_callback(self, interaction: discord.Interaction):
-            """Start the training minigame"""
-            # Clear buttons
-            self.clear_items()
-
-            # Get minigame type
-            minigame_type = self.training_data.get("minigame_type", "reaction")
-
-            # Get appropriate emoji and message
-            emoji_map = {
-                "reaction": "🎯",
-                "sequence": "🔢",
-                "timing": "⏱️",
-                "quiz": "🧠",
-                "precision": "🎯"
-            }
-            emoji = emoji_map.get(minigame_type, "🏋️")
-
-            # Send instructions based on minigame type
-            instructions = {
-                "reaction": "Click the highlighted target as quickly as possible!",
-                "sequence": "Memorize the sequence and repeat it in the correct order!",
-                "timing": "Stop the moving indicator when it's in the target zone!",
-                "quiz": "Answer the combat strategy questions correctly!",
-                "precision": "Hit the active target to improve your precision!"
-            }
-
-            instruction_text = instructions.get(minigame_type, "Complete the training challenges!")
-
-            await interaction.response.edit_message(
-                content=f"{emoji} **{self.training_type} Training**\n\n"
-                       f"{self.training_data['description']}\n\n"
-                       f"{instruction_text}",
-                view=None
-            )
-
-            await asyncio.sleep(2)
-
-            # Select and run the appropriate minigame type
-            if minigame_type == "reaction":
-                await self.run_reaction_minigame(interaction)
-            elif minigame_type == "sequence":
-                await self.run_sequence_minigame(interaction)
-            elif minigame_type == "timing":
-                await self.run_timing_minigame(interaction)
-            elif minigame_type == "quiz":
-                await self.run_quiz_minigame(interaction)
-            elif minigame_type == "precision":
-                await self.run_precision_minigame(interaction)
-            else:
-                # Fallback to reaction game if unknown type
-                await self.run_reaction_minigame(interaction)
-
-        async def run_reaction_minigame(self, interaction: discord.Interaction):
-            """Run the reaction speed minigame"""
-            for i in range(self.max_score):
-                self.current_step = i + 1
-                self.round_complete = False
-
-                # Create a round view for this step
-                round_view = View(timeout=5)
-
-                # Add target buttons in random positions
-                positions = list(range(3*3))  # 3x3 grid
-                random.shuffle(positions)
-
-                # Add target button and dummy buttons
-                for j in range(9):
-                    is_target = (j == positions[0])
-                    button = TargetButton(is_target=is_target, parent_view=self, row=j//3)
-                    round_view.add_item(button)
-
-                # Show the round view
-                try:
-                    round_msg = await interaction.followup.send(
-                        content=f"Round {self.current_step}/{self.max_score} - Click the target!",
-                        view=round_view
-                    )
-
-                    # Get time window from difficulty
-                    time_window = self.difficulty.get("time_window", 5.0)
-
-                    # Wait for this step to complete
-                    await asyncio.sleep(time_window)
-
-                    # If the round was not completed, count it as a miss
-                    if not self.round_complete:
-                        await interaction.followup.send(
-                            content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                        )
-                except Exception as e:
-                    print(f"Error in reaction minigame round: {e}")
-
-                # Short pause between rounds
-                await asyncio.sleep(1)
-
-        async def run_sequence_minigame(self, interaction: discord.Interaction):
-            """Run the sequence memorization minigame"""
-            # Possible symbols for sequence
-            symbols = ["🔴", "🔵", "🟢", "🟡", "⚪", "🟣", "🟠", "⚫"]
-
-            for i in range(self.max_score):
-                self.current_step = i + 1
-                self.round_complete = False
-
-                # Get sequence length from difficulty
-                seq_length = self.difficulty.get("sequence_length", 3)
-
-                # Generate random sequence
-                sequence = [random.randint(0, len(symbols)-1) for _ in range(seq_length)]
-                self.current_sequence = sequence
-                self.current_sequence_position = 0
-                self.expected_next = sequence[0]
-
-                # First, show the sequence to memorize
-                sequence_text = " → ".join([symbols[s] for s in sequence])
-                await interaction.followup.send(
-                    content=f"Round {self.current_step}/{self.max_score} - Memorize this sequence!\n{sequence_text}"
-                )
-
-                # Wait for player to memorize
-                memorize_time = min(5, 1 + seq_length)
-                await asyncio.sleep(memorize_time)
-
-                # Now show the buttons to reproduce the sequence
-                sequence_view = View(timeout=10)
-
-                # Add buttons for each symbol
-                for j, symbol in enumerate(symbols):
-                    button = SequenceButton(symbol=symbol, order=j, parent_view=self, row=j//4)
-                    sequence_view.add_item(button)
-
-                try:
-                    await interaction.followup.send(
-                        content=f"Now reproduce the sequence in order!",
-                        view=sequence_view
-                    )
-
-                    # Wait for sequence completion or timeout
-                    await asyncio.sleep(10)
-
-                    if not self.round_complete:
-                        await interaction.followup.send(
-                            content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                        )
-                except Exception as e:
-                    print(f"Error in sequence minigame round: {e}")
-
-                # Short pause between rounds
-                await asyncio.sleep(1)
-
-        async def run_timing_minigame(self, interaction: discord.Interaction):
-            """Run the timing bar minigame"""
-            for i in range(self.max_score):
-                self.current_step = i + 1
-                self.round_complete = False
-
-                # Get target zone size from difficulty
-                target_zone = self.difficulty.get("target_zone", 0.3)
-
-                # Create and start timing bar
-                timing_bar = TimingBar(parent_view=self, target_zone=target_zone)
-
-                try:
-                    await timing_bar.start(interaction)
-
-                    # Wait for completion or timeout
-                    await asyncio.sleep(10)
-
-                    if not self.round_complete:
-                        await interaction.followup.send(
-                            content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                        )
-                except Exception as e:
-                    print(f"Error in timing minigame round: {e}")
-
-                # Short pause between rounds
-                await asyncio.sleep(1)
-
-        async def run_quiz_minigame(self, interaction: discord.Interaction):
-            """Run the knowledge quiz minigame"""
-            # RPG-themed quiz questions and answers
-            quiz_questions = [
-                {
-                    "question": "Which is the most effective strategy against a heavily armored opponent?",
-                    "answers": ["Use speed to your advantage", "Match strength with strength", "Aim for weak points", "Retreat and heal"],
-                    "correct": 2
-                },
-                {
-                    "question": "What should you prioritize in a long battle?",
-                    "answers": ["Maximum damage output", "Energy conservation", "Healing items", "Defensive stance"],
-                    "correct": 1
-                },
-                {
-                    "question": "When facing multiple opponents, what's the best approach?",
-                    "answers": ["Focus on the strongest enemy", "Divide and conquer", "Area attacks", "Defensive position"],
-                    "correct": 2
-                },
-                {
-                    "question": "What's most important for a balanced combat style?",
-                    "answers": ["Power techniques", "Defensive techniques", "Speed techniques", "Balance of all attributes"],
-                    "correct": 3
-                },
-                {
-                    "question": "Which resource is most critical to manage in extended combat?",
-                    "answers": ["Health points", "Energy", "Position", "Item usage"],
-                    "correct": 1
-                },
-                {
-                    "question": "What's the best counter to an agile opponent?",
-                    "answers": ["Match their speed", "Use area attacks", "Predict movement patterns", "Heavy armor"],
-                    "correct": 2
-                },
-                {
-                    "question": "When should you use your strongest ability?",
-                    "answers": ["At the start of battle", "When your HP is low", "When the enemy is vulnerable", "Save it for emergencies"],
-                    "correct": 2
-                }
-            ]
-
-            # Shuffle questions
-            random.shuffle(quiz_questions)
-
-            # Get number of questions from difficulty
-            num_questions = min(self.max_score, self.difficulty.get("questions", 3))
-            selected_questions = quiz_questions[:num_questions]
-
-            for i, question_data in enumerate(selected_questions):
-                self.current_step = i + 1
-                self.round_complete = False
-
-                question = question_data["question"]
-                answers = question_data["answers"]
-                correct_index = question_data["correct"]
-
-                # Save correct answer for feedback
-                self.current_correct_answer = answers[correct_index]
-
-                # Create quiz view
-                quiz_view = View(timeout=15)
-
-                # Add answer buttons
-                for j, answer in enumerate(answers):
-                    button = QuizButton(answer=answer, is_correct=(j == correct_index), parent_view=self, row=j)
-                    quiz_view.add_item(button)
-
-                try:
-                    await interaction.followup.send(
-                        content=f"Question {self.current_step}/{num_questions}:\n**{question}**",
-                        view=quiz_view
-                    )
-
-                    # Wait for answer or timeout
-                    await asyncio.sleep(15)
-
-                    if not self.round_complete:
-                        await interaction.followup.send(
-                            content=f"⏱️ Time's up! The correct answer was: {self.current_correct_answer}\nScore: {self.score}/{self.max_score}"
-                        )
-                except Exception as e:
-                    print(f"Error in quiz minigame round: {e}")
-
-                # Short pause between rounds
-                await asyncio.sleep(1)
-
-        async def run_precision_minigame(self, interaction: discord.Interaction):
-            """Run the precision targeting minigame"""
-            # Get number of targets from difficulty
-            num_targets = self.difficulty.get("targets", 5)
-            self.max_score = num_targets
-
-            for i in range(num_targets):
-                self.current_step = i + 1
-                self.round_complete = False
-
-                # Create a 3x3 grid view
-                grid_view = View(timeout=5)
-
-                # Randomly position the active target
-                active_row = random.randint(0, 2)
-                active_col = random.randint(0, 2)
-
-                # Add buttons to the grid
-                for row in range(3):
-                    for col in range(3):
-                        is_active = (row == active_row and col == active_col)
-                        button = MovingTargetButton(
-                            is_active=is_active, 
-                            position=(row, col),
-                            parent_view=self
-                        )
-                        grid_view.add_item(button)
-
-                try:
-                    await interaction.followup.send(
-                        content=f"Target {self.current_step}/{num_targets} - Hit the active target (○)!",
-                        view=grid_view
-                    )
-
-                    # Wait for this step to complete
-                    await asyncio.sleep(5)
-
-                    if not self.round_complete:
-                        await interaction.followup.send(
-                            content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                        )
-                except Exception as e:
-                    print(f"Error in precision minigame round: {e}")
-
-                # Short pause between rounds
-                await asyncio.sleep(1)
-
-            # Calculate training results
-            performance = self.score / self.max_score
-
-            # Base attribute gains
-            primary_attr = self.training_data["primary_attribute"]
-            secondary_attr = self.training_data["secondary_attribute"]
-
-            # Calculate attribute gains based on performance
-            primary_gain = max(1, int(3 * performance))  # 0-3 points
-            secondary_gain = max(0, int(2 * performance))  # 0-2 points
-
-            # Handle battle energy training differently - this increases max battle energy capacity
-            energy_gain = 0
-            if primary_attr == "energy":
-                # Get the selected difficulty level from the training data
-                difficulty_level = next((d for d in self.training_data["difficulty_levels"] 
-                                  if d["name"] == self.selected_difficulty), None)
-                if difficulty_level and "energy_gain" in difficulty_level:
-                    # Calculate battle energy gain based on performance and difficulty level
-                    energy_gain = max(1, int(difficulty_level["energy_gain"] * performance))
-
-            # Apply different increases for HP
-            if primary_attr == "hp":
-                primary_gain *= 5  # 5x multiplier for HP
-            if secondary_attr == "hp":
-                secondary_gain *= 5  # 5x multiplier for HP
-
-            # Calculate exp gain based on performance
-            exp_gain = int(self.training_data["base_exp"] * performance)
-
-            # Initialize allocated stats if not exists
-            if not hasattr(self.player_data, "allocated_stats") or not self.player_data.allocated_stats:
-                self.player_data.allocated_stats = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
-
-            # Apply attribute gains
-            if primary_attr == "energy" and energy_gain > 0:
-                # Increase the player's max energy capacity through energy_training field
-                if not hasattr(self.player_data, "energy_training"):
-                    self.player_data.energy_training = 0
-                self.player_data.energy_training += energy_gain
-                # Also update battle energy to reflect the new maximum
-                max_energy = self.player_data.get_max_battle_energy()
-                self.player_data.battle_energy = min(max_energy, self.player_data.battle_energy + energy_gain)
-
-                secondary_attr_to_apply = secondary_attr
-            else:
-                # Normal attribute increases
-                self.player_data.allocated_stats[primary_attr] += primary_gain
-                secondary_attr_to_apply = secondary_attr
-
-            # Always apply secondary attribute gain
-            self.player_data.allocated_stats[secondary_attr_to_apply] += secondary_gain
-
-            # Apply exp gain
-            leveled_up = self.player_data.add_exp(exp_gain)
-
-            # Update quest progress for training
-            from achievements import QuestManager
-            quest_manager = QuestManager(self.data_manager)
-
-            # Update daily training quests
-            completed_daily_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
-
-            # Update weekly advanced training quests
-            completed_weekly_quests = quest_manager.update_quest_progress(self.player_data, "weekly_advanced_training")
-
-            # Update training cooldowns
-            if not hasattr(self.player_data, "training_cooldowns"):
-                self.player_data.training_cooldowns = {}
-
-            # Set cooldown
-            now = datetime.datetime.now()
-            self.player_data.training_cooldowns[self.training_type] = (now + datetime.timedelta(hours=self.training_data["cooldown"])).isoformat()
-
-            # Update quest progress
-            from achievements import QuestManager
-            quest_manager = QuestManager(self.data_manager)
-
-            # Update daily training quests
-            completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
-            for quest in completed_quests:
-                quest_manager.award_quest_rewards(self.player_data, quest)
-
-            # Update weekly training quests
-            completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_training")
-            for quest in completed_weekly:
-                quest_manager.award_quest_rewards(self.player_data, quest)
-
-            # Save player data
-            self.data_manager.save_data()
-
-            # Create results embed
-            embed = discord.Embed(
-                title=f"🏋️ {self.training_type} Training Complete!",
-                description=f"Score: {self.score}/{self.max_score} ({int(performance * 100)}%)",
-                color=discord.Color.green() if performance >= 0.6 else discord.Color.gold() if performance >= 0.3 else discord.Color.red()
-            )
-
-            # Add energy gain info if this was energy training
-            if primary_attr == "energy" and energy_gain > 0:
-                embed.add_field(
-                    name="⚡ Energy Capacity Increased!",
-                    value=f"Your maximum battle energy capacity has increased by **{energy_gain}** points!\n"
-                          f"New maximum battle energy: **{self.player_data.get_max_battle_energy()}**",
-                    inline=False
-                )
-
-            # Add attribute gains
-            embed.add_field(
-                name="Attribute Gains",
-                value=f"**{primary_attr.title()}:** +{primary_gain}\n"
-                      f"**{secondary_attr.title()}:** +{secondary_gain}",
-                inline=True
-            )
-
-            # Add exp gain
-            embed.add_field(
-                name="Experience",
-                value=f"**EXP Gained:** {exp_gain}",
-                inline=True
-            )
-
-            # Add level up notification if applicable
-            if leveled_up:
-                embed.add_field(
-                    name="Level Up!",
-                    value=f"🆙 You reached Level {self.player_data.class_level}!\n"
-                          f"You gained 3 skill points! Use !skills to allocate them.",
-                    inline=False
-                )
-
-            # Add cooldown info
-            embed.add_field(
-                name="Cooldown",
-                value=f"This training will be available again in {self.training_data['cooldown']} hours.",
-                inline=False
-            )
-
-            # Show results
-            await interaction.edit_original_response(
-                content=None,
-                embed=embed,
-                view=None
-            )
-
-            # Stop the view
-            self.stop()
-
-        async def cancel_callback(self, interaction: discord.Interaction):
-            """Handle cancellation"""
-            await interaction.response.edit_message(
-                content="❌ Training cancelled.",
-                view=None
-            )
-            self.stop()
-
-    class AdvancedTrainingView(View):
-        def __init__(self, player_data: PlayerData, data_manager: DataManager):
-            super().__init__(timeout=60)
-            self.player_data = player_data
-            self.data_manager = data_manager
-
-            # Get available training options
-            self.training_options = self.get_available_training()
-
-            # Create select menu for training options
-            self.training_select = Select(
-                placeholder="Select a training exercise",
-                min_values=1,
-                max_values=1
-            )
-
-            # Add options to select menu
-            for name, data in self.training_options.items():
-                # Check if on cooldown
-                on_cooldown = False
-                cooldown_text = ""
-
-                if hasattr(self.player_data, "training_cooldowns") and name in self.player_data.training_cooldowns:
-                    try:
-                        cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[name])
-                        now = datetime.datetime.now()
-
-                        if cooldown_time > now:
-                            time_remaining = cooldown_time - now
-                            hours, remainder = divmod(time_remaining.seconds, 3600)
-                            minutes, _ = divmod(remainder, 60)
-
-                            on_cooldown = True
-                            cooldown_text = f" (Cooldown: {hours}h {minutes}m)"
-                    except (ValueError, TypeError):
-                        pass
-
-                description = data["description"]
-                if on_cooldown:
-                    description = f"ON COOLDOWN{cooldown_text}"
-
-                self.training_select.add_option(
-                    label=name,
-                    description=description[:100],  # Discord limit
-                    value=name,
-                    emoji=data["emoji"],
-                    default=False
-                )
-
-            # Set callback
-            self.training_select.callback = self.training_select_callback
-
-            # Add select menu
-            self.add_item(self.training_select)
-
-            # Add cancel button
-            cancel_btn = Button(
-                label="Cancel",
-                style=discord.ButtonStyle.red,
-                emoji="❌"
-            )
-            cancel_btn.callback = self.cancel_callback
-            self.add_item(cancel_btn)
-
-        def get_available_training(self) -> Dict[str, Dict[str, Any]]:
-            """Get all training options available to the player"""
-            result = {}
-
-            # Add basic training options for everyone
-            for name, data in TRAINING_MINIGAMES.items():
-                result[name] = data
-
-            # Add class-specific training if available
-            if self.player_data.class_name in CLASS_TRAINING:
-                class_training = CLASS_TRAINING[self.player_data.class_name]
-
-                for name, data in class_training.items():
-                    # Check level requirement
-                    if self.player_data.class_level >= data.get("level_req", 0):
-                        result[name] = data
-
-            return result
-
-        async def training_select_callback(self, interaction: discord.Interaction):
-            """Handle training selection"""
-            training_name = self.training_select.values[0]
-            training_data = self.training_options[training_name]
-
-            # Check cooldown
-            if hasattr(self.player_data, "training_cooldowns") and training_name in self.player_data.training_cooldowns:
-                try:
-                    cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[training_name])
-                    now = datetime.datetime.now()
-
-                    if cooldown_time > now:
-                        time_remaining = cooldown_time - now
-                        hours, remainder = divmod(time_remaining.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
-
-                        await interaction.response.send_message(
-                            f"⏳ This training is still on cooldown for {hours}h {minutes}m.",
-                            ephemeral=True
-                        )
-                        return
-                except (ValueError, TypeError):
-                    pass
-
-            # Create training minigame view
-            training_view = TrainingMinigameView(self.player_data, training_name, training_data, self.data_manager)
-
-            # Create training embed
-            embed = discord.Embed(
-                title=f"🏋️ {training_name} Training",
-                description=training_data["description"],
-                color=discord.Color.blue()
-            )
-
-            embed.add_field(
-                name="Training Focus",
-                value=f"Primary: **{training_data['primary_attribute'].title()}**\n"
-                      f"Secondary: **{training_data['secondary_attribute'].title()}**",
-                inline=True
-            )
-
-            embed.add_field(
-                name="Potential Rewards",
-                value=f"Base EXP: **{training_data['base_exp']}**\n"
-                      f"Attribute Points: **1-3** (based on performance)",
-                inline=True
-            )
-
-            embed.add_field(
-                name="Cooldown",
-                value=f"This training has a cooldown of **{training_data['cooldown']} hours** after completion.",
-                inline=False
-            )
-
-            # Show training view
-            await interaction.response.send_message(
-                embed=embed,
-                view=training_view
-            )
-
-            # Stop this view
-            self.stop()
-
-        async def cancel_callback(self, interaction: discord.Interaction):
-            """Handle cancellation"""
-            await interaction.response.edit_message(
-                content="❌ Training selection cancelled.",
-                view=None
-            )
-            self.stop()
-
-    async def advanced_training_command(ctx, data_manager: DataManager):
-        """Participate in advanced training exercises"""
-        player_data = data_manager.get_player(ctx.author.id)
-
-        # Check if player has started
-        if not player_data.class_name:
-            await ctx.send("❌ You haven't started your adventure yet! Use `!start` to choose a class.")
-            return
-
-        # Create training view
-        view = AdvancedTrainingView(player_data, data_manager)
-
-        # Create embed
-        embed = discord.Embed(
-            title="🏋️ Advanced Training",
-            description="Select a training exercise to improve your skills. Each training focuses on different attributes and provides experience points.",
-            color=discord.Color.blue()
-        )
-
-        # Add current stats
-        from utils import GAME_CLASSES
-        player_stats = player_data.get_stats(GAME_CLASSES)
-
-        embed.add_field(
-            name="📊 Current Stats",
-            value=f"**HP:** {player_stats['hp']} ❤️\n"
-                  f"**Power:** {player_stats['power']} ⚔️\n"
-                  f"**Defense:** {player_stats['defense']} 🛡️\n"
-                  f"**Speed:** {player_stats['speed']} 💨",
-            inline=True
-        )
-
-        # Add level info
-        embed.add_field(
-            name="📈 Level Information",
-            value=f"**Level:** {player_data.class_level}\n"
-                  f"**EXP:** {player_data.class_exp}/{int(100 * (player_data.class_level ** 1.5))}\n"
-                  f"**Class:** {player_data.class_name}",
-            inline=True
-        )
-
-        # Send message with embed and view
-        await ctx.send(embed=embed, view=view)import discord
+import discord
 from discord.ui import Button, View, Select
 import random
 import asyncio
@@ -1440,10 +261,10 @@ class TargetButton(Button):
                 emoji="❌",
                 row=row
             )
-        
+
         self.is_target = is_target
         self.parent_view = parent_view
-    
+
     async def callback(self, interaction: discord.Interaction):
         # Handle the button click
         if self.is_target:
@@ -1457,7 +278,7 @@ class TargetButton(Button):
                 content=f"❌ Miss! Score: {self.parent_view.score}/{self.parent_view.max_score}",
                 view=None
             )
-        
+
         self.parent_view.round_complete = True
         self.parent_view.stop()
 
@@ -1470,17 +291,17 @@ class SequenceButton(Button):
             style=discord.ButtonStyle.primary,
             row=row
         )
-        
+
         self.symbol = symbol
         self.order = order
         self.parent_view = parent_view
-    
+
     async def callback(self, interaction: discord.Interaction):
         # Handle the button click
         if self.parent_view.expected_next == self.order:
             # Correct sequence step
             self.parent_view.current_sequence_position += 1
-            
+
             # If completed the whole sequence
             if self.parent_view.current_sequence_position >= len(self.parent_view.current_sequence):
                 self.parent_view.score += 1
@@ -1514,12 +335,12 @@ class TimingBar(View):
         self.speed = 0.05  # How fast the indicator moves per step
         self.task = None
         self.stopped = False
-        
+
         # Add the stop button
         stop_btn = Button(label="STOP", style=discord.ButtonStyle.danger)
         stop_btn.callback = self.stop_callback
         self.add_item(stop_btn)
-    
+
     async def start(self, interaction: discord.Interaction):
         # Initial render
         self.position = 0.0
@@ -1527,65 +348,77 @@ class TimingBar(View):
             content=self.render_bar(),
             view=self
         )
-        
+
         # Start the animation
         self.task = asyncio.create_task(self.animate(interaction))
-    
+
     def render_bar(self) -> str:
         """Render a text-based timing bar"""
         bar_length = 20
         target_start = int((0.5 - self.target_zone/2) * bar_length)
         target_end = int((0.5 + self.target_zone/2) * bar_length)
-        
+
         # Create the bar with target zone
         bar = ["□"] * bar_length
         for i in range(target_start, target_end+1):
             bar[i] = "■"
-        
+
         # Add the indicator
         indicator_pos = min(bar_length-1, int(self.position * bar_length))
         bar[indicator_pos] = "🔴"
-        
+
         return f"⏱️ Stop the indicator in the target zone!\n\n|{''.join(bar)}|"
-    
+
     async def animate(self, interaction: discord.Interaction):
         """Animate the timing bar"""
         try:
             while not self.stopped:
-                # Move the indicator
-                self.position += self.direction * self.speed
-                
-                # Bounce at the edges
+                # Update position
+                self.position += self.speed * self.direction
+
+                # Change direction if hitting edge
                 if self.position >= 1.0:
                     self.position = 1.0
                     self.direction = -1
                 elif self.position <= 0.0:
                     self.position = 0.0
                     self.direction = 1
-                
+
                 # Update the message
-                await interaction.edit_original_response(content=self.render_bar())
-                
-                # Small delay between frames
+                try:
+                    await interaction.edit_original_response(content=self.render_bar())
+                except:
+                    # If editing fails (e.g. message deleted), stop the animation
+                    self.stopped = True
+                    break
+
+                # Delay between frames
                 await asyncio.sleep(0.1)
+        except asyncio.CancelledError:
+            # Task was cancelled, clean up
+            self.stopped = True
         except Exception as e:
-            print(f"Animation error: {e}")
-    
+            print(f"Error in timing bar animation: {e}")
+            self.stopped = True
+
     async def stop_callback(self, interaction: discord.Interaction):
         """Handle stopping the timing bar"""
+        # Stop the animation
         self.stopped = True
-        if self.task:
+        if self.task and not self.task.done():
             self.task.cancel()
-        
-        # Calculate if successful (indicator in target zone)
-        center = 0.5
-        half_target = self.target_zone / 2
-        in_target = (center - half_target) <= self.position <= (center + half_target)
-        
-        if in_target:
+
+        # Check if in target zone
+        bar_length = 20
+        target_start = (0.5 - self.target_zone/2)
+        target_end = (0.5 + self.target_zone/2)
+        success = target_start <= self.position <= target_end
+
+        # Update the view based on result
+        if success:
             self.parent_view.score += 1
             await interaction.response.edit_message(
-                content=f"🎯 Perfect timing! Score: {self.parent_view.score}/{self.parent_view.max_score}",
+                content=f"✅ Perfect timing! Score: {self.parent_view.score}/{self.parent_view.max_score}",
                 view=None
             )
         else:
@@ -1593,23 +426,26 @@ class TimingBar(View):
                 content=f"❌ Missed the target zone! Score: {self.parent_view.score}/{self.parent_view.max_score}",
                 view=None
             )
-        
+
+        # Signal completion
         self.parent_view.round_complete = True
         self.parent_view.stop()
 
-# QUIZ MINIGAME - Answer RPG-themed questions 
+# QUIZ MINIGAME - Answer trivia questions
 class QuizButton(Button):
     def __init__(self, answer: str, is_correct: bool, parent_view, row: int = 0):
+        # All answers look the same until selected
         super().__init__(
             label=answer,
             style=discord.ButtonStyle.secondary,
             row=row
         )
-        
+
         self.is_correct = is_correct
         self.parent_view = parent_view
-    
+
     async def callback(self, interaction: discord.Interaction):
+        # Handle answer selection
         if self.is_correct:
             self.parent_view.score += 1
             await interaction.response.edit_message(
@@ -1618,44 +454,45 @@ class QuizButton(Button):
             )
         else:
             await interaction.response.edit_message(
-                content=f"❌ Incorrect! The correct answer was: {self.parent_view.current_correct_answer}\nScore: {self.parent_view.score}/{self.parent_view.max_score}",
+                content=f"❌ Incorrect! The correct answer was: {self.parent_view.correct_answer}\nScore: {self.parent_view.score}/{self.parent_view.max_score}",
                 view=None
             )
-        
+
         self.parent_view.round_complete = True
         self.parent_view.stop()
 
-# PRECISION MINIGAME - Hit moving targets to enhance precision
+# PRECISION MINIGAME - Track and click moving targets
 class MovingTargetButton(Button):
     def __init__(self, is_active: bool, position: Tuple[int, int], parent_view):
-        row = position[0]
-        # Default button style
+        # Set button appearance
         super().__init__(
-            label="○" if is_active else "·",
-            style=discord.ButtonStyle.secondary if is_active else discord.ButtonStyle.gray,
-            row=row
+            label="◯" if is_active else " ",
+            style=discord.ButtonStyle.green if is_active else discord.ButtonStyle.secondary,
+            row=position[0]  # Use row as Y coordinate
         )
-        
+
         self.is_active = is_active
         self.parent_view = parent_view
         self.position = position
-    
+
     async def callback(self, interaction: discord.Interaction):
+        # Handle target click
         if self.is_active:
-            self.parent_view.score += 1
+            self.parent_view.hits += 1
             await interaction.response.edit_message(
-                content=f"🎯 Precise hit! Score: {self.parent_view.score}/{self.parent_view.max_score}",
+                content=f"🎯 Target hit! Hits: {self.parent_view.hits}/{self.parent_view.target_count}",
                 view=None
             )
         else:
             await interaction.response.edit_message(
-                content=f"❌ Missed the active target! Score: {self.parent_view.score}/{self.parent_view.max_score}",
+                content=f"❌ Missed! Hits: {self.parent_view.hits}/{self.parent_view.target_count}",
                 view=None
             )
-        
+
         self.parent_view.round_complete = True
         self.parent_view.stop()
 
+# Main training minigame view
 class TrainingMinigameView(View):
     def __init__(self, player_data: PlayerData, training_type: str, training_data: Dict[str, Any], data_manager: DataManager):
         super().__init__(timeout=60)
@@ -1663,469 +500,612 @@ class TrainingMinigameView(View):
         self.training_type = training_type
         self.training_data = training_data
         self.data_manager = data_manager
-        self.result = None
+
+        # Get difficulty settings
+        self.difficulty_levels = training_data["difficulty_levels"]
+
+        # Minigame state
+        self.current_difficulty = None
         self.score = 0
-        self.max_score = 5
-        self.current_step = 0
+        self.max_score = 0
         self.round_complete = False
-        # Default to the 'Basic' difficulty level
-        self.selected_difficulty = "Basic"
-        # Select the difficulty data
-        self.difficulty = next((d for d in self.training_data.get("difficulty_levels", []) 
-                          if d["name"] == self.selected_difficulty), {})
-        
-        # Add start button
-        start_btn = Button(
-            label="Start Training",
-            style=discord.ButtonStyle.green,
-            emoji=training_data["emoji"]
-        )
-        start_btn.callback = self.start_callback
-        self.add_item(start_btn)
-        
-        # Add cancel button
-        cancel_btn = Button(
-            label="Cancel",
-            style=discord.ButtonStyle.red,
-            emoji="❌"
-        )
-        cancel_btn.callback = self.cancel_callback
-        self.add_item(cancel_btn)
-    
+
+        # Sequence minigame specific
+        self.current_sequence = []
+        self.current_sequence_position = 0
+        self.expected_next = None
+
+        # Quiz minigame specific
+        self.correct_answer = ""
+
+        # Precision minigame specific
+        self.hits = 0
+        self.target_count = 0
+
+        # Add the start button
+        start_button = Button(label="Start Training", style=discord.ButtonStyle.primary, emoji="🏋️")
+        start_button.callback = self.start_callback
+        self.add_item(start_button)
+
+        # Add the cancel button
+        cancel_button = Button(label="Cancel", style=discord.ButtonStyle.secondary, emoji="❌")
+        cancel_button.callback = self.cancel_callback
+        self.add_item(cancel_button)
+
     async def start_callback(self, interaction: discord.Interaction):
         """Start the training minigame"""
-        # Clear buttons
+        # Remove the start and cancel buttons
         self.clear_items()
-        
-        # Get minigame type
-        minigame_type = self.training_data.get("minigame_type", "reaction")
-        
-        # Get appropriate emoji and message
-        emoji_map = {
-            "reaction": "🎯",
-            "sequence": "🔢",
-            "timing": "⏱️",
-            "quiz": "🧠",
-            "precision": "🎯"
-        }
-        emoji = emoji_map.get(minigame_type, "🏋️")
-        
-        # Send instructions based on minigame type
-        instructions = {
-            "reaction": "Click the highlighted target as quickly as possible!",
-            "sequence": "Memorize the sequence and repeat it in the correct order!",
-            "timing": "Stop the moving indicator when it's in the target zone!",
-            "quiz": "Answer the combat strategy questions correctly!",
-            "precision": "Hit the active target to improve your precision!"
-        }
-        
-        instruction_text = instructions.get(minigame_type, "Complete the training challenges!")
-        
-        await interaction.response.edit_message(
-            content=f"{emoji} **{self.training_type} Training**\n\n"
-                   f"{self.training_data['description']}\n\n"
-                   f"{instruction_text}",
-            view=None
+
+        # Create a difficulty select
+        difficulty_select = Select(
+            placeholder="Select difficulty",
+            options=[
+                discord.SelectOption(
+                    label=level["name"],
+                    description=f"Exp multiplier: {level['exp_multiplier']}x",
+                    value=str(i)
+                ) for i, level in enumerate(self.difficulty_levels)
+            ]
         )
-        
-        await asyncio.sleep(2)
-        
-        # Select and run the appropriate minigame type
-        if minigame_type == "reaction":
-            await self.run_reaction_minigame(interaction)
-        elif minigame_type == "sequence":
-            await self.run_sequence_minigame(interaction)
-        elif minigame_type == "timing":
-            await self.run_timing_minigame(interaction)
-        elif minigame_type == "quiz":
-            await self.run_quiz_minigame(interaction)
-        elif minigame_type == "precision":
-            await self.run_precision_minigame(interaction)
-        else:
-            # Fallback to reaction game if unknown type
-            await self.run_reaction_minigame(interaction)
-    
+
+        # Add callback for difficulty selection
+        async def difficulty_callback(interaction: discord.Interaction):
+            # Get selected difficulty
+            selected_idx = int(interaction.data["values"][0])
+            self.current_difficulty = self.difficulty_levels[selected_idx]
+
+            # Remove the select menu
+            self.clear_items()
+
+            # Run the appropriate minigame
+            minigame_type = self.training_data["minigame_type"]
+
+            await interaction.response.edit_message(
+                content=f"Starting {self.current_difficulty['name']} {self.training_type}...",
+                view=self
+            )
+
+            # Choose the right minigame
+            if minigame_type == "reaction":
+                await self.run_reaction_minigame(interaction)
+            elif minigame_type == "sequence":
+                await self.run_sequence_minigame(interaction)
+            elif minigame_type == "timing":
+                await self.run_timing_minigame(interaction)
+            elif minigame_type == "quiz":
+                await self.run_quiz_minigame(interaction)
+            elif minigame_type == "precision":
+                await self.run_precision_minigame(interaction)
+            else:
+                await interaction.edit_original_response(
+                    content=f"❌ Unknown minigame type: {minigame_type}",
+                    view=None
+                )
+
+        difficulty_select.callback = difficulty_callback
+        self.add_item(difficulty_select)
+
+        # Update the message
+        await interaction.response.edit_message(
+            content=f"Select difficulty for {self.training_type}:",
+            view=self
+        )
+
     async def run_reaction_minigame(self, interaction: discord.Interaction):
         """Run the reaction speed minigame"""
-        for i in range(self.max_score):
-            self.current_step = i + 1
+        # Set up minigame parameters
+        time_window = self.current_difficulty.get("time_window", 2.0)  # Time in seconds to hit the target
+        rounds = 5  # Number of rounds
+        self.max_score = rounds
+        self.score = 0
+
+        for round_num in range(1, rounds + 1):
+            # Create a grid of buttons (one target, rest are misses)
+            grid_size = 3  # 3x3 grid
+            target_x = random.randint(0, grid_size - 1)
+            target_y = random.randint(0, grid_size - 1)
+
+            # Create a new view for this round
+            round_view = View(timeout=time_window)
+
+            # Add buttons to the grid
+            for y in range(grid_size):
+                for x in range(grid_size):
+                    is_target = (x == target_x and y == target_y)
+                    button = TargetButton(is_target, self, row=y)
+                    round_view.add_item(button)
+
+            # Show the grid
             self.round_complete = False
-            
-            # Create a round view for this step
-            round_view = View(timeout=5)
-            
-            # Add target buttons in random positions
-            positions = list(range(3*3))  # 3x3 grid
-            random.shuffle(positions)
-            
-            # Add target button and dummy buttons
-            for j in range(9):
-                is_target = (j == positions[0])
-                button = TargetButton(is_target=is_target, parent_view=self, row=j//3)
-                round_view.add_item(button)
-            
-            # Show the round view
-            try:
-                round_msg = await interaction.followup.send(
-                    content=f"Round {self.current_step}/{self.max_score} - Click the target!",
-                    view=round_view
-                )
-                
-                # Get time window from difficulty
-                time_window = self.difficulty.get("time_window", 5.0)
-                
-                # Wait for this step to complete
-                await asyncio.sleep(time_window)
-                
-                # If the round was not completed, count it as a miss
-                if not self.round_complete:
-                    await interaction.followup.send(
-                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
+            await interaction.edit_original_response(
+                content=f"Round {round_num}/{rounds} - Click the target button! 🎯",
+                view=round_view
+            )
+
+            # Wait for the round to complete or timeout
+            if time_window > 0:
+                try:
+                    await asyncio.wait_for(
+                        round_view.wait(), 
+                        timeout=time_window
                     )
-            except Exception as e:
-                print(f"Error in reaction minigame round: {e}")
-            
+                except asyncio.TimeoutError:
+                    # Time's up
+                    await interaction.edit_original_response(
+                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}",
+                        view=None
+                    )
+                    self.round_complete = True
+
             # Short pause between rounds
-            await asyncio.sleep(1)
-    
+            if round_num < rounds and self.round_complete:
+                await asyncio.sleep(1.5)
+
+        # After all rounds, process the results
+        await self.process_training_results(interaction)
+
     async def run_sequence_minigame(self, interaction: discord.Interaction):
         """Run the sequence memorization minigame"""
-        # Possible symbols for sequence
-        symbols = ["🔴", "🔵", "🟢", "🟡", "⚪", "🟣", "🟠", "⚫"]
-        
-        for i in range(self.max_score):
-            self.current_step = i + 1
-            self.round_complete = False
-            
-            # Get sequence length from difficulty
-            seq_length = self.difficulty.get("sequence_length", 3)
-            
-            # Generate random sequence
-            sequence = [random.randint(0, len(symbols)-1) for _ in range(seq_length)]
-            self.current_sequence = sequence
-            self.current_sequence_position = 0
-            self.expected_next = sequence[0]
-            
-            # First, show the sequence to memorize
-            sequence_text = " → ".join([symbols[s] for s in sequence])
-            await interaction.followup.send(
-                content=f"Round {self.current_step}/{self.max_score} - Memorize this sequence!\n{sequence_text}"
-            )
-            
-            # Wait for player to memorize
-            memorize_time = min(5, 1 + seq_length)
-            await asyncio.sleep(memorize_time)
-            
-            # Now show the buttons to reproduce the sequence
-            sequence_view = View(timeout=10)
-            
-            # Add buttons for each symbol
-            for j, symbol in enumerate(symbols):
-                button = SequenceButton(symbol=symbol, order=j, parent_view=self, row=j//4)
-                sequence_view.add_item(button)
-            
-            try:
-                await interaction.followup.send(
-                    content=f"Now reproduce the sequence in order!",
-                    view=sequence_view
+        # Set up minigame parameters
+        sequence_length = self.current_difficulty.get("sequence_length", 4)
+        rounds = 3  # Number of different sequences
+        self.max_score = rounds
+        self.score = 0
+
+        # Symbols for the buttons
+        symbols = ["🔴", "🔵", "🟢", "🟡", "⚪", "🟠", "🟣", "⚫"]
+
+        for round_num in range(1, rounds + 1):
+            # Generate a random sequence
+            self.current_sequence = [random.randint(0, len(symbols) - 1) for _ in range(sequence_length)]
+
+            # Create a view to display the sequence
+            display_view = View(timeout=None)
+            for i, symbol_idx in enumerate(self.current_sequence):
+                button = Button(
+                    label=f"{i+1}: {symbols[symbol_idx]}",
+                    style=discord.ButtonStyle.secondary,
+                    disabled=True,
+                    row=0
                 )
-                
-                # Wait for sequence completion or timeout
-                await asyncio.sleep(10)
-                
-                if not self.round_complete:
-                    await interaction.followup.send(
-                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                    )
-            except Exception as e:
-                print(f"Error in sequence minigame round: {e}")
-            
+                display_view.add_item(button)
+
+            # Show the sequence to memorize
+            await interaction.edit_original_response(
+                content=f"Round {round_num}/{rounds} - Memorize this sequence:",
+                view=display_view
+            )
+
+            # Wait before hiding the sequence
+            await asyncio.sleep(sequence_length * 0.8)  # Longer sequences get more time
+
+            # Hide the sequence and show a "Get ready" message
+            await interaction.edit_original_response(
+                content=f"Round {round_num}/{rounds} - Now reproduce the sequence from memory!",
+                view=None
+            )
+
+            # Small pause to let player prepare
+            await asyncio.sleep(1.0)
+
+            # Create a view for repeating the sequence
+            sequence_view = View(timeout=sequence_length * 2.0)  # Time based on sequence length
+
+            # Add the buttons in a randomized order
+            shuffled_indices = list(range(len(symbols)))
+            random.shuffle(shuffled_indices)
+
+            # Split into rows if needed
+            buttons_per_row = 4
+            for i, symbol_idx in enumerate(shuffled_indices[:8]):  # Limit to 8 buttons max
+                row_num = i // buttons_per_row
+                button = SequenceButton(
+                    symbol=symbols[symbol_idx],
+                    order=symbol_idx,
+                    parent_view=self,
+                    row=row_num
+                )
+                sequence_view.add_item(button)
+
+            # Reset for this round
+            self.current_sequence_position = 0
+            self.expected_next = self.current_sequence[0]
+            self.round_complete = False
+
+            # Show the buttons for player to repeat sequence
+            await interaction.edit_original_response(
+                content=f"Round {round_num}/{rounds} - Now repeat the sequence!",
+                view=sequence_view
+            )
+
+            # Wait for round completion or timeout
+            try:
+                await asyncio.wait_for(
+                    sequence_view.wait(),
+                    timeout=sequence_length * 2.5
+                )
+            except asyncio.TimeoutError:
+                # Time's up
+                await interaction.edit_original_response(
+                    content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}",
+                    view=None
+                )
+                self.round_complete = True
+
             # Short pause between rounds
-            await asyncio.sleep(1)
-    
+            if round_num < rounds and self.round_complete:
+                await asyncio.sleep(1.5)
+
+        # After all rounds, process the results
+        await self.process_training_results(interaction)
+
     async def run_timing_minigame(self, interaction: discord.Interaction):
         """Run the timing bar minigame"""
-        for i in range(self.max_score):
-            self.current_step = i + 1
+        # Set up minigame parameters
+        target_zone = self.current_difficulty.get("target_zone", 0.2)  # Width of target zone (0.0-1.0)
+        rounds = 3  # Number of rounds
+        self.max_score = rounds
+        self.score = 0
+
+        for round_num in range(1, rounds + 1):
+            # Create and start a timing bar
+            timing_bar = TimingBar(self, target_zone)
+
+            # Reset round state
             self.round_complete = False
-            
-            # Get target zone size from difficulty
-            target_zone = self.difficulty.get("target_zone", 0.3)
-            
-            # Create and start timing bar
-            timing_bar = TimingBar(parent_view=self, target_zone=target_zone)
-            
+
+            # Start the timing bar
+            interaction_copy = interaction
+            await timing_bar.start(interaction_copy)
+
+            # Wait for round completion or timeout
             try:
-                await timing_bar.start(interaction)
-                
-                # Wait for completion or timeout
-                await asyncio.sleep(10)
-                
-                if not self.round_complete:
-                    await interaction.followup.send(
-                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                    )
-            except Exception as e:
-                print(f"Error in timing minigame round: {e}")
-            
+                await asyncio.wait_for(
+                    timing_bar.wait(),
+                    timeout=10.0  # Maximum 10 seconds per round
+                )
+            except asyncio.TimeoutError:
+                # Time's up (should be handled by the timing bar itself)
+                pass
+
             # Short pause between rounds
-            await asyncio.sleep(1)
-    
+            if round_num < rounds and self.round_complete:
+                await asyncio.sleep(1.5)
+
+        # After all rounds, process the results
+        await self.process_training_results(interaction)
+
     async def run_quiz_minigame(self, interaction: discord.Interaction):
         """Run the knowledge quiz minigame"""
-        # RPG-themed quiz questions and answers
-        quiz_questions = [
+        # Set up minigame parameters
+        question_count = self.current_difficulty.get("questions", 3)
+        self.max_score = question_count
+        self.score = 0
+
+        # Quiz questions related to the game
+        questions = [
             {
-                "question": "Which is the most effective strategy against a heavily armored opponent?",
-                "answers": ["Use speed to your advantage", "Match strength with strength", "Aim for weak points", "Retreat and heal"],
-                "correct": 2
+                "question": "What resource is used to perform special moves in battles?",
+                "answers": ["Energy", "Gold", "Health", "Experience"],
+                "correct": "Energy"
             },
             {
-                "question": "What should you prioritize in a long battle?",
-                "answers": ["Maximum damage output", "Energy conservation", "Healing items", "Defensive stance"],
-                "correct": 1
+                "question": "Which of these is NOT a basic character class?",
+                "answers": ["Limitless Sorcerer", "Spirit Striker", "Domain Tactician", "Flash Rogue"],
+                "correct": "Limitless Sorcerer"
             },
             {
-                "question": "When facing multiple opponents, what's the best approach?",
-                "answers": ["Focus on the strongest enemy", "Divide and conquer", "Area attacks", "Defensive position"],
-                "correct": 2
+                "question": "What is the main currency used for transactions?",
+                "answers": ["Gold", "Cursed Energy", "Gems", "Scrolls"],
+                "correct": "Gold"
             },
             {
-                "question": "What's most important for a balanced combat style?",
-                "answers": ["Power techniques", "Defensive techniques", "Speed techniques", "Balance of all attributes"],
-                "correct": 3
+                "question": "Which attribute affects how much damage you deal?",
+                "answers": ["Power", "Defense", "Speed", "HP"],
+                "correct": "Power"
             },
             {
-                "question": "Which resource is most critical to manage in extended combat?",
-                "answers": ["Health points", "Energy", "Position", "Item usage"],
-                "correct": 1
+                "question": "What can you earn by completing achievements?",
+                "answers": ["Experience and rewards", "New classes", "New locations", "New weapons"],
+                "correct": "Experience and rewards"
             },
             {
-                "question": "What's the best counter to an agile opponent?",
-                "answers": ["Match their speed", "Use area attacks", "Predict movement patterns", "Heavy armor"],
-                "correct": 2
+                "question": "What determines your maximum Energy in battles?",
+                "answers": ["Level and training", "Equipment", "Class", "Guild rank"],
+                "correct": "Level and training"
             },
             {
-                "question": "When should you use your strongest ability?",
-                "answers": ["At the start of battle", "When your HP is low", "When the enemy is vulnerable", "Save it for emergencies"],
-                "correct": 2
+                "question": "How can you obtain rare equipment?",
+                "answers": ["All of the above", "Defeating strong enemies", "Completing quests", "Purchasing from special shops"],
+                "correct": "All of the above"
+            },
+            {
+                "question": "Which training is focused on increasing your Energy capacity?",
+                "answers": ["Energy Cultivation", "Cursed Energy Control", "Tactical Analysis", "Combat Training"],
+                "correct": "Energy Cultivation"
+            },
+            {
+                "question": "What feature allows players to work together?",
+                "answers": ["Guilds", "Parties", "Alliances", "Clans"],
+                "correct": "Guilds"
+            },
+            {
+                "question": "Which attribute helps you avoid enemy attacks?",
+                "answers": ["Speed", "Defense", "Power", "HP"],
+                "correct": "Speed"
             }
         ]
-        
-        # Shuffle questions
-        random.shuffle(quiz_questions)
-        
-        # Get number of questions from difficulty
-        num_questions = min(self.max_score, self.difficulty.get("questions", 3))
-        selected_questions = quiz_questions[:num_questions]
-        
-        for i, question_data in enumerate(selected_questions):
-            self.current_step = i + 1
-            self.round_complete = False
-            
-            question = question_data["question"]
-            answers = question_data["answers"]
-            correct_index = question_data["correct"]
-            
-            # Save correct answer for feedback
-            self.current_correct_answer = answers[correct_index]
-            
-            # Create quiz view
-            quiz_view = View(timeout=15)
-            
-            # Add answer buttons
-            for j, answer in enumerate(answers):
-                button = QuizButton(answer=answer, is_correct=(j == correct_index), parent_view=self, row=j)
+
+        # Shuffle and select questions for this round
+        selected_questions = random.sample(questions, min(question_count, len(questions)))
+
+        for q_idx, question_data in enumerate(selected_questions):
+            # Create a view with answer buttons
+            quiz_view = View(timeout=15.0)  # 15 seconds to answer
+
+            # Shuffle the answers
+            answers = question_data["answers"].copy()
+            random.shuffle(answers)
+
+            # Store the correct answer
+            self.correct_answer = question_data["correct"]
+
+            # Add buttons for each answer
+            for i, answer in enumerate(answers):
+                is_correct = (answer == question_data["correct"])
+                row = i // 2  # Two answers per row
+                button = QuizButton(answer, is_correct, self, row=row)
                 quiz_view.add_item(button)
-            
+
+            # Show the question
+            self.round_complete = False
+            await interaction.edit_original_response(
+                content=f"Question {q_idx+1}/{len(selected_questions)}:\n\n{question_data['question']}",
+                view=quiz_view
+            )
+
+            # Wait for answer or timeout
             try:
-                await interaction.followup.send(
-                    content=f"Question {self.current_step}/{num_questions}:\n**{question}**",
-                    view=quiz_view
+                await asyncio.wait_for(
+                    quiz_view.wait(),
+                    timeout=15.0
                 )
-                
-                # Wait for answer or timeout
-                await asyncio.sleep(15)
-                
-                if not self.round_complete:
-                    await interaction.followup.send(
-                        content=f"⏱️ Time's up! The correct answer was: {self.current_correct_answer}\nScore: {self.score}/{self.max_score}"
-                    )
-            except Exception as e:
-                print(f"Error in quiz minigame round: {e}")
-            
-            # Short pause between rounds
-            await asyncio.sleep(1)
-    
+            except asyncio.TimeoutError:
+                # Time's up
+                await interaction.edit_original_response(
+                    content=f"⏱️ Time's up! The correct answer was: {question_data['correct']}\nScore: {self.score}/{self.max_score}",
+                    view=None
+                )
+                self.round_complete = True
+
+            # Short pause between questions
+            if q_idx < len(selected_questions) - 1 and self.round_complete:
+                await asyncio.sleep(1.5)
+
+        # After all questions, process the results
+        await self.process_training_results(interaction)
+
     async def run_precision_minigame(self, interaction: discord.Interaction):
         """Run the precision targeting minigame"""
-        # Get number of targets from difficulty
-        num_targets = self.difficulty.get("targets", 5)
-        self.max_score = num_targets
-        
-        for i in range(num_targets):
-            self.current_step = i + 1
+        # Set up minigame parameters
+        target_count = self.current_difficulty.get("targets", 3)
+        grid_size = 4  # 4x4 grid
+        time_per_target = 2.0  # seconds
+
+        self.target_count = target_count
+        self.hits = 0
+
+        for target_idx in range(target_count):
+            # Create a grid with one active target
+            target_view = View(timeout=time_per_target)
+
+            # Random position for the target
+            target_x = random.randint(0, grid_size - 1)
+            target_y = random.randint(0, grid_size - 1)
+
+            # Add buttons to grid
+            for y in range(grid_size):
+                for x in range(grid_size):
+                    is_active = (x == target_x and y == target_y)
+                    button = MovingTargetButton(is_active, (y, x), self)
+                    target_view.add_item(button)
+
+            # Show the grid
             self.round_complete = False
-            
-            # Create a 3x3 grid view
-            grid_view = View(timeout=5)
-            
-            # Randomly position the active target
-            active_row = random.randint(0, 2)
-            active_col = random.randint(0, 2)
-            
-            # Add buttons to the grid
-            for row in range(3):
-                for col in range(3):
-                    is_active = (row == active_row and col == active_col)
-                    button = MovingTargetButton(
-                        is_active=is_active, 
-                        position=(row, col),
-                        parent_view=self
-                    )
-                    grid_view.add_item(button)
-            
+            await interaction.edit_original_response(
+                content=f"Target {target_idx+1}/{target_count} - Hit the highlighted target!",
+                view=target_view
+            )
+
+            # Wait for click or timeout
             try:
-                await interaction.followup.send(
-                    content=f"Target {self.current_step}/{num_targets} - Hit the active target (○)!",
-                    view=grid_view
+                await asyncio.wait_for(
+                    target_view.wait(),
+                    timeout=time_per_target
                 )
-                
-                # Wait for this step to complete
-                await asyncio.sleep(5)
-                
-                if not self.round_complete:
-                    await interaction.followup.send(
-                        content=f"⏱️ Time's up! Score: {self.score}/{self.max_score}"
-                    )
-            except Exception as e:
-                print(f"Error in precision minigame round: {e}")
-            
-            # Short pause between rounds
-            await asyncio.sleep(1)
-        
-        # Calculate training results
-        performance = self.score / self.max_score
-        
-        # Base attribute gains
-        primary_attr = self.training_data["primary_attribute"]
-        secondary_attr = self.training_data["secondary_attribute"]
-        
-        # Calculate attribute gains based on performance
-        primary_gain = max(1, int(3 * performance))  # 0-3 points
-        secondary_gain = max(0, int(2 * performance))  # 0-2 points
-        
-        # Handle battle energy training differently - this increases max battle energy capacity
+            except asyncio.TimeoutError:
+                # Time's up
+                await interaction.edit_original_response(
+                    content=f"⏱️ Time's up! Hits: {self.hits}/{self.target_count}",
+                    view=None
+                )
+                self.round_complete = True
+
+            # Short pause between targets
+            if target_idx < target_count - 1 and self.round_complete:
+                await asyncio.sleep(0.8)
+
+        # Convert hits to score for consistency with other minigames
+        self.score = self.hits
+        self.max_score = self.target_count
+
+        # After all targets, process the results
+        await self.process_training_results(interaction)
+
+    async def process_training_results(self, interaction: discord.Interaction):
+        """Process training results and award rewards"""
+        # Calculate success percentage
+        success_percent = (self.score / self.max_score) * 100 if self.max_score > 0 else 0
+
+        # Calculate experience and attribute gains
+        exp_multiplier = self.current_difficulty.get("exp_multiplier", 1.0)
+        base_exp = self.training_data.get("base_exp", 20)
+
+        # Apply score-based scaling
+        score_multiplier = self.score / self.max_score if self.max_score > 0 else 0
+
+        # Calculate final experience gain
+        exp_gain = int(base_exp * exp_multiplier * score_multiplier)
+
+        # Calculate attribute gains
+        attribute_gain = self.current_difficulty.get("attribute_gain", 1) if success_percent >= 50 else 0
+
+        # Get the primary and secondary attributes to improve
+        primary_attr = self.training_data.get("primary_attribute")
+        secondary_attr = self.training_data.get("secondary_attribute")
+
+        # Special handling for energy attribute if present
         energy_gain = 0
-        if primary_attr == "energy":
-            # Get the selected difficulty level from the training data
-            difficulty_level = next((d for d in self.training_data["difficulty_levels"] 
-                              if d["name"] == self.selected_difficulty), None)
-            if difficulty_level and "energy_gain" in difficulty_level:
-                # Calculate battle energy gain based on performance and difficulty level
-                energy_gain = max(1, int(difficulty_level["energy_gain"] * performance))
-        
-        # Apply different increases for HP
-        if primary_attr == "hp":
-            primary_gain *= 5  # 5x multiplier for HP
-        if secondary_attr == "hp":
-            secondary_gain *= 5  # 5x multiplier for HP
-        
-        # Calculate exp gain based on performance
-        exp_gain = int(self.training_data["base_exp"] * performance)
-        
-        # Initialize allocated stats if not exists
-        if not hasattr(self.player_data, "allocated_stats") or not self.player_data.allocated_stats:
-            self.player_data.allocated_stats = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
-        
-        # Apply attribute gains
-        if primary_attr == "energy" and energy_gain > 0:
-            # Increase the player's max energy capacity through energy_training field
-            if not hasattr(self.player_data, "energy_training"):
-                self.player_data.energy_training = 0
-            self.player_data.energy_training += energy_gain
-            # Also update battle energy to reflect the new maximum
-            max_energy = self.player_data.get_max_battle_energy()
-            self.player_data.battle_energy = min(max_energy, self.player_data.battle_energy + energy_gain)
-            
-            secondary_attr_to_apply = secondary_attr
-        else:
-            # Normal attribute increases
-            self.player_data.allocated_stats[primary_attr] += primary_gain
-            secondary_attr_to_apply = secondary_attr
-            
-        # Always apply secondary attribute gain
-        self.player_data.allocated_stats[secondary_attr_to_apply] += secondary_gain
-        
-        # Apply exp gain
-        leveled_up = self.player_data.add_exp(exp_gain)
-        
-        # Update quest progress for training
-        from achievements import QuestManager
-        quest_manager = QuestManager(self.data_manager)
-        
-        # Update daily training quests
-        completed_daily_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
-        
-        # Update weekly advanced training quests
-        completed_weekly_quests = quest_manager.update_quest_progress(self.player_data, "weekly_advanced_training")
-        
-        # Update training cooldowns
+        if primary_attr == "energy" and success_percent >= 50:
+            energy_gain = self.current_difficulty.get("energy_gain", 5)
+
+        # Apply the gains
+        levelup_threshold = 100 * self.player_data.class_level
+        old_level = self.player_data.class_level
+
+        # Update XP
+        self.player_data.class_exp += exp_gain
+
+        # Check for level up
+        leveled_up = False
+        while self.player_data.class_exp >= levelup_threshold:
+            self.player_data.class_exp -= levelup_threshold
+            self.player_data.class_level += 1
+            self.player_data.skill_points += 3
+            levelup_threshold = 100 * self.player_data.class_level
+            leveled_up = True
+
+        # Apply attribute gains if applicable
+        if attribute_gain > 0:
+            # Primary attribute
+            if primary_attr in self.player_data.attributes:
+                self.player_data.attributes[primary_attr] += attribute_gain
+            elif primary_attr == "energy" and hasattr(self.player_data, "max_energy"):
+                self.player_data.max_energy += energy_gain
+
+            # Secondary attribute (half the gain)
+            if secondary_attr in self.player_data.attributes:
+                self.player_data.attributes[secondary_attr] += max(1, attribute_gain // 2)
+
+        # Check for special rewards for perfect score
+        special_rewards = None
+        if success_percent == 100 and "special_rewards" in self.training_data and "perfect_score" in self.training_data["special_rewards"]:
+            special_rewards = self.training_data["special_rewards"]["perfect_score"]
+
+            # Apply cursed energy reward if present
+            if "cursed_energy" in special_rewards:
+                self.player_data.cursed_energy += special_rewards["cursed_energy"]
+
+            # Apply effect if present
+            if "effect" in special_rewards:
+                effect = special_rewards["effect"]
+
+                # Initialize effects dict if not present
+                if not hasattr(self.player_data, "effects"):
+                    self.player_data.effects = {}
+
+                # Add the effect with expiration time
+                now = datetime.datetime.now()
+                expiration = now + datetime.timedelta(hours=effect["duration"])
+
+                self.player_data.effects[effect["name"]] = {
+                    "boost_type": effect["boost_type"],
+                    "boost_amount": effect["boost_amount"],
+                    "expires": expiration.isoformat()
+                }
+
+        # Set training cooldown
+        cooldown_hours = self.training_data.get("cooldown", 2)
+        now = datetime.datetime.now()
+        cooldown_until = now + datetime.timedelta(hours=cooldown_hours)
+
+        # Initialize training cooldowns if not present
         if not hasattr(self.player_data, "training_cooldowns"):
             self.player_data.training_cooldowns = {}
-        
-        # Set cooldown
-        now = datetime.datetime.now()
-        self.player_data.training_cooldowns[self.training_type] = (now + datetime.timedelta(hours=self.training_data["cooldown"])).isoformat()
-        
-        # Update quest progress
-        from achievements import QuestManager
-        quest_manager = QuestManager(self.data_manager)
-        
-        # Update daily training quests
-        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
-        for quest in completed_quests:
-            quest_manager.award_quest_rewards(self.player_data, quest)
-        
-        # Update weekly training quests
-        completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_training")
-        for quest in completed_weekly:
-            quest_manager.award_quest_rewards(self.player_data, quest)
-            
+
+        self.player_data.training_cooldowns[self.training_type] = cooldown_until.isoformat()
+
         # Save player data
-        self.data_manager.save_data()
-        
+        self.data_manager.save_player(self.player_data)
+
         # Create results embed
         embed = discord.Embed(
-            title=f"🏋️ {self.training_type} Training Complete!",
-            description=f"Score: {self.score}/{self.max_score} ({int(performance * 100)}%)",
-            color=discord.Color.green() if performance >= 0.6 else discord.Color.gold() if performance >= 0.3 else discord.Color.red()
-        )
-        
-        # Add energy gain info if this was energy training
-        if primary_attr == "energy" and energy_gain > 0:
-            embed.add_field(
-                name="⚡ Energy Capacity Increased!",
-                value=f"Your maximum battle energy capacity has increased by **{energy_gain}** points!\n"
-                      f"New maximum battle energy: **{self.player_data.get_max_battle_energy()}**",
-                inline=False
+            title=f"🏋️ {self.training_type} Results",
+            description=f"You completed the training with {success_percent:.1f}% success!",
+            color=discord.Color.green() if success_percent >= 70 else (
+                discord.Color.gold() if success_percent >= 40 else discord.Color.red()
             )
-        
-        # Add attribute gains
+        )
+
+        # Add score
         embed.add_field(
-            name="Attribute Gains",
-            value=f"**{primary_attr.title()}:** +{primary_gain}\n"
-                  f"**{secondary_attr.title()}:** +{secondary_gain}",
+            name="Score",
+            value=f"{self.score}/{self.max_score}",
             inline=True
         )
-        
-        # Add exp gain
+
+        # Add difficulty
+        embed.add_field(
+            name="Difficulty",
+            value=self.current_difficulty["name"],
+            inline=True
+        )
+
+        # Add attribute gains
+        gains_text = ""
+        if attribute_gain > 0:
+            if primary_attr == "energy":
+                gains_text += f"**Energy Capacity:** +{energy_gain} ⚡\n"
+            else:
+                gains_text += f"**{primary_attr.title()}:** +{attribute_gain}\n"
+
+            if secondary_attr in self.player_data.attributes:
+                secondary_gain = max(1, attribute_gain // 2)
+                gains_text += f"**{secondary_attr.title()}:** +{secondary_gain}\n"
+        else:
+            gains_text = "None (Score too low)"
+
+        embed.add_field(
+            name="Attribute Gains",
+            value=gains_text,
+            inline=False
+        )
+
+        # Add special rewards if any
+        if special_rewards:
+            rewards_text = ""
+            if "cursed_energy" in special_rewards:
+                rewards_text += f"**Cursed Energy:** +{special_rewards['cursed_energy']} ✨\n"
+
+            if "effect" in special_rewards:
+                effect = special_rewards["effect"]
+                rewards_text += f"**Effect:** {effect['name']} (Lasts {effect['duration']} hours)\n"
+                rewards_text += f"  • {effect['boost_type'].replace('_', ' ').title()} +{effect['boost_amount']}\n"
+
+            embed.add_field(
+                name="Perfect Score Rewards",
+                value=rewards_text,
+                inline=False
+            )
+
+        # Add experience
         embed.add_field(
             name="Experience",
             value=f"**EXP Gained:** {exp_gain}",
             inline=True
         )
-        
+
         # Add level up notification if applicable
         if leveled_up:
             embed.add_field(
@@ -2134,24 +1114,24 @@ class TrainingMinigameView(View):
                       f"You gained 3 skill points! Use !skills to allocate them.",
                 inline=False
             )
-        
+
         # Add cooldown info
         embed.add_field(
             name="Cooldown",
-            value=f"This training will be available again in {self.training_data['cooldown']} hours.",
+            value=f"This training will be available again in {cooldown_hours} hours.",
             inline=False
         )
-        
+
         # Show results
         await interaction.edit_original_response(
             content=None,
             embed=embed,
             view=None
         )
-        
+
         # Stop the view
         self.stop()
-    
+
     async def cancel_callback(self, interaction: discord.Interaction):
         """Handle cancellation"""
         await interaction.response.edit_message(
@@ -2165,147 +1145,146 @@ class AdvancedTrainingView(View):
         super().__init__(timeout=60)
         self.player_data = player_data
         self.data_manager = data_manager
-        
+
         # Get available training options
         self.training_options = self.get_available_training()
-        
+
         # Create select menu for training options
         self.training_select = Select(
             placeholder="Select a training exercise",
             min_values=1,
             max_values=1
         )
-        
+
         # Add options to select menu
         for name, data in self.training_options.items():
             # Check if on cooldown
             on_cooldown = False
             cooldown_text = ""
-            
+
             if hasattr(self.player_data, "training_cooldowns") and name in self.player_data.training_cooldowns:
                 try:
                     cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[name])
                     now = datetime.datetime.now()
-                    
+
                     if cooldown_time > now:
-                        time_remaining = cooldown_time - now
-                        hours, remainder = divmod(time_remaining.seconds, 3600)
-                        minutes, _ = divmod(remainder, 60)
-                        
                         on_cooldown = True
+                        time_left = cooldown_time - now
+                        hours = time_left.seconds // 3600
+                        minutes = (time_left.seconds % 3600) // 60
                         cooldown_text = f" (Cooldown: {hours}h {minutes}m)"
                 except (ValueError, TypeError):
+                    # Invalid datetime format, ignore cooldown
                     pass
-            
-            description = data["description"]
-            if on_cooldown:
-                description = f"ON COOLDOWN{cooldown_text}"
-            
+
+            # Add option with emoji and description
             self.training_select.add_option(
-                label=name,
-                description=description[:100],  # Discord limit
+                label=f"{name}{cooldown_text}",
+                emoji=data.get("emoji", "🏋️"),
+                description=data.get("description", "")[:100],  # Limit description length
                 value=name,
-                emoji=data["emoji"],
-                default=False
+                default=False,
+                disabled=on_cooldown
             )
-        
-        # Set callback
+
+        # Add callback for training selection
         self.training_select.callback = self.training_select_callback
-        
-        # Add select menu
         self.add_item(self.training_select)
-        
+
         # Add cancel button
-        cancel_btn = Button(
-            label="Cancel",
-            style=discord.ButtonStyle.red,
-            emoji="❌"
-        )
-        cancel_btn.callback = self.cancel_callback
-        self.add_item(cancel_btn)
-    
+        cancel_button = Button(label="Cancel", style=discord.ButtonStyle.secondary)
+        cancel_button.callback = self.cancel_callback
+        self.add_item(cancel_button)
+
     def get_available_training(self) -> Dict[str, Dict[str, Any]]:
         """Get all training options available to the player"""
-        result = {}
-        
-        # Add basic training options for everyone
+        available_training = {}
+
+        # Add all standard training minigames
         for name, data in TRAINING_MINIGAMES.items():
-            result[name] = data
-        
-        # Add class-specific training if available
+            # Check for unlock requirements
+            if "unlock_requirements" in data:
+                reqs = data["unlock_requirements"]
+
+                # Check class level requirements
+                if "class_level" in reqs and self.player_data.class_level < reqs["class_level"]:
+                    continue
+
+            # Add to available options
+            available_training[name] = data
+
+        # Add class-specific training if appropriate
         if self.player_data.class_name in CLASS_TRAINING:
             class_training = CLASS_TRAINING[self.player_data.class_name]
-            
+
             for name, data in class_training.items():
-                # Check level requirement
-                if self.player_data.class_level >= data.get("level_req", 0):
-                    result[name] = data
-        
-        return result
-    
+                # Check level requirements
+                if "level_req" in data and self.player_data.class_level < data["level_req"]:
+                    continue
+
+                # Add to available options
+                available_training[name] = data
+
+        return available_training
+
     async def training_select_callback(self, interaction: discord.Interaction):
         """Handle training selection"""
-        training_name = self.training_select.values[0]
-        training_data = self.training_options[training_name]
-        
-        # Check cooldown
-        if hasattr(self.player_data, "training_cooldowns") and training_name in self.player_data.training_cooldowns:
-            try:
-                cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[training_name])
-                now = datetime.datetime.now()
-                
-                if cooldown_time > now:
-                    time_remaining = cooldown_time - now
-                    hours, remainder = divmod(time_remaining.seconds, 3600)
-                    minutes, _ = divmod(remainder, 60)
-                    
-                    await interaction.response.send_message(
-                        f"⏳ This training is still on cooldown for {hours}h {minutes}m.",
-                        ephemeral=True
-                    )
-                    return
-            except (ValueError, TypeError):
-                pass
-        
-        # Create training minigame view
-        training_view = TrainingMinigameView(self.player_data, training_name, training_data, self.data_manager)
-        
+        # Get selected training
+        selected_training = interaction.data["values"][0]
+        training_data = self.training_options[selected_training]
+
+        # Create minigame view
+        training_view = TrainingMinigameView(
+            self.player_data,
+            selected_training,
+            training_data,
+            self.data_manager
+        )
+
         # Create training embed
         embed = discord.Embed(
-            title=f"🏋️ {training_name} Training",
-            description=training_data["description"],
+            title=f"🏋️ {selected_training}",
+            description=training_data.get("description", "Improve your skills through training."),
             color=discord.Color.blue()
         )
-        
+
+        # Add attribute info
+        primary = training_data.get("primary_attribute", "").title()
+        secondary = training_data.get("secondary_attribute", "").title()
+
         embed.add_field(
-            name="Training Focus",
-            value=f"Primary: **{training_data['primary_attribute'].title()}**\n"
-                  f"Secondary: **{training_data['secondary_attribute'].title()}**",
+            name="Attributes Trained",
+            value=f"Primary: **{primary}**\nSecondary: **{secondary}**",
             inline=True
         )
-        
+
+        # Add difficulty info
+        difficulties = training_data.get("difficulty_levels", [])
+        difficulty_text = "\n".join([f"• **{d['name']}**: {d.get('exp_multiplier', 1.0)}x XP" for d in difficulties])
+
         embed.add_field(
-            name="Potential Rewards",
-            value=f"Base EXP: **{training_data['base_exp']}**\n"
-                  f"Attribute Points: **1-3** (based on performance)",
+            name="Difficulty Levels",
+            value=difficulty_text or "None available",
             inline=True
         )
-        
+
+        # Add player stats
         embed.add_field(
-            name="Cooldown",
-            value=f"This training has a cooldown of **{training_data['cooldown']} hours** after completion.",
-            inline=False
+            name="Your Stats",
+            value=f"**Level:** {self.player_data.class_level}\n" +
+                  f"**Class:** {self.player_data.class_name}",
+            inline=True
         )
-        
-        # Show training view
+
+        # Send message with embed and training view
         await interaction.response.send_message(
             embed=embed,
             view=training_view
         )
-        
+
         # Stop this view
         self.stop()
-    
+
     async def cancel_callback(self, interaction: discord.Interaction):
         """Handle cancellation"""
         await interaction.response.edit_message(
@@ -2317,26 +1296,26 @@ class AdvancedTrainingView(View):
 async def advanced_training_command(ctx, data_manager: DataManager):
     """Participate in advanced training exercises"""
     player_data = data_manager.get_player(ctx.author.id)
-    
+
     # Check if player has started
     if not player_data.class_name:
         await ctx.send("❌ You haven't started your adventure yet! Use `!start` to choose a class.")
         return
-    
+
     # Create training view
     view = AdvancedTrainingView(player_data, data_manager)
-    
+
     # Create embed
     embed = discord.Embed(
         title="🏋️ Advanced Training",
         description="Select a training exercise to improve your skills. Each training focuses on different attributes and provides experience points.",
         color=discord.Color.blue()
     )
-    
+
     # Add current stats
     from utils import GAME_CLASSES
     player_stats = player_data.get_stats(GAME_CLASSES)
-    
+
     embed.add_field(
         name="📊 Current Stats",
         value=f"**HP:** {player_stats['hp']} ❤️\n"
@@ -2345,15 +1324,14 @@ async def advanced_training_command(ctx, data_manager: DataManager):
               f"**Speed:** {player_stats['speed']} 💨",
         inline=True
     )
-    
-    # Add level info
+
     embed.add_field(
-        name="📈 Level Information",
+        name="🧠 Class Progress",
         value=f"**Level:** {player_data.class_level}\n"
-              f"**EXP:** {player_data.class_exp}/{int(100 * (player_data.class_level ** 1.5))}\n"
+              f"**EXP:** {player_data.class_exp}/{100 * player_data.class_level}\n"
               f"**Class:** {player_data.class_name}",
         inline=True
     )
-    
+
     # Send message with embed and view
     await ctx.send(embed=embed, view=view)
