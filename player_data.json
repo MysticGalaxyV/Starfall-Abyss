@@ -282,8 +282,7 @@
             "pvp_history": [],
             "pvp_wins": 0,
             "pvp_losses": 0,
-            "last_pvp_battle": null,
-            "equipped_gathering_tools": {}
+            "last_pvp_battle": null
         },
         "1264209239971463188": {
             "class_name": null,
@@ -329,8 +328,7 @@
             "pvp_history": [],
             "pvp_wins": 0,
             "pvp_losses": 0,
-            "last_pvp_battle": null,
-            "equipped_gathering_tools": {}
+            "last_pvp_battle": null
         },
         "600634012230221834": {
             "class_name": null,
@@ -376,8 +374,7 @@
             "pvp_history": [],
             "pvp_wins": 0,
             "pvp_losses": 0,
-            "last_pvp_battle": null,
-            "equipped_gathering_tools": {}
+            "last_pvp_battle": null
         }
     },
     "guilds": {
