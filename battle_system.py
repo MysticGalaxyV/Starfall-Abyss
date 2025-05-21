@@ -7,37 +7,53 @@ from typing import Dict, List, Optional, Tuple
 
 from data_models import PlayerData, DataManager
 
+
 class BattleMove:
-    def __init__(self, name: str, damage_multiplier: float, energy_cost: int, 
-                 effect: Optional[str] = None, description: Optional[str] = None):
+
+    def __init__(self,
+                 name: str,
+                 damage_multiplier: float,
+                 energy_cost: int,
+                 effect: Optional[str] = None,
+                 description: Optional[str] = None):
         self.name = name
         self.damage_multiplier = damage_multiplier
         self.energy_cost = energy_cost
         self.effect = effect or ""
         self.description = description or f"Deal {int(damage_multiplier * 100)}% damage"
 
+
 class BattleEntity:
-    def __init__(self, name: str, stats: Dict[str, int], moves: Optional[List[BattleMove]] = None, 
-                 is_player: bool = False, player_data: Optional[PlayerData] = None):
+
+    def __init__(self,
+                 name: str,
+                 stats: Dict[str, int],
+                 moves: Optional[List[BattleMove]] = None,
+                 is_player: bool = False,
+                 player_data: Optional[PlayerData] = None):
         self.name = name
         self.stats = stats.copy()
         self.current_hp = stats["hp"]
-        
+
         # Use the player's dynamic max energy calculation if player is present
-        if player_data and is_player and hasattr(player_data, "get_max_battle_energy"):
+        if player_data and is_player and hasattr(player_data,
+                                                 "get_max_battle_energy"):
             self.max_energy = player_data.get_max_battle_energy()
-            self.current_energy = min(player_data.battle_energy, self.max_energy)
+            self.current_energy = min(player_data.battle_energy,
+                                      self.max_energy)
         else:
             self.max_energy = stats.get("energy", 100)
             self.current_energy = self.max_energy
-            
+
         self.moves = moves or []
         self.is_player = is_player
         self.player_data = player_data
-        self.status_effects = {}  # Effect name -> (turns remaining, effect strength)
-        
+        self.status_effects = {
+        }  # Effect name -> (turns remaining, effect strength)
+
         # Process active effects from special items
-        if is_player and player_data and hasattr(player_data, "active_effects"):
+        if is_player and player_data and hasattr(player_data,
+                                                 "active_effects"):
             # Apply any HP boosts from active effects
             for effect_name, effect_data in player_data.active_effects.items():
                 if effect_data.get("effect") == "hp_boost":
@@ -51,59 +67,67 @@ class BattleEntity:
                             self.stats[stat] += boost_amount
                             if stat == "hp":
                                 self.current_hp += boost_amount
-        
+
         # Activate special abilities for this battle
-        if is_player and player_data and hasattr(player_data, "special_abilities"):
-            for ability_name, ability_data in player_data.special_abilities.items():
+        if is_player and player_data and hasattr(player_data,
+                                                 "special_abilities"):
+            for ability_name, ability_data in player_data.special_abilities.items(
+            ):
                 # Check if ability has been used and is currently active
                 if ability_data.get("last_used"):
                     try:
-                        last_used = datetime.datetime.fromisoformat(ability_data["last_used"])
+                        last_used = datetime.datetime.fromisoformat(
+                            ability_data["last_used"])
                         now = datetime.datetime.now()
                         hours_passed = (now - last_used).total_seconds() / 3600
-                        
+
                         # If ability is not on cooldown, mark it as active for this battle
                         if hours_passed >= ability_data.get("cooldown", 0):
                             ability_data["active_in_battle"] = True
-                            
+
                             # Apply permanent stat boosts from special abilities
-                            if ability_data.get("effect") == "special_ability" and ability_name == "Infinity":
-                                self.stats["defense"] += 15  # Bonus defense from Infinity
+                            if ability_data.get(
+                                    "effect"
+                            ) == "special_ability" and ability_name == "Infinity":
+                                self.stats[
+                                    "defense"] += 15  # Bonus defense from Infinity
                     except (ValueError, TypeError):
                         pass
-        
+
     def is_alive(self) -> bool:
         return self.current_hp > 0
-    
-    def calculate_damage(self, move: BattleMove, target: 'BattleEntity') -> int:
+
+    def calculate_damage(self, move: BattleMove,
+                         target: 'BattleEntity') -> int:
         """Calculate damage for a move against a target"""
         # Base damage is attacker's power * move's damage multiplier
         base_damage = int(self.stats["power"] * move.damage_multiplier)
-        
+
         # Defense reduces damage by a percentage (50 defense = 25% reduction)
         defense_reduction = target.stats["defense"] / 200
         reduced_damage = base_damage * (1 - defense_reduction)
-        
+
         # Apply random variance (±10%)
         variance = random.uniform(0.9, 1.1)
         final_damage = max(1, int(reduced_damage * variance))
-        
+
         # Apply status effects
         if "weakness" in target.status_effects:
             _, strength = target.status_effects["weakness"]
             final_damage = int(final_damage * (1 + strength))
-            
+
         if "strength" in self.status_effects:
             _, strength = self.status_effects["strength"]
             final_damage = int(final_damage * (1 + strength))
-            
+
         if "shield" in target.status_effects:
             _, strength = target.status_effects["shield"]
             final_damage = int(final_damage * (1 - strength))
-        
+
         return final_damage
-    
-    def apply_move(self, move: BattleMove, target: 'BattleEntity') -> Tuple[int, str]:
+
+    def apply_move(self, move: BattleMove,
+                   target: 'BattleEntity') -> Tuple[int, str]:
         """Apply a move to a target and return damage dealt and effect message"""
         # Check energy cost
         if self.current_energy < move.energy_cost:
@@ -112,23 +136,26 @@ class BattleEntity:
                 # Restore some energy so they can continue
                 energy_gained = 50
                 self.current_energy += energy_gained
-                
+
                 # Set a special status effect to indicate they lose 2 turns
-                self.status_effects["energy_recovery"] = (2, 0)  # 2 turns of recovery
-                
+                self.status_effects["energy_recovery"] = (
+                    2, 0)  # 2 turns of recovery
+
                 return 0, f"🔄 You're out of energy! You regained {energy_gained} energy but will lose your next 2 turns."
             else:
                 return 0, "❌ Not enough energy!"
-        
+
         self.current_energy -= move.energy_cost
-        
+
         # Calculate and apply damage
         damage = self.calculate_damage(move, target)
         effect_msg = ""
-        
+
         # Check for active effects (special items) on attacker
-        if self.is_player and self.player_data and hasattr(self.player_data, "active_effects"):
-            for effect_name, effect_data in self.player_data.active_effects.items():
+        if self.is_player and self.player_data and hasattr(
+                self.player_data, "active_effects"):
+            for effect_name, effect_data in self.player_data.active_effects.items(
+            ):
                 # Double attack chance
                 if effect_data.get("effect") == "double_attack":
                     chance = effect_data.get("chance", 0)
@@ -136,115 +163,139 @@ class BattleEntity:
                         extra_damage = self.calculate_damage(move, target)
                         damage += extra_damage
                         effect_msg += f"\n⚡ {effect_name} activated! Double attack for {extra_damage} bonus damage!"
-        
+
         # Check for special abilities on attacker
-        if self.is_player and self.player_data and hasattr(self.player_data, "special_abilities"):
-            for ability_name, ability_data in self.player_data.special_abilities.items():
+        if self.is_player and self.player_data and hasattr(
+                self.player_data, "special_abilities"):
+            for ability_name, ability_data in self.player_data.special_abilities.items(
+            ):
                 # Only check abilities marked as active in battle
                 if ability_data.get("active_in_battle", False):
                     ability_effect = ability_data.get("effect")
-                    
+
                     # Critical hit ability (Black Flash)
-                    if ability_effect == "critical" and random.random() < 0.25:  # 25% chance
+                    if ability_effect == "critical" and random.random(
+                    ) < 0.25:  # 25% chance
                         crit_bonus = int(damage * 1.5)
                         damage += crit_bonus
                         effect_msg += f"\n⚡ {ability_name} activated! Critical hit for {crit_bonus} bonus damage!"
-                    
+
                     # Domain Expansion damage boost
                     elif ability_effect == "special_ability" and ability_name == "Domain Expansion":
                         domain_bonus = int(damage * 0.4)
                         damage += domain_bonus
                         effect_msg += f"\n🌌 {ability_name} is active! {domain_bonus} bonus damage!"
-                    
+
                     # Ten Shadows summon
                     elif ability_effect == "summon" and ability_name == "Ten Shadows Technique":
                         summon_damage = int(self.stats["power"] * 0.3)
                         damage += summon_damage
                         effect_msg += f"\n🐺 Shadow Beast attacks for {summon_damage} bonus damage!"
-        
+
         # Apply dodge chance from effects
         dodge_chance = 0
         active_dodge_effect = None
-        if target.is_player and target.player_data and hasattr(target.player_data, "active_effects"):
-            for effect_name, effect_data in target.player_data.active_effects.items():
+        if target.is_player and target.player_data and hasattr(
+                target.player_data, "active_effects"):
+            for effect_name, effect_data in target.player_data.active_effects.items(
+            ):
                 if effect_data.get("effect") == "dodge_boost":
                     dodge_chance = effect_data.get("boost_amount", 0)
                     active_dodge_effect = effect_name
                     break
-        
+
         # Check for dodge
         if dodge_chance > 0 and random.random() * 100 < dodge_chance:
             effect_msg += f"\n👁️ {target.name} dodged the attack with {active_dodge_effect}!"
             damage = 0
         # Check for Infinity special ability on target (damage reduction)
-        elif target.is_player and target.player_data and hasattr(target.player_data, "special_abilities"):
-            for ability_name, ability_data in target.player_data.special_abilities.items():
-                if ability_data.get("active_in_battle", False) and ability_name == "Infinity" and ability_data.get("effect") == "special_ability":
+        elif target.is_player and target.player_data and hasattr(
+                target.player_data, "special_abilities"):
+            for ability_name, ability_data in target.player_data.special_abilities.items(
+            ):
+                if ability_data.get(
+                        "active_in_battle", False
+                ) and ability_name == "Infinity" and ability_data.get(
+                        "effect") == "special_ability":
                     # Infinity reduces damage by 30%
                     reduced = int(damage * 0.3)
                     damage -= reduced
                     effect_msg += f"\n♾️ {target.name}'s {ability_name} stopped {reduced} damage!"
-        
+
         # Apply damage to target
         target.current_hp = max(0, target.current_hp - damage)
-        
+
         # Apply move effects
         if move.effect:
             if move.effect == "heal":
                 heal_amount = int(self.stats["hp"] * 0.2)
-                
+
                 # Check for healing boost from Reverse Cursed Technique
-                if self.is_player and self.player_data and hasattr(self.player_data, "special_abilities"):
-                    for ability_name, ability_data in self.player_data.special_abilities.items():
-                        if ability_data.get("active_in_battle", False) and ability_name == "Reverse Cursed Technique" and ability_data.get("effect") == "healing":
+                if self.is_player and self.player_data and hasattr(
+                        self.player_data, "special_abilities"):
+                    for ability_name, ability_data in self.player_data.special_abilities.items(
+                    ):
+                        if ability_data.get(
+                                "active_in_battle", False
+                        ) and ability_name == "Reverse Cursed Technique" and ability_data.get(
+                                "effect") == "healing":
                             heal_amount = int(heal_amount * 1.5)
                             effect_msg += f"\n💚 {ability_name} boosted healing effect!"
-                
-                self.current_hp = min(self.stats["hp"], self.current_hp + heal_amount)
+
+                self.current_hp = min(self.stats["hp"],
+                                      self.current_hp + heal_amount)
                 effect_msg += f"\n💚 {self.name} healed for {heal_amount} HP!"
             elif move.effect == "energy_restore":
                 energy_amount = int(30)
-                self.current_energy = min(self.stats.get("energy", 100), self.current_energy + energy_amount)
+                self.current_energy = min(self.stats.get("energy", 100),
+                                          self.current_energy + energy_amount)
                 effect_msg += f"\n⚡ {self.name} restored {energy_amount} energy!"
             elif move.effect == "weakness":
-                target.status_effects["weakness"] = (2, 0.25)  # 2 turns, 25% more damage
+                target.status_effects["weakness"] = (
+                    2, 0.25)  # 2 turns, 25% more damage
                 effect_msg += f"\n🟣 {target.name} is weakened for 2 turns!"
             elif move.effect == "strength":
-                self.status_effects["strength"] = (2, 0.25)  # 2 turns, 25% more damage
+                self.status_effects["strength"] = (
+                    2, 0.25)  # 2 turns, 25% more damage
                 effect_msg += f"\n💪 {self.name} is strengthened for 2 turns!"
             elif move.effect == "shield":
-                self.status_effects["shield"] = (2, 0.3)  # 2 turns, 30% less damage
+                self.status_effects["shield"] = (2, 0.3
+                                                 )  # 2 turns, 30% less damage
                 effect_msg += f"\n🛡️ {self.name} is shielded for 2 turns!"
-        
+
         # Check for summoned ally from consumables
-        if self.is_player and self.player_data and hasattr(self.player_data, "active_effects"):
-            for effect_name, effect_data in self.player_data.active_effects.items():
+        if self.is_player and self.player_data and hasattr(
+                self.player_data, "active_effects"):
+            for effect_name, effect_data in self.player_data.active_effects.items(
+            ):
                 if effect_data.get("effect") == "summon_ally":
                     ally_power = effect_data.get("ally_power", 0)
                     ally_damage = int(self.stats["power"] * ally_power)
                     target.current_hp = max(0, target.current_hp - ally_damage)
                     effect_msg += f"\n👥 Summoned ally attacks for {ally_damage} additional damage!"
-                
+
         return damage, effect_msg
-    
+
     def update_status_effects(self) -> str:
         """Update status effects at the end of turn. Return status message."""
         status_msg = ""
         expired_effects = []
-        
+
         for effect, (turns, strength) in self.status_effects.items():
             if turns <= 1:
                 expired_effects.append(effect)
                 status_msg += f"\n❌ {effect.title()} effect expired for {self.name}!"
             else:
                 self.status_effects[effect] = (turns - 1, strength)
-                
+
         for effect in expired_effects:
             del self.status_effects[effect]
-            
+
         return status_msg
 
+
 class BattleMoveButton(Button):
+
     def __init__(self, move: BattleMove, row: int = 0):
         # Choose button style based on move type
         if "heal" in (move.effect or ""):
@@ -259,23 +310,25 @@ class BattleMoveButton(Button):
         else:
             style = discord.ButtonStyle.red
             emoji = "⚔️"
-            
-        super().__init__(
-            label=f"{move.name} ({move.energy_cost} ⚡)", 
-            style=style,
-            emoji=emoji,
-            row=row
-        )
+
+        super().__init__(label=f"{move.name} ({move.energy_cost} ⚡)",
+                         style=style,
+                         emoji=emoji,
+                         row=row)
         self.move = move
-        
+
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         if view is not None and hasattr(view, 'on_move_selected'):
             await view.on_move_selected(interaction, self.move)
         else:
-            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
+            await interaction.response.send_message(
+                "This battle has expired. Please start a new one.",
+                ephemeral=True)
+
 
 class ItemButton(Button):
+
     def __init__(self, item_name: str, item_effect: str, row: int = 0):
         # Choose emoji based on item effect
         if "heal" in item_effect.lower():
@@ -287,123 +340,144 @@ class ItemButton(Button):
         else:
             emoji = "🧪"
             style = discord.ButtonStyle.gray
-            
-        super().__init__(
-            label=item_name,
-            style=style,
-            emoji=emoji,
-            row=row
-        )
+
+        super().__init__(label=item_name, style=style, emoji=emoji, row=row)
         self.item_name = item_name
         self.item_effect = item_effect
-        
+
     async def callback(self, interaction: discord.Interaction):
         view = self.view
         if view is not None and hasattr(view, 'on_item_selected'):
-            await view.on_item_selected(interaction, self.item_name, self.item_effect)
+            await view.on_item_selected(interaction, self.item_name,
+                                        self.item_effect)
         else:
-            await interaction.response.send_message("This battle has expired. Please start a new one.", ephemeral=True)
+            await interaction.response.send_message(
+                "This battle has expired. Please start a new one.",
+                ephemeral=True)
+
 
 class BattleView(View):
-    def __init__(self, player: BattleEntity, enemy: BattleEntity, timeout: int = 30):
+
+    def __init__(self,
+                 player: BattleEntity,
+                 enemy: BattleEntity,
+                 timeout: int = 30):
         super().__init__(timeout=timeout)
         self.player = player
         self.enemy = enemy
-        self.data_manager: Optional[DataManager] = None  # Will be set by start_battle
+        self.data_manager: Optional[
+            DataManager] = None  # Will be set by start_battle
         self.update_buttons()
-        
-    def get_safe_message_content(self, interaction: discord.Interaction) -> str:
+
+    def get_safe_message_content(self,
+                                 interaction: discord.Interaction) -> str:
         """Safely extract message content from interaction, returning empty string if not possible"""
         try:
-            if (hasattr(interaction, 'message') and interaction.message and 
-                hasattr(interaction.message, 'content') and interaction.message.content):
+            if (hasattr(interaction, 'message') and interaction.message
+                    and hasattr(interaction.message, 'content')
+                    and interaction.message.content):
                 return interaction.message.content
         except (AttributeError, TypeError):
             pass
         return ""
-        
+
     def update_buttons(self):
         # Clear existing buttons
         self.clear_items()
-        
+
         # Add move buttons
         for i, move in enumerate(self.player.moves):
             # Disable buttons if not enough energy
             disabled = self.player.current_energy < move.energy_cost
-            btn = BattleMoveButton(move, row=i//2)
+            btn = BattleMoveButton(move, row=i // 2)
             btn.disabled = disabled
             self.add_item(btn)
-            
+
         # Add item button if player
         if self.player.is_player and self.player.player_data:
             # Check for usable items (consumables)
             usable_items = []
-            if hasattr(self.player.player_data, 'inventory') and self.player.player_data.inventory:
+            if hasattr(self.player.player_data,
+                       'inventory') and self.player.player_data.inventory:
                 for inv_item in self.player.player_data.inventory:
                     if inv_item.quantity > 0:
                         # Check if item has necessary attributes
                         if not hasattr(inv_item, 'item') or not inv_item.item:
                             continue
-                            
+
                         # Enhanced potion detection - this is the key fix for potion visibility
-                        item_name = inv_item.item.name.lower() if hasattr(inv_item.item, 'name') else ""
-                        item_desc = inv_item.item.description.lower() if hasattr(inv_item.item, 'description') else ""
-                        item_type = inv_item.item.item_type if hasattr(inv_item.item, 'item_type') else ""
-                        
+                        item_name = inv_item.item.name.lower() if hasattr(
+                            inv_item.item, 'name') else ""
+                        item_desc = inv_item.item.description.lower(
+                        ) if hasattr(inv_item.item, 'description') else ""
+                        item_type = inv_item.item.item_type if hasattr(
+                            inv_item.item, 'item_type') else ""
+
                         is_usable = False
-                        
+
                         # First check item type (most reliable)
                         if item_type == "consumable" or item_type == "potion":
                             is_usable = True
                         # Then check item name for potion-related terms
-                        elif any(term in item_name for term in ["potion", "elixir", "tonic", "vial", "flask"]):
+                        elif any(
+                                term in item_name for term in
+                            ["potion", "elixir", "tonic", "vial", "flask"]):
                             is_usable = True
                         # Finally check description for effect-related terms
-                        elif any(term in item_desc for term in ["health", "heal", "energy", "restore", "strength", 
-                                                              "hp", "shield", "battle", "defense", "buff", "boost"]):
+                        elif any(term in item_desc for term in [
+                                "health", "heal", "energy", "restore",
+                                "strength", "hp", "shield", "battle",
+                                "defense", "buff", "boost"
+                        ]):
                             is_usable = True
-                            
+
                         if is_usable:
-                            usable_items.append((inv_item.item.name, getattr(inv_item.item, 'description', 'A usable item')))
-            
+                            usable_items.append(
+                                (inv_item.item.name,
+                                 getattr(inv_item.item, 'description',
+                                         'A usable item')))
+
             # Add up to 5 item buttons (increased from 3)
             for i, (item_name, item_effect) in enumerate(usable_items[:5]):
-                self.add_item(ItemButton(item_name, item_effect, row=2 + (i // 2)))
-        
-    async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
+                self.add_item(
+                    ItemButton(item_name, item_effect, row=2 + (i // 2)))
+
+    async def on_move_selected(self, interaction: discord.Interaction,
+                               move: BattleMove):
         # Check if player is in energy recovery mode (lost turns)
         if "energy_recovery" in self.player.status_effects:
             turns_left, _ = self.player.status_effects["energy_recovery"]
-            
+
             # Update turns left
             if turns_left > 1:
-                self.player.status_effects["energy_recovery"] = (turns_left - 1, 0)
+                self.player.status_effects["energy_recovery"] = (turns_left -
+                                                                 1, 0)
                 await interaction.response.edit_message(
-                    content=f"⚖️ You're still recovering energy! {turns_left-1} more turn(s) until you can act again.\n"
-                           f"Waiting for enemy move...",
-                    view=self
-                )
+                    content=
+                    f"⚖️ You're still recovering energy! {turns_left-1} more turn(s) until you can act again.\n"
+                    f"Waiting for enemy move...",
+                    view=self)
                 # Skip player's turn but continue with enemy turn
                 damage, effect_msg = 0, ""
             else:
                 # Last turn of recovery, remove the effect
                 del self.player.status_effects["energy_recovery"]
                 await interaction.response.edit_message(
-                    content=f"⚖️ You've recovered your energy and can act normally next turn!\n"
-                           f"Waiting for enemy move...",
-                    view=self
-                )
+                    content=
+                    f"⚖️ You've recovered your energy and can act normally next turn!\n"
+                    f"Waiting for enemy move...",
+                    view=self)
                 # Skip player's turn but continue with enemy turn
                 damage, effect_msg = 0, ""
         else:
             # Normal turn, apply player move
             damage, effect_msg = self.player.apply_move(move, self.enemy)
             await interaction.response.edit_message(
-                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                       f"Waiting for enemy move...",
-                view=self
-            )
-        
+                content=
+                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                f"Waiting for enemy move...",
+                view=self)
+
         # Check if enemy is defeated
         if not self.enemy.is_alive():
             # Battle won
@@ -411,180 +485,202 @@ class BattleView(View):
             await asyncio.sleep(1)
             await interaction.edit_original_response(
                 content=f"🎉 Victory! You defeated {self.enemy.name}!\n"
-                       f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-                       f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡",
-                view=None
-            )
+                f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
+                f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡",
+                view=None)
             return
-        
+
         # Enemy turn
         await asyncio.sleep(1)
-        
+
         # Choose enemy move (prioritize moves they have energy for)
-        available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
+        available_moves = [
+            m for m in self.enemy.moves
+            if self.enemy.current_energy >= m.energy_cost
+        ]
         if not available_moves:
             # If no moves available, enemy skips turn to regain energy
-            self.enemy.current_energy = min(self.enemy.stats.get("energy", 100), 
-                                           self.enemy.current_energy + 30)
+            self.enemy.current_energy = min(
+                self.enemy.stats.get("energy", 100),
+                self.enemy.current_energy + 30)
             await interaction.edit_original_response(
-                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                       f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
-                view=self
-            )
+                content=
+                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
+                view=self)
         else:
             enemy_move = random.choice(available_moves)
-            enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
-            
+            enemy_damage, enemy_effect_msg = self.enemy.apply_move(
+                enemy_move, self.player)
+
             await interaction.edit_original_response(
-                content=f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                       f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
-                view=self
-            )
-            
+                content=
+                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
+                f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
+                view=self)
+
             # Check if player is defeated
             if not self.player.is_alive():
                 # Battle lost
                 self.stop()
                 await asyncio.sleep(1)
                 await interaction.edit_original_response(
-                    content=f"💀 Defeat! You were defeated by {self.enemy.name}!",
-                    view=None
-                )
+                    content=
+                    f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                    view=None)
                 return
-                
+
         # Update status effects
         player_status_msg = self.player.update_status_effects()
         enemy_status_msg = self.enemy.update_status_effects()
-        
+
         # Update buttons for next turn
         self.update_buttons()
-        
+
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
             f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
             f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
-            f"{player_status_msg}{enemy_status_msg}"
-        )
-        
+            f"{player_status_msg}{enemy_status_msg}")
+
         message_content = self.get_safe_message_content(interaction)
-        await interaction.edit_original_response(
-            content=message_content + f"\n\n{battle_stats}",
-            view=self
-        )
-    
-    async def on_item_selected(self, interaction: discord.Interaction, item_name: str, item_effect: str):
+        await interaction.edit_original_response(content=message_content +
+                                                 f"\n\n{battle_stats}",
+                                                 view=self)
+
+    async def on_item_selected(self, interaction: discord.Interaction,
+                               item_name: str, item_effect: str):
         # Process item use
         player_data = self.player.player_data
-        
+
         # Find the item in inventory
         item_found = False
         item_effect_applied = False
-        if player_data and hasattr(player_data, 'inventory') and player_data.inventory:
+        if player_data and hasattr(player_data,
+                                   'inventory') and player_data.inventory:
             for inv_item in player_data.inventory:
-                if (hasattr(inv_item, 'item') and inv_item.item and 
-                    hasattr(inv_item.item, 'name') and inv_item.item.name == item_name and 
-                    inv_item.quantity > 0):
+                if (hasattr(inv_item, 'item') and inv_item.item
+                        and hasattr(inv_item.item, 'name')
+                        and inv_item.item.name == item_name
+                        and inv_item.quantity > 0):
                     # Found the item, reduce quantity
                     inv_item.quantity -= 1
                     item_found = True
                     break
-                
+
         if not item_found:
-            await interaction.response.send_message("❌ Item not found or out of stock!", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Item not found or out of stock!", ephemeral=True)
             return
-            
+
         # Apply item effect
         effect_msg = ""
         item_effect_applied = True
-        
+
         # Extract numerical values from effect description
         import re
         number_matches = re.findall(r'\d+', item_effect)
         effect_number = int(number_matches[0]) if number_matches else 0
-        
+
         # Determine effect type and apply it
         item_effect_lower = item_effect.lower()
-        
+
         # Healing items
-        if any(heal_term in item_effect_lower for heal_term in ["heal", "health", "hp", "restore health"]):
+        if any(heal_term in item_effect_lower
+               for heal_term in ["heal", "health", "hp", "restore health"]):
             # Calculate healing amount
-            heal_amount = effect_number if effect_number > 0 else int(self.player.stats["hp"] * 0.3)  # Default 30% heal
-            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
+            heal_amount = effect_number if effect_number > 0 else int(
+                self.player.stats["hp"] * 0.3)  # Default 30% heal
+            self.player.current_hp = min(self.player.stats["hp"],
+                                         self.player.current_hp + heal_amount)
             effect_msg = f"💚 You used {item_name} and healed for {heal_amount} HP!"
-            
+
         # Energy items
-        elif any(energy_term in item_effect_lower for energy_term in ["energy", "mana", "stamina", "restore energy"]):
+        elif any(energy_term in item_effect_lower for energy_term in
+                 ["energy", "mana", "stamina", "restore energy"]):
             # Calculate energy amount
             energy_amount = effect_number if effect_number > 0 else 50  # Default energy restore
-            self.player.current_energy = min(100, self.player.current_energy + energy_amount)
+            self.player.current_energy = min(
+                100, self.player.current_energy + energy_amount)
             effect_msg = f"⚡ You used {item_name} and restored {energy_amount} energy!"
-            
+
         # Buff items
-        elif any(buff_term in item_effect_lower for buff_term in ["strength", "power", "damage", "attack"]):
+        elif any(buff_term in item_effect_lower
+                 for buff_term in ["strength", "power", "damage", "attack"]):
             # Apply strength buff
             buff_duration = effect_number if effect_number > 0 else 3  # Default 3 turns
             buff_strength = 0.3  # 30% more damage
-            self.player.status_effects["strength"] = (buff_duration, buff_strength)
+            self.player.status_effects["strength"] = (buff_duration,
+                                                      buff_strength)
             effect_msg = f"💪 You used {item_name} and gained increased strength for {buff_duration} turns!"
-            
+
         # Defense items
-        elif any(def_term in item_effect_lower for def_term in ["shield", "defense", "protect", "barrier", "armor"]):
+        elif any(def_term in item_effect_lower for def_term in
+                 ["shield", "defense", "protect", "barrier", "armor"]):
             # Apply shield buff
             shield_duration = effect_number if effect_number > 0 else 3  # Default 3 turns
             shield_strength = 0.4  # 40% less damage
-            self.player.status_effects["shield"] = (shield_duration, shield_strength)
+            self.player.status_effects["shield"] = (shield_duration,
+                                                    shield_strength)
             effect_msg = f"🛡️ You used {item_name} and gained a protective shield for {shield_duration} turns!"
-            
+
         # Dual effect items (healing + energy)
-        elif any(dual_term in item_effect_lower for dual_term in ["potion", "elixir", "restoration", "recovery"]):
+        elif any(dual_term in item_effect_lower for dual_term in
+                 ["potion", "elixir", "restoration", "recovery"]):
             # Apply both healing and energy
             heal_amount = int(self.player.stats["hp"] * 0.2)  # 20% heal
             energy_amount = 30  # 30 energy
-            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
-            self.player.current_energy = min(100, self.player.current_energy + energy_amount)
+            self.player.current_hp = min(self.player.stats["hp"],
+                                         self.player.current_hp + heal_amount)
+            self.player.current_energy = min(
+                100, self.player.current_energy + energy_amount)
             effect_msg = f"✨ You used {item_name} and restored {heal_amount} HP and {energy_amount} energy!"
-            
+
         else:
             # Generic effect for unknown item types
-            heal_amount = int(self.player.stats["hp"] * 0.1)  # Small heal as fallback
-            self.player.current_hp = min(self.player.stats["hp"], self.player.current_hp + heal_amount)
+            heal_amount = int(self.player.stats["hp"] *
+                              0.1)  # Small heal as fallback
+            self.player.current_hp = min(self.player.stats["hp"],
+                                         self.player.current_hp + heal_amount)
             effect_msg = f"🧪 You used {item_name} and gained a minor effect (+{heal_amount} HP)!"
-            
+
         await interaction.response.edit_message(
-            content=f"{effect_msg}\nWaiting for enemy move...",
-            view=self
-        )
-        
+            content=f"{effect_msg}\nWaiting for enemy move...", view=self)
+
         # Save player data
-        if player_data and hasattr(self, 'data_manager') and self.data_manager is not None:
+        if player_data and hasattr(
+                self, 'data_manager') and self.data_manager is not None:
             self.data_manager.save_data()
-            
+
         # Enemy turn (items don't consume a turn, but enemy still attacks)
         await asyncio.sleep(1)
-        
+
         # Choose enemy move
-        available_moves = [m for m in self.enemy.moves if self.enemy.current_energy >= m.energy_cost]
+        available_moves = [
+            m for m in self.enemy.moves
+            if self.enemy.current_energy >= m.energy_cost
+        ]
         if not available_moves:
             # If no moves available, enemy skips turn to regain energy
-            self.enemy.current_energy = min(self.enemy.stats.get("energy", 100), 
-                                           self.enemy.current_energy + 30)
+            self.enemy.current_energy = min(
+                self.enemy.stats.get("energy", 100),
+                self.enemy.current_energy + 30)
             await interaction.edit_original_response(
                 content=f"{effect_msg}\n"
-                       f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
-                view=self
-            )
+                f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
+                view=self)
         else:
             enemy_move = random.choice(available_moves)
-            enemy_damage, enemy_effect_msg = self.enemy.apply_move(enemy_move, self.player)
-            
+            enemy_damage, enemy_effect_msg = self.enemy.apply_move(
+                enemy_move, self.player)
+
             await interaction.edit_original_response(
                 content=f"{effect_msg}\n"
-                       f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
-                view=self
-            )
-            
+                f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
+                view=self)
+
             # Check if player is defeated
             if not self.player.is_alive():
                 # Battle lost
@@ -592,287 +688,304 @@ class BattleView(View):
                 await asyncio.sleep(1)
                 await interaction.edit_original_response(
                     content=f"{effect_msg}\n"
-                           f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}\n"
-                           f"💀 Defeat! You were defeated by {self.enemy.name}!",
-                    view=None
-                )
+                    f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}\n"
+                    f"💀 Defeat! You were defeated by {self.enemy.name}!",
+                    view=None)
                 return
-                
+
         # Update status effects
         player_status_msg = self.player.update_status_effects()
         enemy_status_msg = self.enemy.update_status_effects()
-        
+
         # Update buttons for next turn
         self.update_buttons()
-        
+
         # Show battle status
         battle_stats = (
             f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
             f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
             f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
             f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
-            f"{player_status_msg}{enemy_status_msg}"
-        )
-        
-        message_content = self.get_safe_message_content(interaction)
-        await interaction.edit_original_response(
-            content=message_content + f"\n\n{battle_stats}",
-            view=self
-        )
+            f"{player_status_msg}{enemy_status_msg}")
 
-async def start_battle(ctx, player_data: PlayerData, enemy_name: str, enemy_level: int, data_manager: DataManager):
+        message_content = self.get_safe_message_content(interaction)
+        await interaction.edit_original_response(content=message_content +
+                                                 f"\n\n{battle_stats}",
+                                                 view=self)
+
+
+async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
+                       enemy_level: int, data_manager: DataManager):
     """Start a battle between the player and an enemy"""
     from utils import GAME_CLASSES
-    
+
     # Get player class data
     if player_data.class_name not in GAME_CLASSES:
-        await ctx.send("❌ Invalid player class. Please use !start to choose a class.")
+        await ctx.send(
+            "❌ Invalid player class. Please use !start to choose a class.")
         return
-        
+
     class_data = GAME_CLASSES[player_data.class_name]
-    
+
     # Calculate player stats including equipment and level
     player_stats = player_data.get_stats(GAME_CLASSES)
-    
+
     # Get player moves based on class
     player_moves = []
-    
+
     # Basic moves for everyone
     player_moves.append(BattleMove("Basic Attack", 1.0, 10))
     player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-    
+
     # Class-specific special moves
     if player_data.class_name == "Spirit Striker":
-        player_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
-        player_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
+        player_moves.append(
+            BattleMove("Cursed Combo", 2.0, 35, "weakness",
+                       "Deal damage and weaken enemy"))
+        player_moves.append(
+            BattleMove("Soul Siphon", 1.2, 20, "energy_restore",
+                       "Deal damage and restore energy"))
     elif player_data.class_name == "Domain Tactician":
-        player_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
-        player_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
+        player_moves.append(
+            BattleMove("Barrier Pulse", 0.8, 30, "shield",
+                       "Deal damage and gain a shield"))
+        player_moves.append(
+            BattleMove("Tactical Heal", 0.5, 25, "heal",
+                       "Deal damage and heal yourself"))
     elif player_data.class_name == "Flash Rogue":
-        player_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
-        player_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
-    
+        player_moves.append(
+            BattleMove("Shadowstep", 1.7, 30, "strength",
+                       "Deal damage and gain increased damage"))
+        player_moves.append(
+            BattleMove("Quick Strikes", 0.7, 15, None,
+                       "Deal multiple quick strikes"))
+
     # Create player entity
-    player_entity = BattleEntity(
-        ctx.author.display_name,
-        player_stats,
-        player_moves,
-        is_player=True,
-        player_data=player_data
-    )
-    
+    player_entity = BattleEntity(ctx.author.display_name,
+                                 player_stats,
+                                 player_moves,
+                                 is_player=True,
+                                 player_data=player_data)
+
     # Create enemy entity
-    enemy_stats = generate_enemy_stats(enemy_name, enemy_level, player_data.class_level)
+    enemy_stats = generate_enemy_stats(enemy_name, enemy_level,
+                                       player_data.class_level)
     enemy_moves = generate_enemy_moves(enemy_name)
-    
-    enemy_entity = BattleEntity(
-        enemy_name,
-        enemy_stats,
-        enemy_moves
-    )
-    
+
+    enemy_entity = BattleEntity(enemy_name, enemy_stats, enemy_moves)
+
     # Create battle embed
     embed = discord.Embed(
         title=f"⚔️ Battle: {ctx.author.display_name} vs {enemy_name}",
         description=f"A {enemy_name} (Level {enemy_level}) appears!",
-        color=discord.Color.red()
-    )
-    
+        color=discord.Color.red())
+
     # Show active special abilities if any
     active_abilities_text = ""
-    if hasattr(player_data, "special_abilities") and player_data.special_abilities:
-        for ability_name, ability_data in player_data.special_abilities.items():
+    if hasattr(player_data,
+               "special_abilities") and player_data.special_abilities:
+        for ability_name, ability_data in player_data.special_abilities.items(
+        ):
             # Check if ability is active (not on cooldown)
             if ability_data.get("last_used"):
                 try:
-                    last_used = datetime.datetime.fromisoformat(ability_data["last_used"])
+                    last_used = datetime.datetime.fromisoformat(
+                        ability_data["last_used"])
                     now = datetime.datetime.now()
                     hours_passed = (now - last_used).total_seconds() / 3600
-                    
+
                     if hours_passed >= ability_data.get("cooldown", 0):
                         active_abilities_text += f"• {ability_name} - {ability_data.get('description', 'Special ability')}\n"
                 except (ValueError, TypeError):
                     pass
-    
+
     # Show active effects if any
     active_effects_text = ""
     if hasattr(player_data, "active_effects") and player_data.active_effects:
         for effect_name, effect_data in player_data.active_effects.items():
             active_effects_text += f"• {effect_name} ({effect_data.get('duration', 0)} battles remaining)\n"
-    
+
     # Add fields for abilities and effects if any
     if active_abilities_text:
-        embed.add_field(name="⚡ Active Abilities", value=active_abilities_text, inline=False)
-    
+        embed.add_field(name="⚡ Active Abilities",
+                        value=active_abilities_text,
+                        inline=False)
+
     if active_effects_text:
-        embed.add_field(name="🧪 Active Effects", value=active_effects_text, inline=False)
-    
+        embed.add_field(name="🧪 Active Effects",
+                        value=active_effects_text,
+                        inline=False)
+
     # Add player stats
     embed.add_field(
         name=f"{ctx.author.display_name} (Level {player_data.class_level})",
         value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
-              f"Power: {player_entity.stats['power']} ⚔️\n"
-              f"Defense: {player_entity.stats['defense']} 🛡️",
-        inline=True
-    )
-    
+        f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
+        f"Power: {player_entity.stats['power']} ⚔️\n"
+        f"Defense: {player_entity.stats['defense']} 🛡️",
+        inline=True)
+
     # Add enemy stats
     embed.add_field(
         name=f"{enemy_name} (Level {enemy_level})",
         value=f"HP: {enemy_entity.current_hp}/{enemy_entity.stats['hp']} ❤️\n"
-              f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ⚡\n"
-              f"Power: {enemy_entity.stats['power']} ⚔️\n"
-              f"Defense: {enemy_entity.stats['defense']} 🛡️",
-        inline=True
-    )
-    
+        f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ⚡\n"
+        f"Power: {enemy_entity.stats['power']} ⚔️\n"
+        f"Defense: {enemy_entity.stats['defense']} 🛡️",
+        inline=True)
+
     # Create battle view
     battle_view = BattleView(player_entity, enemy_entity, timeout=180)
     battle_view.data_manager = data_manager
-    
+
     battle_msg = await ctx.send(embed=embed, view=battle_view)
-    
+
     # Wait for battle to end
     await battle_view.wait()
-    
+
     # Process battle results
     if not enemy_entity.is_alive():
         # Player won
         # Calculate rewards
         exp_reward = calculate_exp_reward(enemy_level, player_data.class_level)
-        gold_reward = calculate_gold_reward(enemy_level)  # Calculate gold reward
-        
+        gold_reward = calculate_gold_reward(
+            enemy_level)  # Calculate gold reward
+
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.add_gold(gold_reward)  # Using new gold method instead of cursed energy
-        
+        player_data.add_gold(
+            gold_reward)  # Using new gold method instead of cursed energy
+
         # Update stats
         player_data.wins += 1
-        
+
         # Update quest progress for daily and weekly quest tracking
         from achievements import QuestManager
         quest_manager = QuestManager(data_manager)
-        
+
         # Update various quest types that would be triggered by a battle win
-        completed_daily_quests = quest_manager.update_quest_progress(player_data, "daily_wins")
-        completed_weekly_quests = quest_manager.update_quest_progress(player_data, "weekly_wins")
-        
+        completed_daily_quests = quest_manager.update_quest_progress(
+            player_data, "daily_wins")
+        completed_weekly_quests = quest_manager.update_quest_progress(
+            player_data, "weekly_wins")
+
         if "boss" in enemy_name.lower():
             # This is a boss battle
-            completed_boss_quests = quest_manager.update_quest_progress(player_data, "weekly_bosses")
-        
+            completed_boss_quests = quest_manager.update_quest_progress(
+                player_data, "weekly_bosses")
+
         # Check for item drops
         drop_msg = ""
         if random.random() < 0.2:  # 20% chance for regular item drop
             from equipment import generate_random_item
             new_item = generate_random_item(player_data.class_level)
-            
+
             # Add to inventory
             from equipment import add_item_to_inventory
             add_item_to_inventory(player_data, new_item)
-            
+
             drop_msg = f"\n⚡ The {enemy_name} dropped: **{new_item.name}**!"
-        
+
         # Check for special item drop (rarer)
         special_drop_msg = ""
         if random.random() < 0.05:  # 5% chance for special drop
             from special_items import get_random_special_drop
-            special_item = await get_random_special_drop(player_data.class_level)
-            
+            special_item = await get_random_special_drop(
+                player_data.class_level)
+
             if special_item:
                 # Add to inventory
                 from equipment import add_item_to_inventory
                 add_item_to_inventory(player_data, special_item)
-                
+
                 special_drop_msg = f"\n🌟 Rare drop! You found: **{special_item.name}**!"
-                
+
         # Handle consumable duration reduction
         if hasattr(player_data, "active_effects"):
             expired_effects = []
             for effect_name, effect_data in player_data.active_effects.items():
                 # Reduce duration by 1 battle
                 effect_data["duration"] -= 1
-                
+
                 # If duration is 0, mark for removal
                 if effect_data["duration"] <= 0:
                     expired_effects.append(effect_name)
-            
+
             # Remove expired effects
             for effect_name in expired_effects:
                 del player_data.active_effects[effect_name]
-        
+
         # Save data
         data_manager.save_data()
-        
+
         # Send results
         result_embed = discord.Embed(
             title="🎉 Victory!",
             description=f"You defeated the {enemy_name}!",
-            color=discord.Color.green()
-        )
-        
+            color=discord.Color.green())
+
         result_embed.add_field(
             name="Rewards",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{gold_reward} 💰{drop_msg}{special_drop_msg}",
-            inline=False
-        )
-        
+            f"Gold: +{gold_reward} 💰{drop_msg}{special_drop_msg}",
+            inline=False)
+
         # Show info about expired effects if any
         if locals().get('expired_effects') and expired_effects:
-            expired_text = "\n".join([f"• {effect_name}" for effect_name in expired_effects])
-            result_embed.add_field(name="⏱️ Effects Expired", value=expired_text, inline=False)
-        
+            expired_text = "\n".join(
+                [f"• {effect_name}" for effect_name in expired_effects])
+            result_embed.add_field(name="⏱️ Effects Expired",
+                                   value=expired_text,
+                                   inline=False)
+
         if leveled_up:
             result_embed.add_field(
                 name="Level Up!",
                 value=f"🆙 You reached Level {player_data.class_level}!\n"
-                      f"You gained 2 skill points! Use !skills to allocate them.",
-                inline=False
-            )
-        
+                f"You gained 2 skill points! Use !skills to allocate them.",
+                inline=False)
+
         await ctx.send(embed=result_embed)
-        
+
     elif not player_entity.is_alive():
         # Player lost
         # Update stats
         player_data.losses += 1
-        
+
         # Small consolation reward
-        pity_exp = calculate_exp_reward(enemy_level, player_data.class_level) // 3
+        pity_exp = calculate_exp_reward(enemy_level,
+                                        player_data.class_level) // 3
         player_data.add_exp(pity_exp)
-        
+
         # Save data
         data_manager.save_data()
-        
+
         # Send results
         result_embed = discord.Embed(
             title="💀 Defeat",
             description=f"You were defeated by the {enemy_name}!",
-            color=discord.Color.red()
-        )
-        
-        result_embed.add_field(
-            name="Consolation",
-            value=f"EXP: +{pity_exp} 📊\n"
-                  f"You'll get them next time!",
-            inline=False
-        )
-        
+            color=discord.Color.red())
+
+        result_embed.add_field(name="Consolation",
+                               value=f"EXP: +{pity_exp} 📊\n"
+                               f"You'll get them next time!",
+                               inline=False)
+
         await ctx.send(embed=result_embed)
     else:
         # Battle timed out
         await ctx.send("⏱️ The battle timed out! Neither side wins.")
 
-def generate_enemy_stats(enemy_name: str, enemy_level: int, player_level: int) -> Dict[str, int]:
+
+def generate_enemy_stats(enemy_name: str, enemy_level: int,
+                         player_level: int) -> Dict[str, int]:
     """Generate enemy stats based on name and level"""
     # Base stats scaling with level
     base_power = 8 + (enemy_level * 2)
     base_defense = 5 + (enemy_level * 1.5)
     base_hp = 80 + (enemy_level * 10)
     base_speed = 6 + (enemy_level * 0.5)
-    
+
     # Adjust based on enemy type
     if "Cursed" in enemy_name:
         # Cursed enemies have high power but low defense
@@ -904,7 +1017,7 @@ def generate_enemy_stats(enemy_name: str, enemy_level: int, player_level: int) -
         defense_mod = 1.0
         hp_mod = 1.0
         speed_mod = 1.0
-    
+
     # Create stats
     stats = {
         "power": int(base_power * power_mod),
@@ -913,64 +1026,78 @@ def generate_enemy_stats(enemy_name: str, enemy_level: int, player_level: int) -
         "speed": int(base_speed * speed_mod),
         "energy": 100  # All enemies start with full energy
     }
-    
+
     # Scale difficulty based on player level difference
     level_diff = enemy_level - player_level
-    
+
     if level_diff > 0:
         # Enemy is higher level - make them MUCH harder
         # Higher level enemies should be very challenging
-        power_boost = 1.0 + (level_diff * 0.15)  # 15% increase per level difference
-        defense_boost = 1.0 + (level_diff * 0.10)  # 10% increase per level difference
-        hp_boost = 1.0 + (level_diff * 0.20)  # 20% increase per level difference
-        
+        power_boost = 1.0 + (level_diff * 0.15
+                             )  # 15% increase per level difference
+        defense_boost = 1.0 + (level_diff * 0.10
+                               )  # 10% increase per level difference
+        hp_boost = 1.0 + (level_diff * 0.20
+                          )  # 20% increase per level difference
+
         stats["power"] = int(stats["power"] * power_boost)
         stats["defense"] = int(stats["defense"] * defense_boost)
         stats["hp"] = int(stats["hp"] * hp_boost)
     elif level_diff < -2:
         # Enemy is much lower level, still make them challenging
-        difficulty_mod = 1.0 + (abs(level_diff) * 0.05)  # 5% increase per level below player
+        difficulty_mod = 1.0 + (abs(level_diff) * 0.05
+                                )  # 5% increase per level below player
         stats["power"] = int(stats["power"] * difficulty_mod)
         stats["defense"] = int(stats["defense"] * difficulty_mod)
-    
+
     # Ensure no negative stats - enforce minimum values
     stats["power"] = max(5, stats["power"])
     stats["defense"] = max(5, stats["defense"])
     stats["hp"] = max(50, stats["hp"])
     stats["speed"] = max(5, stats["speed"])
-    
+
     return stats
+
 
 def generate_enemy_moves(enemy_name: str) -> List[BattleMove]:
     """Generate enemy moves based on their name"""
     moves = [
         BattleMove("Attack", 1.0, 10)  # Basic attack for all enemies
     ]
-    
+
     # Add specific moves based on enemy type
     if "Cursed" in enemy_name:
-        moves.append(BattleMove("Curse", 1.2, 25, "weakness", "Deal damage and weaken target"))
+        moves.append(
+            BattleMove("Curse", 1.2, 25, "weakness",
+                       "Deal damage and weaken target"))
         moves.append(BattleMove("Dark Blast", 1.7, 35))
     elif "Armored" in enemy_name:
-        moves.append(BattleMove("Shield Bash", 0.8, 20, "shield", "Deal damage and gain a shield"))
+        moves.append(
+            BattleMove("Shield Bash", 0.8, 20, "shield",
+                       "Deal damage and gain a shield"))
         moves.append(BattleMove("Heavy Swing", 1.5, 30))
     elif "Giant" in enemy_name:
         moves.append(BattleMove("Ground Slam", 1.4, 30))
-        moves.append(BattleMove("Roar", 0.6, 25, "strength", "Deal damage and gain strength"))
+        moves.append(
+            BattleMove("Roar", 0.6, 25, "strength",
+                       "Deal damage and gain strength"))
     elif "Specter" in enemy_name:
-        moves.append(BattleMove("Soul Drain", 1.1, 20, "energy_restore", "Deal damage and restore energy"))
+        moves.append(
+            BattleMove("Soul Drain", 1.1, 20, "energy_restore",
+                       "Deal damage and restore energy"))
         moves.append(BattleMove("Phantom Strike", 1.6, 35))
     else:
         # Default additional moves
         moves.append(BattleMove("Heavy Attack", 1.4, 25))
         moves.append(BattleMove("Quick Strike", 0.8, 15))
-    
+
     return moves
+
 
 def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     """Calculate experience reward based on enemy and player levels"""
     base_exp = 20 + (enemy_level * 10)
-    
+
     # Adjust based on level difference
     level_diff = enemy_level - player_level
     if level_diff > 0:
@@ -982,190 +1109,235 @@ def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     else:
         # Same level
         exp_modifier = 1.0
-        
+
     return int(base_exp * exp_modifier)
+
 
 def calculate_gold_reward(enemy_level: int) -> int:
     """Calculate gold reward based on enemy level"""
     base_gold = 10 + (enemy_level * 5)
     variance = random.uniform(0.8, 1.2)
     return int(base_gold * variance)
-    
+
+
 def calculate_cursed_energy_reward(enemy_level: int) -> int:
     """Legacy function for backward compatibility"""
-    return calculate_gold_reward(enemy_level)  # Redirect to gold reward function
+    return calculate_gold_reward(
+        enemy_level)  # Redirect to gold reward function
 
-async def start_pvp_battle(ctx, target_member, player_data, target_data, data_manager):
+
+async def start_pvp_battle(ctx, target_member, player_data, target_data,
+                           data_manager):
     """Start a PvP battle between two players"""
     from utils import GAME_CLASSES
-    
+
     # Validate both players have classes
     if not player_data.class_name or not target_data.class_name:
-        await ctx.send("❌ Both players need to have selected a class to battle!")
+        await ctx.send(
+            "❌ Both players need to have selected a class to battle!")
         return
-        
+
     # Check if players are within reasonable level range - making it a bit wider for more PvP opportunities
     level_diff = abs(player_data.class_level - target_data.class_level)
     max_allowed_diff = 5  # Increased from 3 to 5 for more battle opportunities
-    
+
     if level_diff > max_allowed_diff:
-        await ctx.send(f"❌ Level difference too high! You can only battle players within {max_allowed_diff} levels of your own (current difference: {level_diff}).")
+        await ctx.send(
+            f"❌ Level difference too high! You can only battle players within {max_allowed_diff} levels of your own (current difference: {level_diff})."
+        )
         return
-    
+
     # Check if either player is currently in a cooldown
     current_time = datetime.datetime.now()
     pvp_cooldown_key = "pvp_cooldown"
-    
+
     if pvp_cooldown_key in player_data.skill_cooldowns:
         cooldown_time = player_data.skill_cooldowns[pvp_cooldown_key]
         if cooldown_time > current_time:
             time_left = (cooldown_time - current_time).total_seconds()
             minutes = int(time_left // 60)
             seconds = int(time_left % 60)
-            await ctx.send(f"❌ You're on PvP cooldown! Try again in {minutes}m {seconds}s.")
+            await ctx.send(
+                f"❌ You're on PvP cooldown! Try again in {minutes}m {seconds}s."
+            )
             return
-            
+
     if pvp_cooldown_key in target_data.skill_cooldowns:
         cooldown_time = target_data.skill_cooldowns[pvp_cooldown_key]
         if cooldown_time > current_time:
             time_left = (cooldown_time - current_time).total_seconds()
             minutes = int(time_left // 60)
             seconds = int(time_left % 60)
-            await ctx.send(f"❌ {target_member.display_name} is on PvP cooldown! Try again in {minutes}m {seconds}s.")
+            await ctx.send(
+                f"❌ {target_member.display_name} is on PvP cooldown! Try again in {minutes}m {seconds}s."
+            )
             return
-    
+
     # Get player stats
     player_stats = player_data.get_stats(GAME_CLASSES)
     target_stats = target_data.get_stats(GAME_CLASSES)
-    
+
     # Get moves for both players
     player_moves = []
     target_moves = []
-    
+
     # Basic moves for everyone
     player_moves.append(BattleMove("Basic Attack", 1.0, 10))
     player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-    
+
     target_moves.append(BattleMove("Basic Attack", 1.0, 10))
     target_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-    
+
     # Add class-specific moves for player
     if player_data.class_name == "Spirit Striker":
-        player_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
-        player_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
+        player_moves.append(
+            BattleMove("Cursed Combo", 2.0, 35, "weakness",
+                       "Deal damage and weaken enemy"))
+        player_moves.append(
+            BattleMove("Soul Siphon", 1.2, 20, "energy_restore",
+                       "Deal damage and restore energy"))
     elif player_data.class_name == "Domain Tactician":
-        player_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
-        player_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
+        player_moves.append(
+            BattleMove("Barrier Pulse", 0.8, 30, "shield",
+                       "Deal damage and gain a shield"))
+        player_moves.append(
+            BattleMove("Tactical Heal", 0.5, 25, "heal",
+                       "Deal damage and heal yourself"))
     elif player_data.class_name == "Flash Rogue":
-        player_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
-        player_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
-    
+        player_moves.append(
+            BattleMove("Shadowstep", 1.7, 30, "strength",
+                       "Deal damage and gain increased damage"))
+        player_moves.append(
+            BattleMove("Quick Strikes", 0.7, 15, None,
+                       "Deal multiple quick strikes"))
+
     # Add class-specific moves for target
     if target_data.class_name == "Spirit Striker":
-        target_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
-        target_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
+        target_moves.append(
+            BattleMove("Cursed Combo", 2.0, 35, "weakness",
+                       "Deal damage and weaken enemy"))
+        target_moves.append(
+            BattleMove("Soul Siphon", 1.2, 20, "energy_restore",
+                       "Deal damage and restore energy"))
     elif target_data.class_name == "Domain Tactician":
-        target_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
-        target_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
+        target_moves.append(
+            BattleMove("Barrier Pulse", 0.8, 30, "shield",
+                       "Deal damage and gain a shield"))
+        target_moves.append(
+            BattleMove("Tactical Heal", 0.5, 25, "heal",
+                       "Deal damage and heal yourself"))
     elif target_data.class_name == "Flash Rogue":
-        target_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
-        target_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
-    
+        target_moves.append(
+            BattleMove("Shadowstep", 1.7, 30, "strength",
+                       "Deal damage and gain increased damage"))
+        target_moves.append(
+            BattleMove("Quick Strikes", 0.7, 15, None,
+                       "Deal multiple quick strikes"))
+
     # Create player entities
-    player_entity = BattleEntity(
-        ctx.author.display_name,
-        player_stats,
-        player_moves,
-        is_player=True,
-        player_data=player_data
-    )
-    
-    target_entity = BattleEntity(
-        target_member.display_name,
-        target_stats,
-        target_moves,
-        is_player=True,
-        player_data=target_data
-    )
-    
+    player_entity = BattleEntity(ctx.author.display_name,
+                                 player_stats,
+                                 player_moves,
+                                 is_player=True,
+                                 player_data=player_data)
+
+    target_entity = BattleEntity(target_member.display_name,
+                                 target_stats,
+                                 target_moves,
+                                 is_player=True,
+                                 player_data=target_data)
+
     # Create battle embed
     embed = discord.Embed(
-        title=f"⚔️ PvP Battle: {ctx.author.display_name} vs {target_member.display_name}",
-        description=f"{ctx.author.mention} has challenged {target_member.mention} to a battle!",
-        color=discord.Color.gold()
-    )
-    
+        title=
+        f"⚔️ PvP Battle: {ctx.author.display_name} vs {target_member.display_name}",
+        description=
+        f"{ctx.author.mention} has challenged {target_member.mention} to a battle!",
+        color=discord.Color.gold())
+
     # Add player stats
     embed.add_field(
         name=f"{ctx.author.display_name} (Level {player_data.class_level})",
         value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
-              f"Power: {player_entity.stats['power']} ⚔️\n"
-              f"Defense: {player_entity.stats['defense']} 🛡️",
-        inline=True
-    )
-    
+        f"Battle Energy: {player_entity.current_energy}/{player_data.max_battle_energy} ⚡\n"
+        f"Power: {player_entity.stats['power']} ⚔️\n"
+        f"Defense: {player_entity.stats['defense']} 🛡️",
+        inline=True)
+
     # Add target stats
     embed.add_field(
         name=f"{target_member.display_name} (Level {target_data.class_level})",
         value=f"HP: {target_entity.current_hp}/{target_entity.stats['hp']} ❤️\n"
-              f"Battle Energy: {target_entity.current_energy}/{target_data.max_battle_energy} ⚡\n"
-              f"Power: {target_entity.stats['power']} ⚔️\n"
-              f"Defense: {target_entity.stats['defense']} 🛡️",
-        inline=True
-    )
-    
+        f"Battle Energy: {target_entity.current_energy}/{target_data.max_battle_energy} ⚡\n"
+        f"Power: {target_entity.stats['power']} ⚔️\n"
+        f"Defense: {target_entity.stats['defense']} 🛡️",
+        inline=True)
+
     # Create battle view
     battle_view = BattleView(player_entity, target_entity, timeout=180)
     battle_view.data_manager = data_manager
-    
+
     battle_msg = await ctx.send(embed=embed, view=battle_view)
-    
+
     # Wait for battle to end
     await battle_view.wait()
-    
+
     # Process battle results
     if not target_entity.is_alive():
         # Player won
         # Calculate rewards - scaling with both player levels and making it more rewarding
         base_exp = 20
         base_gold = 15
-        level_multiplier = 1.0 + (target_data.class_level / 50.0)  # Higher level opponents give better rewards
-        challenge_bonus = 1.0 + (max(0, target_data.class_level - player_data.class_level) * 0.1)  # Bonus for defeating higher level players
-        
-        exp_reward = int(base_exp * target_data.class_level * level_multiplier * challenge_bonus)
-        cursed_energy_reward = int(base_gold * target_data.class_level * level_multiplier * challenge_bonus)
-        
+        level_multiplier = 1.0 + (
+            target_data.class_level / 50.0
+        )  # Higher level opponents give better rewards
+        challenge_bonus = 1.0 + (
+            max(0, target_data.class_level - player_data.class_level) * 0.1
+        )  # Bonus for defeating higher level players
+
+        exp_reward = int(base_exp * target_data.class_level *
+                         level_multiplier * challenge_bonus)
+        cursed_energy_reward = int(base_gold * target_data.class_level *
+                                   level_multiplier * challenge_bonus)
+
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.add_cursed_energy(cursed_energy_reward)  # Using new method that handles limits
-        
+        player_data.add_cursed_energy(
+            cursed_energy_reward)  # Using new method that handles limits
+
         # Deduct some cursed energy from loser (but not too much)
-        cursed_energy_penalty = min(cursed_energy_reward // 3, target_data.cursed_energy // 10)  # Reduced to be less punishing
-        target_data.remove_cursed_energy(cursed_energy_penalty)  # Using new method that handles validation
-        
+        cursed_energy_penalty = min(cursed_energy_reward // 3,
+                                    target_data.cursed_energy //
+                                    10)  # Reduced to be less punishing
+        target_data.remove_cursed_energy(
+            cursed_energy_penalty)  # Using new method that handles validation
+
         # Set cooldowns
         current_time = datetime.datetime.now()
         pvp_cooldown_key = "pvp_cooldown"
-        
+
         # Winner gets a shorter cooldown
         winner_cooldown_minutes = 30
-        player_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=winner_cooldown_minutes)
-        
+        player_data.skill_cooldowns[
+            pvp_cooldown_key] = current_time + datetime.timedelta(
+                minutes=winner_cooldown_minutes)
+
         # Loser gets a longer cooldown to avoid repeated targeting
         loser_cooldown_minutes = 60
-        target_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=loser_cooldown_minutes)
-        
+        target_data.skill_cooldowns[
+            pvp_cooldown_key] = current_time + datetime.timedelta(
+                minutes=loser_cooldown_minutes)
+
         # Update stats
         player_data.wins += 1
         target_data.losses += 1
-        
+
         # Record this battle in pvp_history if it doesn't exist yet
         if not hasattr(player_data, 'pvp_history'):
             player_data.pvp_history = []
         if not hasattr(target_data, 'pvp_history'):
             target_data.pvp_history = []
-            
+
         # Add battle to history with timestamp
         battle_record = {
             "opponent_id": target_data.user_id,
@@ -1177,7 +1349,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "opponent_level": target_data.class_level
         }
         player_data.pvp_history.append(battle_record)
-        
+
         # Add battle to target's history
         battle_record = {
             "opponent_id": player_data.user_id,
@@ -1188,75 +1360,83 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "opponent_level": player_data.class_level
         }
         target_data.pvp_history.append(battle_record)
-        
+
         # Save data
         data_manager.save_data()
-        
+
         # Send results
         result_embed = discord.Embed(
             title="🎉 Victory!",
-            description=f"{ctx.author.display_name} defeated {target_member.display_name} in battle!",
-            color=discord.Color.green()
-        )
-        
-        result_embed.add_field(
-            name="Rewards",
-            value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{cursed_energy_reward} 💰",
-            inline=False
-        )
-        
+            description=
+            f"{ctx.author.display_name} defeated {target_member.display_name} in battle!",
+            color=discord.Color.green())
+
+        result_embed.add_field(name="Rewards",
+                               value=f"EXP: +{exp_reward} 📊\n"
+                               f"Gold: +{cursed_energy_reward} 💰",
+                               inline=False)
+
         if leveled_up:
             result_embed.add_field(
                 name="Level Up!",
                 value=f"🆙 You reached Level {player_data.class_level}!\n"
-                      f"You gained 2 skill points! Use !skills to allocate them.",
-                inline=False
-            )
-        
+                f"You gained 2 skill points! Use !skills to allocate them.",
+                inline=False)
+
         await ctx.send(embed=result_embed)
-        
+
     elif not player_entity.is_alive():
         # Target won
         # Calculate rewards - scaling with both player levels and making it more rewarding
         base_exp = 20
         base_gold = 15
-        level_multiplier = 1.0 + (player_data.class_level / 50.0)  # Higher level opponents give better rewards
-        challenge_bonus = 1.0 + (max(0, player_data.class_level - target_data.class_level) * 0.1)  # Bonus for defeating higher level players
-        
-        exp_reward = int(base_exp * player_data.class_level * level_multiplier * challenge_bonus)
-        gold_reward = int(base_gold * player_data.class_level * level_multiplier * challenge_bonus)
-        
+        level_multiplier = 1.0 + (
+            player_data.class_level / 50.0
+        )  # Higher level opponents give better rewards
+        challenge_bonus = 1.0 + (
+            max(0, player_data.class_level - target_data.class_level) * 0.1
+        )  # Bonus for defeating higher level players
+
+        exp_reward = int(base_exp * player_data.class_level *
+                         level_multiplier * challenge_bonus)
+        gold_reward = int(base_gold * player_data.class_level *
+                          level_multiplier * challenge_bonus)
+
         # Add rewards
         leveled_up = target_data.add_exp(exp_reward)
         target_data.gold += gold_reward
-        
+
         # Deduct some gold from loser (but not too much)
-        gold_penalty = min(gold_reward // 3, player_data.gold // 10)  # Reduced to be less punishing
+        gold_penalty = min(gold_reward // 3, player_data.gold //
+                           10)  # Reduced to be less punishing
         player_data.gold = max(0, player_data.gold - gold_penalty)
-        
+
         # Set cooldowns
         current_time = datetime.datetime.now()
         pvp_cooldown_key = "pvp_cooldown"
-        
+
         # Winner gets a shorter cooldown
         winner_cooldown_minutes = 30
-        target_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=winner_cooldown_minutes)
-        
+        target_data.skill_cooldowns[
+            pvp_cooldown_key] = current_time + datetime.timedelta(
+                minutes=winner_cooldown_minutes)
+
         # Loser gets a longer cooldown to avoid repeated targeting
         loser_cooldown_minutes = 60
-        player_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=loser_cooldown_minutes)
-        
+        player_data.skill_cooldowns[
+            pvp_cooldown_key] = current_time + datetime.timedelta(
+                minutes=loser_cooldown_minutes)
+
         # Update stats
         target_data.wins += 1
         player_data.losses += 1
-        
+
         # Record this battle in pvp_history if it doesn't exist yet
         if not hasattr(player_data, 'pvp_history'):
             player_data.pvp_history = []
         if not hasattr(target_data, 'pvp_history'):
             target_data.pvp_history = []
-            
+
         # Add battle to history with timestamp
         battle_record = {
             "opponent_id": player_data.user_id,
@@ -1268,7 +1448,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "opponent_level": player_data.class_level
         }
         target_data.pvp_history.append(battle_record)
-        
+
         # Add battle to target's history
         battle_record = {
             "opponent_id": target_data.user_id,
@@ -1279,32 +1459,31 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data, data_ma
             "opponent_level": target_data.class_level
         }
         player_data.pvp_history.append(battle_record)
-        
+
         # Save data
         data_manager.save_data()
-        
+
         # Send results
         result_embed = discord.Embed(
             title="🏆 Victory!",
-            description=f"{target_member.display_name} defeated {ctx.author.display_name} in battle!",
-            color=discord.Color.blue()
-        )
-        
+            description=
+            f"{target_member.display_name} defeated {ctx.author.display_name} in battle!",
+            color=discord.Color.blue())
+
         result_embed.add_field(
             name=f"Rewards for {target_member.display_name}",
             value=f"EXP: +{exp_reward} 📊\n"
-                  f"Gold: +{gold_reward} 💰",
-            inline=False
-        )
-        
+            f"Gold: +{gold_reward} 💰",
+            inline=False)
+
         if leveled_up:
             result_embed.add_field(
                 name="Level Up!",
-                value=f"🆙 {target_member.display_name} reached Level {target_data.class_level}!\n"
-                      f"They gained 3 skill points to allocate.",
-                inline=False
-            )
-        
+                value=
+                f"🆙 {target_member.display_name} reached Level {target_data.class_level}!\n"
+                f"They gained 3 skill points to allocate.",
+                inline=False)
+
         await ctx.send(embed=result_embed)
     else:
         # Battle timed out
