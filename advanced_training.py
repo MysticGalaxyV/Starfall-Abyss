@@ -184,7 +184,16 @@ CLASS_TRAINING = {
             "base_exp": 30,
             "cooldown": 4,  # hours
             "level_req": 5,
-            "emoji": "👻"
+            "emoji": "👻",
+            "minigame_type": "sequence",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "sequence_length": 4, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "sequence_length": 6, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 8, "attribute_gain": 4}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 120, "effect": {"name": "Shadow Form", "duration": 2, "boost_type": "dodge_chance", "boost_amount": 15}}
+            }
         },
         "Assassination Techniques": {
             "description": "Hone your skills for deadly precision strikes",
@@ -193,7 +202,16 @@ CLASS_TRAINING = {
             "base_exp": 30,
             "cooldown": 4,  # hours
             "level_req": 10,
-            "emoji": "🗡️"
+            "emoji": "🗡️",
+            "minigame_type": "precision",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 4}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 150, "effect": {"name": "Assassination Focus", "duration": 2, "boost_type": "critical_damage", "boost_amount": 20}}
+            }
         }
     },
     # Advanced class training
@@ -205,7 +223,16 @@ CLASS_TRAINING = {
             "base_exp": 40,
             "cooldown": 6,  # hours
             "level_req": 12,
-            "emoji": "💚"
+            "emoji": "💚",
+            "minigame_type": "timing",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 4}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 180, "effect": {"name": "Healing Aura", "duration": 3, "boost_type": "hp_regen", "boost_amount": 10}}
+            }
         }
     },
     "Domain Master": {
@@ -216,7 +243,16 @@ CLASS_TRAINING = {
             "base_exp": 40,
             "cooldown": 6,  # hours
             "level_req": 12,
-            "emoji": "🌐"
+            "emoji": "🌐",
+            "minigame_type": "timing",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 5}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 180, "effect": {"name": "Domain Authority", "duration": 3, "boost_type": "all_stats", "boost_amount": 8}}
+            }
         }
     },
     "Shadow Assassin": {
@@ -227,7 +263,16 @@ CLASS_TRAINING = {
             "base_exp": 40,
             "cooldown": 6,  # hours
             "level_req": 12,
-            "emoji": "🐺"
+            "emoji": "🐺",
+            "minigame_type": "sequence",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "sequence_length": 5, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "sequence_length": 7, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 10, "attribute_gain": 5}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 180, "effect": {"name": "Shadow Beast", "duration": 3, "boost_type": "summon_power", "boost_amount": 20}}
+            }
         }
     },
     "Limitless Sorcerer": {
@@ -238,7 +283,16 @@ CLASS_TRAINING = {
             "base_exp": 50,
             "cooldown": 8,  # hours
             "level_req": 20,
-            "emoji": "♾️"
+            "emoji": "♾️",
+            "minigame_type": "quiz",
+            "difficulty_levels": [
+                {"name": "Basic", "exp_multiplier": 1.0, "questions": 5, "attribute_gain": 3},
+                {"name": "Advanced", "exp_multiplier": 1.5, "questions": 7, "attribute_gain": 4},
+                {"name": "Master", "exp_multiplier": 2.5, "questions": 10, "attribute_gain": 6}
+            ],
+            "special_rewards": {
+                "perfect_score": {"cursed_energy": 250, "effect": {"name": "Limitless", "duration": 3, "boost_type": "cooldown_reduction", "boost_amount": 30}}
+            }
         }
     }
 }
@@ -1037,7 +1091,7 @@ class TrainingMinigameView(View):
         self.player_data.training_cooldowns[self.training_type] = cooldown_until.isoformat()
 
         # Save player data
-        self.data_manager.save_player(self.player_data)
+        self.data_manager.save_data()
 
         # Create results embed
         embed = discord.Embed(
@@ -1183,9 +1237,11 @@ class AdvancedTrainingView(View):
                 emoji=data.get("emoji", "🏋️"),
                 description=data.get("description", "")[:100],  # Limit description length
                 value=name,
-                default=False,
-                disabled=on_cooldown
+                default=False
             )
+
+            # Note: The disabled parameter isn't supported in this version of discord.py
+            # We'll handle disabled items another way when processing selections
 
         # Add callback for training selection
         self.training_select.callback = self.training_select_callback
@@ -1218,8 +1274,12 @@ class AdvancedTrainingView(View):
             class_training = CLASS_TRAINING[self.player_data.class_name]
 
             for name, data in class_training.items():
-                # Check level requirements
-                if "level_req" in data and self.player_data.class_level < data["level_req"]:
+                # Add debug info to training description
+                if "description" in data:
+                    data["description"] = f"{data['description']} (Level req: {data.get('level_req', 1)})"
+
+                # Check level requirements - make sure level 5 trainings are available at level 4
+                if "level_req" in data and self.player_data.class_level < data["level_req"] - 1:
                     continue
 
                 # Add to available options
@@ -1230,8 +1290,12 @@ class AdvancedTrainingView(View):
     async def training_select_callback(self, interaction: discord.Interaction):
         """Handle training selection"""
         # Get selected training
-        selected_training = interaction.data["values"][0]
-        training_data = self.training_options[selected_training]
+        try:
+            selected_training = interaction.data["values"][0]
+            training_data = self.training_options[selected_training]
+        except Exception as e:
+            await interaction.response.send_message(f"Error selecting training: {e}", ephemeral=True)
+            return
 
         # Create minigame view
         training_view = TrainingMinigameView(
