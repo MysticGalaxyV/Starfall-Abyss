@@ -205,7 +205,7 @@ class PlayerData:
         self.equipped_gathering_tools = {
             "Mining": None,
             "Foraging": None,
-            "Herbs": None, 
+            "Herbs": None,
             "Hunting": None,
             "Magical": None
         }
@@ -238,7 +238,8 @@ class PlayerData:
         self.level = 1  # Alias for user_level to fix compatibility issues
         self.current_hp = 100  # Current health points
         self.dungeon_damage = 0  # Accumulated damage in dungeons
-        self.equipped_gathering_tools = {}  # Map of category to equipped tool name
+        self.equipped_gathering_tools = {
+        }  # Map of category to equipped tool name
         # Additional attributes for achievements
         self.dungeons_completed = 0
         self.bosses_defeated = 0
@@ -301,7 +302,9 @@ class PlayerData:
         stats = self.get_stats(class_data)
         return stats.get('hp', 100)
 
-    def regenerate_health_and_energy(self, class_data: Dict[str, Any], percent: float = 1.0) -> None:
+    def regenerate_health_and_energy(self,
+                                     class_data: Dict[str, Any],
+                                     percent: float = 1.0) -> None:
         """
         Regenerate the player's health and energy by the specified percentage
         percent: 1.0 = full regeneration, 0.5 = half regeneration, etc.
@@ -315,16 +318,20 @@ class PlayerData:
         max_energy = self.get_max_battle_energy()
         self.battle_energy = max_energy  # Always ensure full energy regeneration
 
-    def add_dungeon_damage(self, damage: int, class_data: Dict[str, Any]) -> None:
+    def add_dungeon_damage(self, damage: int, class_data: Dict[str,
+                                                               Any]) -> None:
         """
         Add accumulated damage from a dungeon encounter
         """
         self.dungeon_damage += damage
 
         # Reduce current HP by the damage amount
-        self.current_hp = max(self.current_hp - damage, 1)  # Ensure player always has at least 1 HP
+        self.current_hp = max(self.current_hp - damage,
+                              1)  # Ensure player always has at least 1 HP
 
-    def reset_dungeon_damage(self, class_data: Dict[str, Any], full_heal: bool = True) -> None:
+    def reset_dungeon_damage(self,
+                             class_data: Dict[str, Any],
+                             full_heal: bool = True) -> None:
         """
         Reset accumulated dungeon damage and regenerate health
         full_heal: If True, fully restore HP; if False, keep current HP
@@ -397,7 +404,8 @@ class PlayerData:
             return 0
 
         old_value = self.battle_energy
-        self.battle_energy = min(self.max_battle_energy, self.battle_energy + amount)
+        self.battle_energy = min(self.max_battle_energy,
+                                 self.battle_energy + amount)
         return self.battle_energy - old_value
 
     def calculate_xp_for_level(self, level: int) -> int:
@@ -408,7 +416,7 @@ class PlayerData:
         # Updated to match the easier progression formula in level_validation.py
         base_xp = 75  # Reduced from 100 to make progression easier
         level_exponent = 1.35  # Reduced from 1.5 to flatten the curve for high levels
-        return int(base_xp * (level ** level_exponent))
+        return int(base_xp * (level**level_exponent))
 
     def xp_to_next_level(self) -> int:
         """Calculate XP needed for the next level."""
@@ -430,7 +438,10 @@ class PlayerData:
         leveled_up = False
 
         # Reduce the XP penalty for higher levels to make progression easier
-        level_penalty = max(0.95, 1.0 - (self.class_level * 0.002))  # 0.2% reduction per level, min 95% of original XP
+        level_penalty = max(
+            0.95,
+            1.0 - (self.class_level *
+                   0.002))  # 0.2% reduction per level, min 95% of original XP
         adjusted_exp = int(exp_amount * level_penalty)
 
         self.class_exp += adjusted_exp
@@ -470,27 +481,47 @@ class PlayerData:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "class_name": self.class_name,
-            "class_level": self.class_level,
-            "class_exp": self.class_exp,
-            "user_level": self.user_level,
-            "user_exp": self.user_exp,
-            "gold": self.gold,
-            "max_gold": self.max_gold,
-            "cursed_energy": self.cursed_energy,  # Store actual cursed energy
-            "max_cursed_energy": self.max_gold,  # For backward compatibility
-            "unlocked_classes": self.unlocked_classes,
+            "class_name":
+            self.class_name,
+            "class_level":
+            self.class_level,
+            "class_exp":
+            self.class_exp,
+            "user_level":
+            self.user_level,
+            "user_exp":
+            self.user_exp,
+            "gold":
+            self.gold,
+            "max_gold":
+            self.max_gold,
+            "cursed_energy":
+            self.cursed_energy,  # Store actual cursed energy
+            "max_cursed_energy":
+            self.max_gold,  # For backward compatibility
+            "unlocked_classes":
+            self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
-            "equipped_items": self.equipped_items,
-            "achievements": [achievement.to_dict() for achievement in self.achievements],
-            "skill_points": self.skill_points,
-            "allocated_stats": self.allocated_stats,
-            "skill_tree": self.skill_tree,
-            "skill_points_spent": self.skill_points_spent,
-            "wins": self.wins,
-            "losses": self.losses,
-            "last_daily": self.last_daily.isoformat() if self.last_daily else None,
-            "daily_streak": self.daily_streak,
+            "equipped_items":
+            self.equipped_items,
+            "achievements":
+            [achievement.to_dict() for achievement in self.achievements],
+            "skill_points":
+            self.skill_points,
+            "allocated_stats":
+            self.allocated_stats,
+            "skill_tree":
+            self.skill_tree,
+            "skill_points_spent":
+            self.skill_points_spent,
+            "wins":
+            self.wins,
+            "losses":
+            self.losses,
+            "last_daily":
+            self.last_daily.isoformat() if self.last_daily else None,
+            "daily_streak":
+            self.daily_streak,
             "last_train":
             self.last_train.isoformat() if self.last_train else None,
             "dungeon_clears":
@@ -549,14 +580,33 @@ class PlayerData:
 
         # Set simple attributes
         for attr in [
-                "class_name", "class_level", "class_exp", "user_level",
-                "user_exp", "battle_energy", "max_battle_energy", "technique_grade",
-                "domain_expansion", "unlocked_classes", "equipped_items",
-                "skill_points", "allocated_stats", "skill_tree",
-                "skill_points_spent", "wins", "losses", "daily_streak",
-                "dungeon_clears", "special_abilities", "active_effects",
-                "training_cooldowns", "pvp_history", "pvp_wins", "pvp_losses",
-                "energy_training", "equipped_gathering_tools" # Make sure we load equipped tools
+                "class_name",
+                "class_level",
+                "class_exp",
+                "user_level",
+                "user_exp",
+                "battle_energy",
+                "max_battle_energy",
+                "technique_grade",
+                "domain_expansion",
+                "unlocked_classes",
+                "equipped_items",
+                "skill_points",
+                "allocated_stats",
+                "skill_tree",
+                "skill_points_spent",
+                "wins",
+                "losses",
+                "daily_streak",
+                "dungeon_clears",
+                "special_abilities",
+                "active_effects",
+                "training_cooldowns",
+                "pvp_history",
+                "pvp_wins",
+                "pvp_losses",
+                "energy_training",
+                "equipped_gathering_tools"  # Make sure we load equipped tools
         ]:
             if attr in data:
                 setattr(player, attr, data[attr])
@@ -648,16 +698,23 @@ class DataManager:
 
                 # Convert string keys to int for member_guild_map
                 if self.member_guild_map:
-                    self.member_guild_map = {int(k): v for k, v in self.member_guild_map.items()}
+                    self.member_guild_map = {
+                        int(k): v
+                        for k, v in self.member_guild_map.items()
+                    }
 
                 for user_id, p_data in player_data.items():
-                    self.players[int(user_id)] = PlayerData.from_dict(int(user_id), p_data)
+                    self.players[int(user_id)] = PlayerData.from_dict(
+                        int(user_id), p_data)
             else:
                 # Old format - only player data
                 for user_id, player_data in data.items():
-                    self.players[int(user_id)] = PlayerData.from_dict(int(user_id), player_data)
+                    self.players[int(user_id)] = PlayerData.from_dict(
+                        int(user_id), player_data)
 
-            print(f"Loaded {len(self.players)} players and {len(self.guild_data)} guilds")
+            print(
+                f"Loaded {len(self.players)} players and {len(self.guild_data)} guilds"
+            )
         except Exception as e:
             print(f"Error loading data: {e}")
 

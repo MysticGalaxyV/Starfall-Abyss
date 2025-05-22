@@ -64,10 +64,20 @@ def is_admin():
 
 # Define a simpler check function that works properly with the command system
 def admin_check(ctx):
-    return ctx.author.id == ADMIN_USER_ID
+    # Check if the user is the owner or has the admin role
+    if ctx.author.id == 759434349069860945:  # Your user ID
+        return True
+    # Check for admin role
+    admin_role_id = 1369373123710943312
+    return any(role.id == admin_role_id for role in ctx.author.roles)
 
 
-# Give gold command will be added after bot is defined
+# Constants for the admin menu system
+GIVE_OPTIONS = {
+    "gold": {"emoji": "💰", "description": "Give gold to a player"},
+    "xp": {"emoji": "✨", "description": "Give XP to a player"},
+    "item": {"emoji": "🎁", "description": "Give an item to a player"}
+}
 
 
 def get_prefix(bot, message):
@@ -483,7 +493,8 @@ async def profile_command(ctx, member: discord.Member = None):
         description=f"**Class:** {player.class_name}\n"
         f"**Level:** {player.class_level} ({player.class_exp}/{int(100 * (player.class_level ** 1.5))} EXP)\n"
         f"**Technique Grade:** {player.technique_grade}\n"
-        f"**Gold:** {player.cursed_energy} 🔮\n"
+        f"**Gold:** {player.gold} 💰\n"
+        f"**Cursed Energy:** {player.cursed_energy} 🔮\n"
         f"**Battle Energy:** {player.get_battle_energy()}/{player.get_max_battle_energy()} ⚡",
         color=discord.Color.dark_purple())
 
@@ -1078,6 +1089,178 @@ async def ach_cmd(ctx):
     await achievements_command(ctx, data_manager)
 
 
+class GiveOptionsView(discord.ui.View):
+    def __init__(self, target_member: discord.Member):
+        super().__init__(timeout=60)
+        self.target_member = target_member
+
+        # Add dropdown for resource type selection
+        self.resource_select = discord.ui.Select(
+            placeholder="Select what to give",
+            min_values=1,
+            max_values=1
+        )
+
+        # Add options for different resources
+        for resource_id, data in GIVE_OPTIONS.items():
+            self.resource_select.add_option(
+                label=resource_id.replace('_', ' ').title(),
+                emoji=data["emoji"],
+                description=data["description"],
+                value=resource_id
+            )
+
+        # Set the callback function
+        self.resource_select.callback = self.resource_select_callback
+        self.add_item(self.resource_select)
+
+        # Add cancel button
+        cancel_button = discord.ui.Button(
+            label="Cancel",
+            style=discord.ButtonStyle.secondary,
+            custom_id="cancel"
+        )
+        cancel_button.callback = self.cancel_callback
+        self.add_item(cancel_button)
+
+    async def resource_select_callback(self, interaction: discord.Interaction):
+        # Get the selected resource
+        resource_type = interaction.data["values"][0]
+
+        # Create a modal to ask for amount
+        if resource_type != "item":
+            modal = AmountInputModal(self.target_member, resource_type)
+            await interaction.response.send_modal(modal)
+        else:
+            # For items, show the item browser with rarity sorting
+            await interaction.response.defer()
+
+            # Get player data
+            player = data_manager.get_player(self.target_member.id)
+
+            # Import necessary functions
+            from equipment import get_all_items, add_item_to_inventory, generate_item_id
+            from special_items import get_all_special_items
+
+            # Combine regular and special items
+            all_items = get_all_items() + get_all_special_items()
+
+            # Sort items by rarity (legendary → epic → rare → uncommon → common)
+            rarity_order = {"legendary": 0, "epic": 1, "rare": 2, "uncommon": 3, "common": 4}
+            all_items.sort(key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
+
+            # Create an item browser view
+            view = ItemBrowserView(all_items, self.target_member, player)
+            embed = view.create_browser_embed()
+
+            await interaction.followup.send(embed=embed, view=view)
+            self.stop()
+
+    async def cancel_callback(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            content=f"Cancelled giving resources to {self.target_member.display_name}.",
+            view=None
+        )
+        self.stop()
+
+class AmountInputModal(discord.ui.Modal):
+    def __init__(self, target_member: discord.Member, resource_type: str):
+        self.target_member = target_member
+        self.resource_type = resource_type
+        emoji = GIVE_OPTIONS[resource_type]["emoji"]
+        super().__init__(title=f"Give {resource_type.replace('_', ' ').title()} {emoji}")
+
+        # Add text input for amount
+        self.amount_input = discord.ui.TextInput(
+            label=f"Amount of {resource_type.replace('_', ' ')} to give:",
+            placeholder="Enter a number greater than 0",
+            required=True,
+            min_length=1,
+            max_length=10
+        )
+        self.add_item(self.amount_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            amount = int(self.amount_input.value)
+            if amount <= 0:
+                await interaction.response.send_message("❌ Amount must be greater than 0.", ephemeral=True)
+                return
+
+            player = data_manager.get_player(self.target_member.id)
+
+            # Process different resource types
+            if self.resource_type == "gold":
+                player.add_gold(amount)
+                success_message = f"Added **{amount}** gold to {self.target_member.mention}'s balance.\nNew balance: **{player.gold}** 💰"
+                color = discord.Color.gold()
+                title = "💰 Gold Added"
+
+            elif self.resource_type == "xp":
+                player.add_class_exp(amount)
+
+                # Check for level ups
+                old_level = player.class_level
+                next_level_exp = int(100 * (old_level ** 1.5))
+
+                while player.class_exp >= next_level_exp:
+                    player.class_level += 1
+                    player.class_exp -= next_level_exp
+                    # Give bonus gold for level up
+                    player.add_gold(player.class_level * 50)
+                    # Update calculation for next level
+                    next_level_exp = int(100 * (player.class_level ** 1.5))
+
+                # Format success message differently if player leveled up
+                if player.class_level > old_level:
+                    success_message = (
+                        f"Added **{amount}** XP to {self.target_member.mention}.\n"
+                        f"They leveled up from **{old_level}** to **{player.class_level}**! 🎉\n"
+                        f"Current XP: **{player.class_exp}/{next_level_exp}**"
+                    )
+                else:
+                    success_message = (
+                        f"Added **{amount}** XP to {self.target_member.mention}.\n"
+                        f"Current level: **{player.class_level}**\n"
+                        f"XP: **{player.class_exp}/{next_level_exp}**"
+                    )
+                color = discord.Color.purple()
+                title = "✨ XP Added"
+
+            elif self.resource_type == "cursed_energy":
+                player.cursed_energy += amount  # Direct assignment for cursed energy
+                success_message = f"Added **{amount}** cursed energy to {self.target_member.mention}.\nNew balance: **{player.cursed_energy}** 🔮"
+                color = discord.Color.dark_purple()
+                title = "🔮 Cursed Energy Added"
+
+            # Save player data
+            data_manager.save_data()
+
+            # Send confirmation message
+            embed = discord.Embed(
+                title=title,
+                description=success_message,
+                color=color
+            )
+            await interaction.response.send_message(embed=embed)
+
+        except ValueError:
+            await interaction.response.send_message("❌ Please enter a valid number.", ephemeral=True)
+
+@bot.command(name="give")
+@commands.check(admin_check)
+async def give_cmd(ctx, member: discord.Member = None):
+    """[Admin] Give resources to a user with interactive selection"""
+    if not member:
+        await ctx.send("❌ Please specify a user to give resources to.")
+        return
+
+    view = GiveOptionsView(member)
+    await ctx.send(
+        f"What would you like to give to **{member.display_name}**? Select an option:",
+        view=view
+    )
+
 @bot.command(name="give_gold")
 @commands.check(admin_check)
 async def give_gold_cmd(ctx, member: discord.Member, amount: int):
@@ -1150,12 +1333,19 @@ async def give_item_cmd(ctx,
     # Combine regular and special items
     all_items = get_all_items() + get_all_special_items()
 
+    # Sort items by rarity (legendary, epic, rare, uncommon, common)
+    rarity_order = {"legendary": 0, "epic": 1, "rare": 2, "uncommon": 3, "common": 4}
+    all_items.sort(key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
+
+    # Log the sort order for debugging
+    print(f"Items sorted by rarity, showing first 5: {[item.name + ' (' + item.rarity + ')' for item in all_items[:5]]}")
+
     # Filter items if search term provided
     filtered_items = all_items
     if item_name:
         filtered_items = [
             item for item in all_items
-            if item_name.lower() in item["name"].lower()
+            if item_name.lower() in item.name.lower()
         ]
         if not filtered_items:
             await ctx.send(
@@ -1192,7 +1382,7 @@ async def give_item_cmd(ctx,
             # Get unique categories from items
             categories = set()
             for item in self.items:
-                categories.add(item["item_type"].title())
+                categories.add(item.item_type.title())
 
             categories = sorted(list(categories))
 
@@ -1214,8 +1404,14 @@ async def give_item_cmd(ctx,
 
         def add_rarity_filter(self):
             """Add dropdown for rarity filtering"""
-            # Common rarities
-            rarities = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+            # Common rarities with their emoji indicators
+            rarities = [
+                ("Legendary", "🌟"),
+                ("Epic", "💠"),
+                ("Rare", "🔷"),
+                ("Uncommon", "🔹"),
+                ("Common", "⚪")
+            ]
 
             # Create select menu
             select = Select(
@@ -1224,8 +1420,8 @@ async def give_item_cmd(ctx,
                     discord.SelectOption(
                         label="All Rarities", value="All", default=True)
                 ] + [
-                    discord.SelectOption(label=rarity, value=rarity)
-                    for rarity in rarities
+                    discord.SelectOption(label=f"{emoji} {rarity}", value=rarity)
+                    for rarity, emoji in rarities
                 ],
                 row=1)
 
@@ -1318,15 +1514,15 @@ async def give_item_cmd(ctx,
                                                         ephemeral=True)
                 return
 
-            # Create the item and add to inventory
+            # Create the item and add to inventory - overriding level requirements to allow any item
             new_item = Item(item_id=generate_item_id(),
-                            name=self.selected_item["name"],
-                            description=self.selected_item["description"],
-                            item_type=self.selected_item["item_type"],
-                            rarity=self.selected_item["rarity"],
-                            stats=self.selected_item["stats"],
-                            level_req=self.selected_item["level_req"],
-                            value=self.selected_item["value"])
+                            name=self.selected_item.name,
+                            description=self.selected_item.description,
+                            item_type=self.selected_item.item_type,
+                            rarity=self.selected_item.rarity,
+                            stats=self.selected_item.stats,
+                            level_req=1,  # Set to level 1 to bypass restrictions
+                            value=self.selected_item.value)
 
             add_item_to_inventory(self.player, new_item)
             data_manager.save_data()
@@ -1335,13 +1531,27 @@ async def give_item_cmd(ctx,
             embed = discord.Embed(
                 title="🎁 Item Given",
                 description=
-                f"Added **{new_item.name}** to {self.member.mention}'s inventory.",
+                f"Added **{new_item.name}** (bypassing level restrictions) to {self.member.mention}'s inventory.",
                 color=discord.Color.purple())
 
-            # Add item details
+            # Get rarity emoji
+            rarity_emoji = self.get_rarity_emoji(new_item.rarity)
+
+            # Get type emoji
+            type_emoji_map = {
+                "weapon": "⚔️",
+                "armor": "🛡️",
+                "accessory": "💍",
+                "consumable": "🧪",
+                "material": "🧶",
+                "special": "✨"
+            }
+            type_emoji = type_emoji_map.get(new_item.item_type.lower(), "📦")
+
+            # Add item details with visual indicators
             embed.add_field(name="Item Details",
-                            value=f"**Type:** {new_item.item_type.title()}\n"
-                            f"**Rarity:** {new_item.rarity.title()}\n"
+                            value=f"**Type:** {type_emoji} {new_item.item_type.title()}\n"
+                            f"**Rarity:** {rarity_emoji} {new_item.rarity.title()}\n"
                             f"**Description:** {new_item.description}",
                             inline=False)
 
@@ -1371,14 +1581,14 @@ async def give_item_cmd(ctx,
             if self.category_filter != "All":
                 filtered = [
                     item for item in filtered
-                    if item["item_type"].title() == self.category_filter
+                    if item.item_type.title() == self.category_filter
                 ]
 
             # Apply rarity filter
             if self.rarity_filter != "All":
                 filtered = [
                     item for item in filtered
-                    if item["rarity"].title() == self.rarity_filter
+                    if item.rarity.title() == self.rarity_filter
                 ]
 
             return filtered
@@ -1420,7 +1630,7 @@ async def give_item_cmd(ctx,
                     "epic": discord.ButtonStyle.danger,
                     "legendary": discord.ButtonStyle.success
                 }
-                style = style_map.get(item["rarity"].lower(),
+                style = style_map.get(item.rarity.lower(),
                                       discord.ButtonStyle.secondary)
 
                 # Get emoji based on item type
@@ -1432,12 +1642,14 @@ async def give_item_cmd(ctx,
                     "material": "🧶",
                     "special": "✨"
                 }
-                emoji = emoji_map.get(item["item_type"].lower(), "📦")
+                item_emoji = emoji_map.get(item.item_type.lower(), "📦")
+
+                # Get rarity emoji
+                rarity_emoji = self.get_rarity_emoji(item.rarity)
 
                 # Create button
-                is_selected = self.selected_item and self.selected_item[
-                    "name"] == item["name"]
-                button_label = item["name"]
+                is_selected = self.selected_item and self.selected_item.name == item.name
+                button_label = f"{item.name}"
                 if is_selected:
                     button_label = f"✅ {button_label}"
 
@@ -1447,7 +1659,7 @@ async def give_item_cmd(ctx,
 
                 button = Button(style=style,
                                 label=button_label,
-                                emoji=emoji,
+                                emoji=rarity_emoji,
                                 custom_id=f"item_{i}",
                                 row=row)
                 button.callback = self.item_select_callback
@@ -1457,6 +1669,22 @@ async def give_item_cmd(ctx,
             await interaction.response.edit_message(
                 embed=self.create_browser_embed(), view=self)
 
+        def get_rarity_emoji(self, rarity: str) -> str:
+            """Get emoji for item rarity"""
+            rarity = rarity.lower()
+            if rarity == "legendary":
+                return "🌟"
+            elif rarity == "epic":
+                return "💠"
+            elif rarity == "rare":
+                return "🔷"
+            elif rarity == "uncommon":
+                return "🔹"
+            elif rarity == "common":
+                return "⚪"
+            else:
+                return "❓"
+
         def create_browser_embed(self):
             """Create the item browser embed"""
             filtered_items = self.get_filtered_items()
@@ -1464,7 +1692,7 @@ async def give_item_cmd(ctx,
             embed = discord.Embed(
                 title=f"🎮 Item Browser - Giving to {self.member.display_name}",
                 description=
-                f"Browse and select an item to give. Page {self.current_page + 1}/{self.total_pages}",
+                f"Items sorted by rarity. Browse and select an item to give. Page {self.current_page + 1}/{self.total_pages}\nAll items will bypass level restrictions automatically.",
                 color=discord.Color.blurple())
 
             # Add filter info
@@ -1476,21 +1704,35 @@ async def give_item_cmd(ctx,
 
             # Add selected item details if any
             if self.selected_item:
+                # Get rarity emoji
+                rarity_emoji = self.get_rarity_emoji(self.selected_item.rarity)
+
+                # Get type emoji based on item type
+                type_emoji_map = {
+                    "weapon": "⚔️",
+                    "armor": "🛡️",
+                    "accessory": "💍",
+                    "consumable": "🧪",
+                    "material": "🧶",
+                    "special": "✨"
+                }
+                type_emoji = type_emoji_map.get(self.selected_item.item_type.lower(), "📦")
+
                 embed.add_field(
-                    name="🎯 Selected Item",
+                    name=f"🎯 Selected Item {rarity_emoji}",
                     value=
-                    f"**{self.selected_item['name']}** ({self.selected_item['rarity'].title()} {self.selected_item['item_type'].title()})",
+                    f"**{self.selected_item.name}** ({self.selected_item.rarity.title()} {self.selected_item.item_type.title()})\n{type_emoji} Type: {self.selected_item.item_type.title()}",
                     inline=False)
 
                 embed.add_field(name="📝 Description",
-                                value=self.selected_item['description'],
+                                value=self.selected_item.description or "No description available",
                                 inline=False)
 
                 # Add stats if any
-                if self.selected_item['stats']:
+                if self.selected_item.stats:
                     stats_text = "\n".join([
                         f"**{stat.title()}:** +{value}"
-                        for stat, value in self.selected_item['stats'].items()
+                        for stat, value in self.selected_item.stats.items()
                     ])
                     embed.add_field(name="📊 Stats",
                                     value=stats_text,
