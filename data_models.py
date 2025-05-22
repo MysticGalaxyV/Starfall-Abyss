@@ -477,7 +477,7 @@ class PlayerData:
             "user_exp": self.user_exp,
             "gold": self.gold,
             "max_gold": self.max_gold,
-            "cursed_energy": self.gold,  # For backward compatibility
+            "cursed_energy": self.cursed_energy,  # Store actual cursed energy
             "max_cursed_energy": self.max_gold,  # For backward compatibility
             "unlocked_classes": self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
@@ -535,6 +535,10 @@ class PlayerData:
         elif "cursed_energy" in data:
             # Convert old cursed_energy to gold
             player.gold = data["cursed_energy"]
+
+        # Load actual cursed energy (used for special abilities)
+        if "cursed_energy" in data:
+            player.cursed_energy = data["cursed_energy"]
 
         # Handle maximum currency
         if "max_gold" in data:
