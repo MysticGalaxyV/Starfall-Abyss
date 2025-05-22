@@ -5,6 +5,7 @@ import string
 from typing import Dict, List, Optional, Any
 
 from data_models import PlayerData, DataManager, Item, InventoryItem
+from user_restrictions import RestrictedView, get_target_user, create_restricted_embed_footer
 
 # Item rarities and their stat multipliers
 RARITIES = {
@@ -148,7 +149,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 1,
             "value": 50
         },
-        
+
         # Armor
         {
             "name": "Leather Vest",
@@ -180,7 +181,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 1,
             "value": 60
         },
-        
+
         # Accessories
         {
             "name": "Leather Boots",
@@ -212,7 +213,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 1,
             "value": 75
         },
-        
+
         # Consumables
         {
             "name": "Health Potion",
@@ -249,7 +250,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 50
         }
     ],
-    
+
     # Level 6-15 Shop Items
     "apprentice": [
         # Weapons
@@ -304,7 +305,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 7,
             "value": 330
         },
-        
+
         # Armor
         {
             "name": "Reinforced Leather",
@@ -336,7 +337,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 6,
             "value": 400
         },
-        
+
         # Accessories
         {
             "name": "Explorer's Boots",
@@ -369,7 +370,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 8,
             "value": 450
         },
-        
+
         # Consumables
         {
             "name": "Greater Health Potion",
@@ -406,7 +407,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 150
         }
     ],
-    
+
     # Level 16-30 Shop Items
     "adept": [
         # Weapons
@@ -476,7 +477,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 20,
             "value": 1300
         },
-        
+
         # Armor
         {
             "name": "Shadow Hood",
@@ -526,7 +527,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 22,
             "value": 1200
         },
-        
+
         # Accessories
         {
             "name": "Shadow Boots",
@@ -563,7 +564,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 25,
             "value": 1500
         },
-        
+
         # Consumables
         {
             "name": "Superior Health Potion",
@@ -600,7 +601,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 500
         }
     ],
-    
+
     # Level 31-50 Shop Items
     "expert": [
         # Weapons
@@ -659,7 +660,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 39,
             "value": 3600
         },
-        
+
         # Armor
         {
             "name": "Assassin's Shroud",
@@ -694,7 +695,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 40,
             "value": 4000
         },
-        
+
         # Accessories
         {
             "name": "Boots of Haste",
@@ -729,7 +730,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 45,
             "value": 5000
         },
-        
+
         # Consumables
         {
             "name": "Master Health Potion",
@@ -765,7 +766,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 1500
         }
     ],
-    
+
     # Level 51-100 Shop Items
     "master": [
         # Weapons
@@ -802,7 +803,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 70,
             "value": 15000
         },
-        
+
         # Armor
         {
             "name": "Celestial Plate",
@@ -826,7 +827,7 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 75,
             "value": 18000
         },
-        
+
         # Accessories
         {
             "name": "Crown of Dominion",
@@ -840,7 +841,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 50000
         }
     ],
-    
+
     # Special category for class change scrolls and other special items
     "special": [
         {
@@ -880,7 +881,7 @@ ADVANCED_SHOP_ITEMS = {
             "value": 500
         }
     ],
-    
+
     # Limited-time event items
     "event": [
         {
@@ -919,7 +920,7 @@ ADVANCED_SHOP_ITEMS = {
             "event": "Time Warp"
         }
     ],
-    
+
     # Hidden/Secret items (unlocked through special achievements)
     "secret": [
         {
@@ -947,7 +948,7 @@ ADVANCED_SHOP_ITEMS = {
             "unlock_condition": "Complete all achievements"
         }
     ],
-    
+
     # Divine items (ultra rare, only obtainable through special events or extremely difficult content)
     "divine": [
         {
@@ -965,28 +966,28 @@ ADVANCED_SHOP_ITEMS = {
     ]
 }
 
-class AdvancedShopView(View):
-    def __init__(self, player_data: PlayerData, data_manager: DataManager):
-        super().__init__(timeout=180)  # Longer timeout for shop browsing
+class AdvancedShopView(RestrictedView):
+    def __init__(self, player_data: PlayerData, data_manager: DataManager, authorized_user):
+        super().__init__(authorized_user, timeout=180)  # Longer timeout for shop browsing
         self.player_data = player_data
         self.data_manager = data_manager
         self.current_category = "novice"
         self.current_page = 0
         self.items_per_page = 5
         self.filtered_type = None
-        
+
         # Add category selection
         self.add_category_select()
-        
+
         # Add item type filter
         self.add_item_type_filter()
-        
+
         # Add navigation buttons
         self.add_navigation_buttons()
-        
+
         # Update buttons for initial view
         self.update_buttons()
-    
+
     def add_category_select(self):
         """Add dropdown for shop categories"""
         categories = [
@@ -998,15 +999,15 @@ class AdvancedShopView(View):
             discord.SelectOption(label="Special Items", value="special", emoji="✨"),
             discord.SelectOption(label="Event Items", value="event", emoji="🎉")
         ]
-        
+
         # Only add secret items if player has the achievement
         if hasattr(self.player_data, "achievements") and any(a.get("id") == "discover_secret" for a in self.player_data.achievements):
             categories.append(discord.SelectOption(label="Secret Items", value="secret", emoji="🔍"))
-        
+
         # Only add divine items for max level players
         if self.player_data.class_level >= 100:
             categories.append(discord.SelectOption(label="Divine Items", value="divine", emoji="🌟"))
-        
+
         category_select = Select(
             placeholder="Select Item Category",
             options=categories,
@@ -1014,7 +1015,7 @@ class AdvancedShopView(View):
         )
         category_select.callback = self.category_callback
         self.add_item(category_select)
-    
+
     def add_item_type_filter(self):
         """Add dropdown for item type filtering"""
         item_types = [
@@ -1025,7 +1026,7 @@ class AdvancedShopView(View):
             discord.SelectOption(label="Consumables", value="consumable", emoji="🧪"),
             discord.SelectOption(label="Special", value="special", emoji="✨")
         ]
-        
+
         type_select = Select(
             placeholder="Filter by Item Type",
             options=item_types,
@@ -1033,7 +1034,7 @@ class AdvancedShopView(View):
         )
         type_select.callback = self.type_filter_callback
         self.add_item(type_select)
-    
+
     def add_navigation_buttons(self):
         """Add navigation and action buttons"""
         # Previous page button
@@ -1046,7 +1047,7 @@ class AdvancedShopView(View):
         )
         prev_btn.callback = self.prev_page_callback
         self.add_item(prev_btn)
-        
+
         # Next page button
         next_btn = Button(
             label="Next",
@@ -1056,71 +1057,71 @@ class AdvancedShopView(View):
         )
         next_btn.callback = self.next_page_callback
         self.add_item(next_btn)
-        
+
         # Balance button (shows player cursed energy)
         balance_btn = Button(
-            label=f"Balance: {self.player_data.cursed_energy} 🌀",
+            label=f"Balance: {self.player_data.gold} 💰",
             style=discord.ButtonStyle.primary,
             emoji="💰",
             custom_id="balance",
             disabled=True  # Just an indicator, not clickable
         )
         self.add_item(balance_btn)
-    
+
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
         self.current_category = interaction.data["values"][0]
         self.current_page = 0
         self.update_buttons()
-        
+
         await interaction.response.edit_message(
             embed=self.create_shop_embed(),
             view=self
         )
-    
+
     async def type_filter_callback(self, interaction: discord.Interaction):
         """Handle item type filter selection"""
         selected_type = interaction.data["values"][0]
         self.filtered_type = None if selected_type == "all" else selected_type
         self.current_page = 0
         self.update_buttons()
-        
+
         await interaction.response.edit_message(
             embed=self.create_shop_embed(),
             view=self
         )
-    
+
     async def prev_page_callback(self, interaction: discord.Interaction):
         """Handle previous page button"""
         self.current_page = max(0, self.current_page - 1)
         self.update_buttons()
-        
+
         await interaction.response.edit_message(
             embed=self.create_shop_embed(),
             view=self
         )
-    
+
     async def next_page_callback(self, interaction: discord.Interaction):
         """Handle next page button"""
         items = self.get_filtered_items()
         max_pages = (len(items) - 1) // self.items_per_page + 1
-        
+
         self.current_page = min(self.current_page + 1, max_pages - 1)
         self.update_buttons()
-        
+
         await interaction.response.edit_message(
             embed=self.create_shop_embed(),
             view=self
         )
-    
+
     def get_filtered_items(self):
         """Get items filtered by category and type"""
         items = ADVANCED_SHOP_ITEMS.get(self.current_category, [])
-        
+
         # Apply item type filter if set
         if self.filtered_type:
             items = [item for item in items if item["item_type"] == self.filtered_type]
-        
+
         # Filter out items player doesn't meet requirements for
         available_items = []
         for item in items:
@@ -1138,47 +1139,47 @@ class AdvancedShopView(View):
                 item_copy = item.copy()
                 item_copy["locked"] = True
                 available_items.append(item_copy)
-        
+
         return available_items
-    
+
     def update_buttons(self):
         """Update button states based on current page and filters"""
         items = self.get_filtered_items()
         max_pages = (len(items) - 1) // self.items_per_page + 1
-        
+
         # Update navigation buttons
         prev_button = discord.utils.get(self.children, custom_id="prev_page")
         if prev_button:
             prev_button.disabled = self.current_page == 0
-        
+
         next_button = discord.utils.get(self.children, custom_id="next_page")
         if next_button:
             next_button.disabled = self.current_page >= max_pages - 1
-        
+
         # Update balance display
         balance_button = discord.utils.get(self.children, custom_id="balance")
         if balance_button:
-            balance_button.label = f"Balance: {self.player_data.cursed_energy} 🌀"
-        
+            balance_button.label = f"Balance: {self.player_data.gold} 💰"
+
         # Clear existing buy buttons and add new ones
         buy_buttons = [item for item in self.children if item.custom_id and item.custom_id.startswith("buy_")]
         for button in buy_buttons:
             self.remove_item(button)
-        
+
         # Add buy buttons for current page
         start_idx = self.current_page * self.items_per_page
         end_idx = min(start_idx + self.items_per_page, len(items))
-        
+
         for i in range(start_idx, end_idx):
             item = items[i]
-            
+
             # Get rarity color and emoji
             rarity_info = RARITIES.get(item["rarity"], {"emoji": "⚪", "color": discord.Color.light_grey()})
-            
+
             # Create buy button
             if item.get("locked", False):
                 buy_btn = Button(
-                    label=f"Locked: {item['name']} ({item['value']} 🌀)",
+                    label=f"Locked: {item['name']} ({item['value']} 💰)",
                     style=discord.ButtonStyle.secondary,
                     emoji=rarity_info["emoji"],
                     custom_id=f"buy_{i}",
@@ -1186,36 +1187,36 @@ class AdvancedShopView(View):
                 )
             else:
                 buy_btn = Button(
-                    label=f"Buy: {item['name']} ({item['value']} 🌀)",
+                    label=f"Buy: {item['name']} ({item['value']} 💰)",
                     style=discord.ButtonStyle.primary,
                     emoji=rarity_info["emoji"],
                     custom_id=f"buy_{i}",
-                    disabled=self.player_data.cursed_energy < item["value"]
+                    disabled=self.player_data.gold < item["value"]
                 )
                 buy_btn.callback = self.buy_callback
-            
+
             self.add_item(buy_btn)
-    
+
     async def buy_callback(self, interaction: discord.Interaction):
         """Handle item purchase"""
         # Get the item index from the button custom_id
         item_idx = int(interaction.data["custom_id"].split("_")[1])
         items = self.get_filtered_items()
-        
+
         # Calculate the actual index based on current page
         actual_idx = self.current_page * self.items_per_page + (item_idx - (self.current_page * self.items_per_page))
-        
+
         if actual_idx < len(items):
             item_data = items[actual_idx]
-            
-            # Check if player has enough cursed energy
-            if self.player_data.cursed_energy >= item_data["value"]:
+
+            # Check if player has enough gold
+            if self.player_data.gold >= item_data["value"]:
                 # Create the item
                 from data_models import Item
-                
+
                 # Handle special effects
                 special_effect = item_data.get("special_effect", None)
-                
+
                 new_item = Item(
                     item_id=generate_item_id(),
                     name=item_data["name"],
@@ -1226,20 +1227,20 @@ class AdvancedShopView(View):
                     level_req=item_data["level_req"],
                     value=item_data["value"]
                 )
-                
+
                 # Handle special items with effects
                 if item_data["item_type"] == "special":
                     if item_data.get("effect") == "class_change":
                         # Give the player a class change scroll
                         from equipment import add_item_to_inventory
                         add_item_to_inventory(self.player_data, new_item)
-                        
-                        # Deduct cursed energy (currency)
-                        self.player_data.cursed_energy -= item_data["value"]
-                        
+
+                        # Deduct gold (currency)
+                        self.player_data.remove_gold(item_data["value"])
+
                         # Save data
                         self.data_manager.save_data()
-                        
+
                         # Create success message
                         success_embed = discord.Embed(
                             title="Item Purchased!",
@@ -1247,7 +1248,7 @@ class AdvancedShopView(View):
                                       f"Use it from your inventory to change class without level restrictions.",
                             color=RARITIES[item_data["rarity"]]["color"]
                         )
-                        
+
                         # Update shop view
                         self.update_buttons()
                         await interaction.response.edit_message(embed=success_embed, view=self)
@@ -1256,13 +1257,13 @@ class AdvancedShopView(View):
                         # Give the player a guild charter
                         from equipment import add_item_to_inventory
                         add_item_to_inventory(self.player_data, new_item)
-                        
-                        # Deduct cursed energy (currency)
-                        self.player_data.cursed_energy -= item_data["value"]
-                        
+
+                        # Deduct gold (currency)
+                        self.player_data.remove_gold(item_data["value"])
+
                         # Save data
                         self.data_manager.save_data()
-                        
+
                         # Create success message
                         success_embed = discord.Embed(
                             title="Item Purchased!",
@@ -1270,22 +1271,22 @@ class AdvancedShopView(View):
                                       f"Use it to establish your own guild with the !guild create command.",
                             color=RARITIES[item_data["rarity"]]["color"]
                         )
-                        
+
                         # Update shop view
                         self.update_buttons()
                         await interaction.response.edit_message(embed=success_embed, view=self)
                         return
-                
+
                 # Add to inventory (regular items)
                 from equipment import add_item_to_inventory
                 add_item_to_inventory(self.player_data, new_item)
-                
+
                 # Deduct gold using the proper method
                 self.player_data.remove_gold(item_data["value"])
-                
+
                 # Save data
                 self.data_manager.save_data()
-                
+
                 # Create success message
                 success_embed = discord.Embed(
                     title="Item Purchased!",
@@ -1293,23 +1294,23 @@ class AdvancedShopView(View):
                               f"View it in your inventory with !equipment",
                     color=RARITIES[item_data["rarity"]]["color"]
                 )
-                
+
                 # Add item stats
                 stats_text = ""
                 for stat, value in item_data["stats"].items():
                     stats_text += f"{stat.capitalize()}: +{value}\n"
-                
+
                 if stats_text:
                     success_embed.add_field(name="Stats", value=stats_text, inline=True)
-                
+
                 # Add special effects if any
                 if special_effect:
                     effect_desc = SPECIAL_EFFECTS.get(special_effect, {}).get("description", "Special effect")
                     success_embed.add_field(name="Special Effect", value=f"{special_effect.capitalize()}: {effect_desc}", inline=True)
-                
+
                 # Update buttons for gold change
                 self.update_buttons()
-                
+
                 # Show the success message
                 await interaction.response.edit_message(embed=success_embed, view=self)
             else:
@@ -1319,13 +1320,13 @@ class AdvancedShopView(View):
                     description=f"You need {item_data['value']} gold to purchase this item, but you only have {self.player_data.gold}.",
                     color=discord.Color.red()
                 )
-                
+
                 await interaction.response.send_message(embed=error_embed, ephemeral=True)
-    
+
     def create_shop_embed(self):
         """Create shop embed for current view"""
         filtered_items = self.get_filtered_items()
-        
+
         # Get category display info
         category_info = {
             "novice": {"name": "Novice Shop", "description": "Basic equipment for beginners (Level 1-5)", "color": discord.Color.green()},
@@ -1338,27 +1339,27 @@ class AdvancedShopView(View):
             "secret": {"name": "Secret Shop", "description": "Rare items unlocked through special achievements", "color": discord.Color.dark_gray()},
             "divine": {"name": "Divine Artifacts", "description": "Divine items of incomparable power", "color": discord.Color.gold()}
         }
-        
+
         info = category_info.get(self.current_category, {"name": "Shop", "description": "Buy items", "color": discord.Color.blue()})
-        
+
         # Create the embed
         embed = discord.Embed(
             title=info["name"],
             description=f"{info['description']}\nGold: {self.player_data.gold} 💰",
             color=info["color"]
         )
-        
+
         # Add filter info
         filter_text = "All Items"
         if self.filtered_type:
             filter_text = f"{self.filtered_type.capitalize()} Items"
-        
+
         embed.add_field(
             name="Filter",
             value=filter_text,
             inline=True
         )
-        
+
         # Add page info
         max_pages = (len(filtered_items) - 1) // self.items_per_page + 1
         embed.add_field(
@@ -1366,72 +1367,72 @@ class AdvancedShopView(View):
             value=f"{self.current_page + 1}/{max_pages}",
             inline=True
         )
-        
+
         # Add balance info
         embed.add_field(
-            name="Your Cursed Energy",
-            value=f"{self.player_data.cursed_energy} 🌀",
+            name="Your Gold",
+            value=f"{self.player_data.gold} 💰",
             inline=True
         )
-        
+
         # Add items on current page
         start_idx = self.current_page * self.items_per_page
         end_idx = min(start_idx + self.items_per_page, len(filtered_items))
-        
+
         if start_idx < len(filtered_items):
             for i in range(start_idx, end_idx):
                 item = filtered_items[i]
-                
+
                 # Get weapon/armor type emoji if applicable
                 type_emoji = ""
                 if item["item_type"] == "weapon" and "weapon_type" in item:
                     type_emoji = WEAPON_TYPES.get(item["weapon_type"], {}).get("emoji", "")
                 elif item["item_type"] == "armor" and "armor_type" in item:
                     type_emoji = ARMOR_TYPES.get(item["armor_type"], {}).get("emoji", "")
-                
+
                 # Get rarity emoji
                 rarity_emoji = RARITIES.get(item["rarity"], {}).get("emoji", "⚪")
-                
+
                 # Format item stats
                 stats_text = ""
                 for stat, value in item["stats"].items():
                     stats_text += f"{stat.capitalize()}: +{value}, "
-                
+
                 if stats_text:
                     stats_text = stats_text[:-2]  # Remove trailing comma and space
-                
+
                 # Add special effect
                 special_effect = item.get("special_effect", None)
                 if special_effect:
                     effect_desc = SPECIAL_EFFECTS.get(special_effect, {}).get("description", "Special effect")
                     stats_text += f"\nEffect: {effect_desc}"
-                
+
                 # Handle locked items
                 if item.get("locked", False):
                     title = f"{i+1}. {rarity_emoji} {type_emoji} {item['name']} (Locked)"
                     value = f"**Level Required:** {item['level_req']} (You: {self.player_data.class_level})\n"
-                    value += f"**Price:** {item['value']} 🌀\n"
+                    value += f"**Price:** {item['value']} 💰\n"
                     value += f"*{item['description']}*\n"
-                    
+
                     # Still show stats but indicate they're locked
                     if stats_text:
                         value += f"*Stats (Locked): {stats_text}*"
                 else:
                     title = f"{i+1}. {rarity_emoji} {type_emoji} {item['name']}"
                     value = f"**Level Required:** {item['level_req']}\n"
-                    value += f"**Price:** {item['value']} 🌀\n"
+                    value += f"**Price:** {item['value']} 💰\n"
                     value += f"*{item['description']}*\n"
-                    
+
                     if stats_text:
                         value += f"**Stats:** {stats_text}"
-                    
+
                     # Add set bonus info if applicable
                     if "set" in item:
                         set_name = item["set"]
                         if set_name in SET_BONUSES:
                             set_info = SET_BONUSES[set_name]
                             value += f"\n**Set:** {set_name} ({len(set_info['pieces'])} pieces)"
-                
+
                 embed.add_field(
                     name=title,
                     value=value,
@@ -1443,10 +1444,10 @@ class AdvancedShopView(View):
                 value="No items match your current filters.",
                 inline=False
             )
-        
+
         # Add footer
         embed.set_footer(text="Use the buttons below to navigate and buy items.")
-        
+
         return embed
 
 def generate_item_id() -> str:
@@ -1455,9 +1456,13 @@ def generate_item_id() -> str:
 
 async def advanced_shop_command(ctx, data_manager: DataManager):
     """Browse the enhanced item shop with categories and filters"""
+    # Only the command author can interact with their own shop interface
     player_data = data_manager.get_player(ctx.author.id)
-    
-    shop_view = AdvancedShopView(player_data, data_manager)
+
+    shop_view = AdvancedShopView(player_data, data_manager, ctx.author)
     shop_embed = shop_view.create_shop_embed()
-    
+
+    # Add footer to indicate who can use this interface
+    shop_embed.set_footer(text=f"🔒 Only {ctx.author.display_name} can interact with this interface")
+
     await ctx.send(embed=shop_embed, view=shop_view)

@@ -6,6 +6,7 @@ import datetime
 from typing import Dict, List, Optional, Tuple
 
 from data_models import PlayerData, DataManager
+from user_restrictions import RestrictedView
 
 
 class BattleMove:
@@ -356,13 +357,14 @@ class ItemButton(Button):
                 ephemeral=True)
 
 
-class BattleView(View):
+class BattleView(RestrictedView):
 
     def __init__(self,
                  player: BattleEntity,
                  enemy: BattleEntity,
+                 authorized_user,
                  timeout: int = 30):
-        super().__init__(timeout=timeout)
+        super().__init__(authorized_user, timeout=timeout)
         self.player = player
         self.enemy = enemy
         self.data_manager: Optional[
@@ -835,7 +837,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         inline=True)
 
     # Create battle view
-    battle_view = BattleView(player_entity, enemy_entity, timeout=180)
+    battle_view = BattleView(player_entity, enemy_entity, ctx.author, timeout=180)
     battle_view.data_manager = data_manager
 
     battle_msg = await ctx.send(embed=embed, view=battle_view)

@@ -3,6 +3,7 @@ from discord.ui import Button, View, Select
 import random
 from typing import Dict, List, Optional, Any, Union
 from data_models import DataManager, PlayerData, Item, InventoryItem
+from user_restrictions import RestrictedView
 
 # Materials rarity levels
 MATERIAL_RARITIES = {
@@ -973,7 +974,7 @@ class MaterialsView(View):
 
 class GatheringView(View):
 
-    def __init__(self, player_data: PlayerData, data_manager: DataManager):
+    def __init__(self, player_data, data_manager):
         super().__init__(timeout=120)
         self.player = player_data
         self.data_manager = data_manager
@@ -1129,9 +1130,17 @@ class GatheringView(View):
                         (" (Level Up!)" if leveled_up else ""),
                         inline=False)
 
-        # Replace the view with a new one for continued gathering
+        # Send the result without replacing the view to avoid errors
+        await interaction.response.edit_message(embed=embed, view=None)
+
+        # Create a fresh gathering view for continued use
+        fresh_embed = discord.Embed(
+            title="🔍 Gathering Materials",
+            description="Select a gathering type to begin collecting materials for crafting.",
+            color=discord.Color.green())
+
         new_view = GatheringView(self.player, self.data_manager)
-        await interaction.response.edit_message(embed=embed, view=new_view)
+        await interaction.followup.send(embed=fresh_embed, view=new_view)
 
 
 async def materials_command(ctx, data_manager: DataManager):

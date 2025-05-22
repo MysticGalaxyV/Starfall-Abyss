@@ -1441,19 +1441,16 @@ class AmountInputModal(discord.ui.Modal):
                 title = "💰 Gold Added"
 
             elif self.resource_type == "xp":
-                player.add_class_exp(amount)
-
-                # Check for level ups
+                # Use the proper add_exp method that handles level ups automatically
                 old_level = player.class_level
-                next_level_exp = int(100 * (old_level**1.5))
+                leveled_up = player.add_exp(amount)
 
-                while player.class_exp >= next_level_exp:
-                    player.class_level += 1
-                    player.class_exp -= next_level_exp
-                    # Give bonus gold for level up
-                    player.add_gold(player.class_level * 50)
-                    # Update calculation for next level
-                    next_level_exp = int(100 * (player.class_level**1.5))
+                # Calculate XP needed for next level
+                if player.class_level < 1000:  # Max level cap
+                    next_level_exp = player.calculate_xp_for_level(
+                        player.class_level)
+                else:
+                    next_level_exp = 0
 
                 # Format success message differently if player leveled up
                 if player.class_level > old_level:

@@ -605,12 +605,12 @@ class CraftingSkill:
         self.level = level
         self.exp = exp
         self.max_level = 1000
-    
+
     def add_exp(self, amount: int) -> bool:
         """Add experience points and handle level ups. Returns True if leveled up."""
         old_level = self.level
         self.exp += amount
-        
+
         # Calculate exp needed for next level (scales with level)
         while True:
             exp_needed = int(100 * (self.level ** 1.5))
@@ -619,9 +619,9 @@ class CraftingSkill:
                 self.level += 1
             else:
                 break
-        
+
         return self.level > old_level
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for storage"""
         return {
@@ -629,7 +629,7 @@ class CraftingSkill:
             "level": self.level,
             "exp": self.exp
         }
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'CraftingSkill':
         """Create from dictionary data"""
@@ -643,7 +643,7 @@ class CraftingSkill:
 def generate_crafted_item(player: PlayerData, category: str, type_name: str, product_tier: int, 
                          material_quality: float, crafting_station: str) -> Item:
     """Generate a crafted item based on crafting parameters
-    
+
     Args:
         player: Player data
         category: Crafting category (e.g., "Weapons")
@@ -651,50 +651,50 @@ def generate_crafted_item(player: PlayerData, category: str, type_name: str, pro
         product_tier: Tier of product to craft (0-10 index)
         material_quality: Average quality score of materials (0.0-1.0)
         crafting_station: Name of crafting station used
-        
+
     Returns:
         The crafted Item
     """
     # Get category and type data
     category_data = CRAFTING_CATEGORIES.get(category, {})
     type_data = category_data.get("types", {}).get(type_name, {})
-    
+
     # Get product name and level requirement
     products = type_data.get("products", ["Generic Item"])
     level_ranges = type_data.get("level_ranges", [(1, 10)])
-    
+
     product_name = products[product_tier] if product_tier < len(products) else products[-1]
     level_req = level_ranges[product_tier][0] if product_tier < len(level_ranges) else level_ranges[-1][0]
-    
+
     # Calculate item value based on tier and quality
     base_value = 100 * (2 ** product_tier)  # Exponential value increase with tier
     quality_multiplier = 1 + material_quality
-    
+
     # Apply station bonus if any
     station_data = CRAFTING_STATIONS.get(crafting_station, {})
     quality_bonus = station_data.get("quality_bonus", 0) / 100  # Convert percentage to decimal
-    
+
     # Calculate final value
     value = int(base_value * quality_multiplier * (1 + quality_bonus))
-    
+
     # Generate item stats based on type, tier, and quality
     stats = {}
     stat_focus = type_data.get("stat_focus", [])
-    
+
     for stat in stat_focus:
         # Base stat value increases with tier
         base_stat = 5 + (product_tier * 3)
-        
+
         # Apply quality modifier
         quality_mod = material_quality * 0.5
-        
+
         # Apply crafting station bonus
         station_mod = quality_bonus
-        
+
         # Calculate final stat value
         stat_value = int(base_stat * (1 + quality_mod + station_mod))
         stats[stat] = stat_value
-    
+
     # Determine rarity based on quality
     rarity = "Common"
     if material_quality >= 0.99:
@@ -713,10 +713,10 @@ def generate_crafted_item(player: PlayerData, category: str, type_name: str, pro
         rarity = "Rare"
     elif material_quality >= 0.3:
         rarity = "Uncommon"
-    
+
     # Generate a description based on item type and stats
     description = f"A {rarity.lower()} quality {product_name.lower()}. "
-    
+
     if "weapon" in category.lower():
         description += f"Deals damage based on {', '.join(stat_focus)}."
     elif "armor" in category.lower():
@@ -729,11 +729,11 @@ def generate_crafted_item(player: PlayerData, category: str, type_name: str, pro
         description += f"Improves efficiency in {', '.join(stat_focus)}."
     else:
         description += f"Has special effects related to {', '.join(stat_focus)}."
-    
+
     # Generate item_id
     import uuid
     item_id = str(uuid.uuid4())
-    
+
     # Create the item
     item = Item(
         item_id=item_id,
@@ -745,7 +745,7 @@ def generate_crafted_item(player: PlayerData, category: str, type_name: str, pro
         level_req=level_req,
         value=value
     )
-    
+
     return item
 
 # Calculate success chance based on player level, material quality, and crafting station
@@ -754,17 +754,17 @@ def calculate_crafting_success(player_level: int, crafting_skill_level: int,
     """Calculate chance of successful crafting (0.0-1.0)"""
     # Base success chance depends on skill vs. item level
     base_chance = min(0.95, 0.5 + ((crafting_skill_level - item_level_req) / 100))
-    
+
     # Apply minimum chance of 0.1 (10%)
     base_chance = max(0.1, base_chance)
-    
+
     # Apply station bonus
     station_data = CRAFTING_STATIONS.get(crafting_station, {})
     success_bonus = station_data.get("success_bonus", 0) / 100  # Convert percentage to decimal
-    
+
     # Calculate final success chance, capped at 0.99 (99%)
     success_chance = min(0.99, base_chance + success_bonus)
-    
+
     return success_chance
 
 class CraftingCategoryView(View):
@@ -772,10 +772,10 @@ class CraftingCategoryView(View):
         super().__init__(timeout=60)
         self.player = player_data
         self.data_manager = data_manager
-        
+
         # Add category selector
         self.add_category_select()
-    
+
     def add_category_select(self):
         """Add dropdown for crafting categories"""
         select = Select(
@@ -788,17 +788,17 @@ class CraftingCategoryView(View):
         )
         select.callback = self.category_callback
         self.add_item(select)
-    
+
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
         category = interaction.data["values"][0]
-        
+
         # Create a new view for the selected category
         type_view = CraftingTypeView(self.player, self.data_manager, category)
-        
+
         # Create embed for the category
         embed = type_view.create_category_embed()
-        
+
         await interaction.response.edit_message(embed=embed, view=type_view)
 
 class CraftingTypeView(View):
@@ -807,15 +807,15 @@ class CraftingTypeView(View):
         self.player = player_data
         self.data_manager = data_manager
         self.category = category
-        
+
         # Add type selector
         self.add_type_select()
-        
+
         # Add back button
         back_button = Button(label="◀️ Back to Categories", custom_id="back", style=discord.ButtonStyle.gray)
         back_button.callback = self.back_callback
         self.add_item(back_button)
-    
+
     def add_type_select(self):
         """Add dropdown for item types in this category"""
         select = Select(
@@ -828,76 +828,76 @@ class CraftingTypeView(View):
         )
         select.callback = self.type_callback
         self.add_item(select)
-    
+
     async def back_callback(self, interaction: discord.Interaction):
         """Handle back button click"""
         category_view = CraftingCategoryView(self.player, self.data_manager)
-        
+
         embed = discord.Embed(
             title="⚒️ Crafting Workshop",
             description="Select a crafting category to begin creating items.",
             color=discord.Color.gold()
         )
-        
+
         for category, data in CRAFTING_CATEGORIES.items():
             embed.add_field(
                 name=category,
                 value=data["description"],
                 inline=True
             )
-        
+
         await interaction.response.edit_message(embed=embed, view=category_view)
-    
+
     async def type_callback(self, interaction: discord.Interaction):
         """Handle type selection"""
         type_name = interaction.data["values"][0]
-        
+
         # Create a new view for crafting the selected type
         crafting_view = CraftingItemView(self.player, self.data_manager, self.category, type_name)
-        
+
         # Create embed for the crafting type
         embed = crafting_view.create_crafting_embed()
-        
+
         await interaction.response.edit_message(embed=embed, view=crafting_view)
-    
+
     def create_category_embed(self) -> discord.Embed:
         """Create embed for the selected category"""
         category_data = CRAFTING_CATEGORIES.get(self.category, {})
-        
+
         embed = discord.Embed(
             title=f"⚒️ {self.category} Crafting",
             description=category_data.get("description", "Craft various items in this category."),
             color=discord.Color.gold()
         )
-        
+
         for type_name, type_data in category_data.get("types", {}).items():
             # Get information about the type
             products = type_data.get("products", [])
             materials = type_data.get("materials", {})
             level_ranges = type_data.get("level_ranges", [])
-            
+
             # Only show a few examples of products
             product_examples = products[:3]
             if len(products) > 3:
                 product_examples.append("...")
                 product_examples.append(products[-1])
-            
+
             # Show required materials
             material_text = "\n".join([f"• {count}x {mat}" for mat, count in materials.items()])
-            
+
             # Show level ranges
             level_text = "Level Requirements:\n"
             level_text += f"• Tier 1: {level_ranges[0][0]}\n"
             if len(level_ranges) > 1:
                 level_text += f"• Mid Tier: {level_ranges[len(level_ranges)//2][0]}\n"
             level_text += f"• Max Tier: {level_ranges[-1][0]}"
-            
+
             embed.add_field(
                 name=type_name,
                 value=f"Examples: {', '.join(product_examples)}\n\nRequired Materials:\n{material_text}\n\n{level_text}",
                 inline=False
             )
-        
+
         return embed
 
 class CraftingItemView(View):
@@ -910,16 +910,16 @@ class CraftingItemView(View):
         self.selected_materials = {}
         self.selected_tier = 0
         self.selected_station = "Basic Crafting Table"
-        
+
         # Find the highest tier the player can craft
         self.max_tier = self.get_max_available_tier()
-        
+
         # Add tier selector
         self.add_tier_select()
-        
+
         # Add station selector
         self.add_station_select()
-        
+
         # Add craft button
         craft_button = Button(
             label="Craft Item", 
@@ -929,7 +929,7 @@ class CraftingItemView(View):
         )
         craft_button.callback = self.craft_callback
         self.add_item(craft_button)
-        
+
         # Add preview button
         preview_button = Button(
             label="Preview Item", 
@@ -939,7 +939,7 @@ class CraftingItemView(View):
         )
         preview_button.callback = self.preview_callback
         self.add_item(preview_button)
-        
+
         # Add back button
         back_button = Button(
             label="Back to Types", 
@@ -949,12 +949,12 @@ class CraftingItemView(View):
         )
         back_button.callback = self.back_callback
         self.add_item(back_button)
-    
+
     def get_max_available_tier(self) -> int:
         """Determine the maximum tier the player can craft based on level"""
         type_data = CRAFTING_CATEGORIES.get(self.category, {}).get("types", {}).get(self.type_name, {})
         level_ranges = type_data.get("level_ranges", [(1, 10)])
-        
+
         # Find highest tier the player can craft
         max_tier = 0
         for i, (min_level, _) in enumerate(level_ranges):
@@ -962,15 +962,15 @@ class CraftingItemView(View):
                 max_tier = i
             else:
                 break
-        
+
         return max_tier
-    
+
     def add_tier_select(self):
         """Add dropdown for selecting item tier"""
         type_data = CRAFTING_CATEGORIES.get(self.category, {}).get("types", {}).get(self.type_name, {})
         products = type_data.get("products", ["Item"])
         level_ranges = type_data.get("level_ranges", [(1, 10)])
-        
+
         # Only show tiers the player can craft
         options = []
         for i in range(min(len(products), self.max_tier + 1)):
@@ -980,7 +980,7 @@ class CraftingItemView(View):
                     description=f"Level {level_ranges[i][0]}-{level_ranges[i][1]}"
                 )
             )
-        
+
         if not options:
             # Add at least one option if player can't craft anything
             options.append(
@@ -989,7 +989,7 @@ class CraftingItemView(View):
                     description=f"Level {level_ranges[0][0]}-{level_ranges[0][1]} (Level too low)"
                 )
             )
-        
+
         select = Select(
             placeholder="Select Item Tier",
             options=options,
@@ -997,7 +997,7 @@ class CraftingItemView(View):
         )
         select.callback = self.tier_callback
         self.add_item(select)
-    
+
     def add_station_select(self):
         """Add dropdown for selecting crafting station"""
         # Only show stations the player has access to
@@ -1010,7 +1010,7 @@ class CraftingItemView(View):
                         description=f"+{station_data.get('quality_bonus', 0)}% Quality, +{station_data.get('success_bonus', 0)}% Success"
                     )
                 )
-        
+
         select = Select(
             placeholder="Select Crafting Station",
             options=options,
@@ -1018,42 +1018,42 @@ class CraftingItemView(View):
         )
         select.callback = self.station_callback
         self.add_item(select)
-    
+
     async def tier_callback(self, interaction: discord.Interaction):
         """Handle tier selection"""
         type_data = CRAFTING_CATEGORIES.get(self.category, {}).get("types", {}).get(self.type_name, {})
         products = type_data.get("products", ["Item"])
-        
+
         selected_name = interaction.data["values"][0]
         self.selected_tier = products.index(selected_name)
-        
+
         # Update the embed
         embed = self.create_crafting_embed()
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     async def station_callback(self, interaction: discord.Interaction):
         """Handle station selection"""
         self.selected_station = interaction.data["values"][0]
-        
+
         # Update the embed
         embed = self.create_crafting_embed()
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     async def back_callback(self, interaction: discord.Interaction):
         """Handle back button click"""
         type_view = CraftingTypeView(self.player, self.data_manager, self.category)
-        
+
         embed = type_view.create_category_embed()
-        
+
         await interaction.response.edit_message(embed=embed, view=type_view)
-    
+
     async def preview_callback(self, interaction: discord.Interaction):
         """Handle preview button click - shows what the crafted item might look like"""
         type_data = CRAFTING_CATEGORIES.get(self.category, {}).get("types", {}).get(self.type_name, {})
         products = type_data.get("products", ["Item"])
         level_ranges = type_data.get("level_ranges", [(1, 10)])
         stat_focus = type_data.get("stat_focus", ["strength"])
-        
+
         # Check if player meets level requirement
         item_level_req = level_ranges[self.selected_tier][0]
         if self.player.level < item_level_req:
@@ -1062,20 +1062,20 @@ class CraftingItemView(View):
                 ephemeral=True
             )
             return
-            
+
         # Create a preview of what the item might look like
         product_name = products[self.selected_tier]
         level_range = level_ranges[self.selected_tier]
-        
+
         # Generate sample stats based on player level and tier
         sample_stats = {}
         for stat in stat_focus:
             base = 5 + (self.selected_tier * 3)
             variation = random.randint(-2, 2)
             sample_stats[stat] = base + variation
-        
+
         sample_value = (10 + (self.selected_tier * 5)) * 10
-        
+
         # Create sample descriptions for different quality levels
         quality_examples = {
             "Common": f"A basic {product_name.lower()} with modest stats.",
@@ -1084,7 +1084,7 @@ class CraftingItemView(View):
             "Epic": f"A masterfully crafted {product_name.lower()} with superior stats.",
             "Legendary": f"An exceptional {product_name.lower()} of legendary quality."
         }
-        
+
         # Create preview embed
         embed = discord.Embed(
             title=f"⚒️ Item Preview: {product_name}",
@@ -1094,46 +1094,46 @@ class CraftingItemView(View):
                        f"and the materials used.",
             color=discord.Color.gold()
         )
-        
+
         # Add sample stats
         stats_text = ""
         for stat, value in sample_stats.items():
             stats_text += f"**{stat.capitalize()}:** +{value}\n"
-        
+
         embed.add_field(
             name="Potential Stats",
             value=stats_text,
             inline=True
         )
-        
+
         # Add potential qualities
         embed.add_field(
             name="Potential Qualities",
             value="\n".join([f"**{rarity}:** {desc}" for rarity, desc in quality_examples.items()]),
             inline=False
         )
-        
+
         # Add value range
         embed.add_field(
             name="Estimated Value",
             value=f"💰 {sample_value - 20} - {sample_value + 20} gold",
             inline=False
         )
-        
+
         # Show required materials
         required_materials = type_data.get("materials", {})
         materials_text = ""
         for category, count in required_materials.items():
             materials_text += f"• {category}: {count}\n"
-        
+
         embed.add_field(
             name="Required Materials",
             value=materials_text if materials_text else "No materials required",
             inline=False
         )
-        
+
         await interaction.response.send_message(embed=embed, ephemeral=True)
-    
+
     async def craft_callback(self, interaction: discord.Interaction):
         """Handle craft button click"""
         # Check if materials are available
@@ -1141,7 +1141,7 @@ class CraftingItemView(View):
         required_materials = type_data.get("materials", {})
         products = type_data.get("products", ["Item"])
         level_ranges = type_data.get("level_ranges", [(1, 10)])
-        
+
         # Check if player meets level requirement
         item_level_req = level_ranges[self.selected_tier][0]
         if self.player.level < item_level_req:
@@ -1150,12 +1150,12 @@ class CraftingItemView(View):
                 ephemeral=True
             )
             return
-        
+
         # Check if player has enough materials
         material_counts = {}
         material_quality = 0.0
         total_materials = 0
-        
+
         # Count materials in inventory by category
         for inv_item in self.player.inventory:
             if "Material:" in inv_item.item.item_type:
@@ -1163,19 +1163,19 @@ class CraftingItemView(View):
                 if category not in material_counts:
                     material_counts[category] = 0
                 material_counts[category] += inv_item.quantity
-                
+
                 # Calculate quality based on rarity
                 rarity = inv_item.item.rarity
                 rarity_value = list(MATERIAL_RARITIES.keys()).index(rarity) / (len(MATERIAL_RARITIES) - 1)
                 material_quality += rarity_value * inv_item.quantity
                 total_materials += inv_item.quantity
-        
+
         # Check if all required materials are available
         missing_materials = []
         for category, count in required_materials.items():
             if material_counts.get(category, 0) < count:
                 missing_materials.append(f"{category} ({count - material_counts.get(category, 0)} more needed)")
-        
+
         if missing_materials:
             await interaction.response.send_message(
                 f"You don't have enough materials to craft this item! Missing:\n" + 
@@ -1183,29 +1183,29 @@ class CraftingItemView(View):
                 ephemeral=True
             )
             return
-        
+
         # Calculate average material quality
         if total_materials > 0:
             material_quality /= total_materials
-        
+
         # Get player's crafting skill for this category
         crafting_skill = None
-        
+
         # Make sure player has crafting_skills attribute
         if not hasattr(self.player, "crafting_skills"):
             self.player.crafting_skills = []
-            
+
         # Find existing skill or create a new one
         for skill in self.player.crafting_skills:
             if skill.category == self.category:
                 crafting_skill = skill
                 break
-        
+
         if not crafting_skill:
             # Create new crafting skill if player doesn't have one for this category
             crafting_skill = CraftingSkill(category=self.category)
             self.player.crafting_skills.append(crafting_skill)
-        
+
         # Calculate success chance
         success_chance = calculate_crafting_success(
             self.player.level, 
@@ -1213,35 +1213,35 @@ class CraftingItemView(View):
             item_level_req, 
             self.selected_station
         )
-        
+
         # Determine if crafting is successful
         is_success = random.random() < success_chance
-        
+
         # Create response embed
         response_embed = discord.Embed(
             title="⚒️ Crafting Results",
             color=discord.Color.green() if is_success else discord.Color.red()
         )
-        
+
         # Add crafting details to embed
         response_embed.add_field(
             name="Attempted Item",
             value=f"{products[self.selected_tier]}",
             inline=True
         )
-        
+
         response_embed.add_field(
             name="Crafting Station",
             value=self.selected_station,
             inline=True
         )
-        
+
         response_embed.add_field(
             name="Success Chance",
             value=f"{int(success_chance * 100)}%",
             inline=True
         )
-        
+
         # Generate and add the item if successful
         if is_success:
             # Remove materials from inventory
@@ -1252,18 +1252,18 @@ class CraftingItemView(View):
                     [item for item in self.player.inventory if "Material:" + category == item.item.item_type],
                     key=lambda x: list(MATERIAL_RARITIES.keys()).index(x.item.rarity)
                 )
-                
+
                 for inv_item in sorted_inv:
                     if remaining <= 0:
                         break
-                    
+
                     if inv_item.quantity <= remaining:
                         remaining -= inv_item.quantity
                         self.player.inventory.remove(inv_item)
                     else:
                         inv_item.quantity -= remaining
                         remaining = 0
-            
+
             # Generate the crafted item
             crafted_item = generate_crafted_item(
                 self.player,
@@ -1273,123 +1273,123 @@ class CraftingItemView(View):
                 material_quality,
                 self.selected_station
             )
-            
+
             # Add item to inventory
             self.player.inventory.append(InventoryItem(crafted_item, quantity=1))
-            
+
             # Save player data
             self.data_manager.save_data()
-            
+
             # Add item details to embed
             response_embed.description = f"✅ **Success!** You crafted a **{crafted_item.name}**!"
-            
+
             response_embed.add_field(
                 name="Item Description",
                 value=crafted_item.description,
                 inline=False
             )
-            
+
             stats_text = "\n".join([f"• {stat.replace('_', ' ').title()}: +{value}" for stat, value in crafted_item.stats.items()])
             response_embed.add_field(
                 name="Item Stats",
                 value=stats_text or "No stats",
                 inline=True
             )
-            
+
             response_embed.add_field(
                 name="Item Value",
                 value=f"{crafted_item.value} gold",
                 inline=True
             )
-            
+
             response_embed.add_field(
                 name="Required Level",
                 value=str(crafted_item.level_req),
                 inline=True
             )
-            
+
             # Add crafting experience
             exp_gained = 10 * (self.selected_tier + 1) * (1 + (0.1 * self.selected_tier))
             level_up = crafting_skill.add_exp(int(exp_gained))
-            
+
             response_embed.add_field(
                 name="Crafting Experience",
                 value=f"+{int(exp_gained)} XP" + (" (Level Up!)" if level_up else ""),
                 inline=False
             )
-            
+
             response_embed.set_footer(text=f"Crafting {self.category} - Level {crafting_skill.level}")
         else:
             # Remove half the materials on failure (to create some risk)
             for category, count in required_materials.items():
                 wasted = max(1, count // 2)  # At least 1 material is wasted
                 remaining = wasted
-                
+
                 sorted_inv = sorted(
                     [item for item in self.player.inventory if "Material:" + category == item.item.item_type],
                     key=lambda x: list(MATERIAL_RARITIES.keys()).index(x.item.rarity)
                 )
-                
+
                 for inv_item in sorted_inv:
                     if remaining <= 0:
                         break
-                    
+
                     if inv_item.quantity <= remaining:
                         remaining -= inv_item.quantity
                         self.player.inventory.remove(inv_item)
                     else:
                         inv_item.quantity -= remaining
                         remaining = 0
-            
+
             # Save player data
             self.data_manager.save_data()
-            
+
             # Add failure message to embed
             response_embed.description = f"❌ **Failed!** Your attempt to craft a **{products[self.selected_tier]}** was unsuccessful."
-            
+
             response_embed.add_field(
                 name="Materials Lost",
                 value="Half of the required materials were wasted in the failed attempt.",
                 inline=False
             )
-            
+
             # Add small amount of crafting experience even on failure
             exp_gained = 5 * (self.selected_tier + 1)
             level_up = crafting_skill.add_exp(int(exp_gained))
-            
+
             response_embed.add_field(
                 name="Crafting Experience",
                 value=f"+{int(exp_gained)} XP" + (" (Level Up!)" if level_up else ""),
                 inline=False
             )
-            
+
             response_embed.set_footer(text=f"Crafting {self.category} - Level {crafting_skill.level}")
-        
+
         # New view for crafting again
         new_view = CraftingItemView(self.player, self.data_manager, self.category, self.type_name)
         await interaction.response.edit_message(embed=response_embed, view=new_view)
-    
+
     def create_crafting_embed(self) -> discord.Embed:
         """Create embed for crafting interface"""
         type_data = CRAFTING_CATEGORIES.get(self.category, {}).get("types", {}).get(self.type_name, {})
         products = type_data.get("products", ["Item"])
         required_materials = type_data.get("materials", {})
         level_ranges = type_data.get("level_ranges", [(1, 10)])
-        
+
         # Get the selected product and level range
         product_name = products[self.selected_tier] if self.selected_tier < len(products) else products[0]
         level_range = level_ranges[self.selected_tier] if self.selected_tier < len(level_ranges) else level_ranges[0]
-        
+
         embed = discord.Embed(
             title=f"⚒️ Craft {product_name}",
             description=f"Crafting a {product_name} (Level {level_range[0]}-{level_range[1]})",
             color=discord.Color.gold()
         )
-        
+
         # Add required materials section
         materials_text = ""
         player_materials = {}
-        
+
         # Count materials in inventory by category
         for inv_item in self.player.inventory:
             if "Material:" in inv_item.item.item_type:
@@ -1397,19 +1397,19 @@ class CraftingItemView(View):
                 if category not in player_materials:
                     player_materials[category] = 0
                 player_materials[category] += inv_item.quantity
-        
+
         # Create materials text with current/required counts
         for category, count in required_materials.items():
             have_count = player_materials.get(category, 0)
             emoji = "✅" if have_count >= count else "❌"
             materials_text += f"{emoji} {category}: {have_count}/{count}\n"
-        
+
         embed.add_field(
             name="Required Materials",
             value=materials_text or "No materials required",
             inline=False
         )
-        
+
         # Add crafting station info
         station_data = CRAFTING_STATIONS.get(self.selected_station, {})
         station_text = (
@@ -1418,26 +1418,26 @@ class CraftingItemView(View):
             f"**Success Bonus:** +{station_data.get('success_bonus', 0)}%\n"
             f"**Description:** {station_data.get('description', '')}"
         )
-        
+
         embed.add_field(
             name=f"Crafting Station: {self.selected_station}",
             value=station_text,
             inline=False
         )
-        
+
         # Get crafting skill level for this category
         skill_level = 1
-        
+
         # Make sure player has crafting_skills attribute
         if not hasattr(self.player, "crafting_skills"):
             self.player.crafting_skills = []
-            
+
         # Find existing skill or get default level
         for skill in self.player.crafting_skills:
             if skill.category == self.category:
                 skill_level = skill.level
                 break
-        
+
         # Calculate success chance
         success_chance = calculate_crafting_success(
             self.player.level, 
@@ -1445,7 +1445,7 @@ class CraftingItemView(View):
             level_range[0], 
             self.selected_station
         )
-        
+
         # Add crafting details
         craft_details = (
             f"**Player Level:** {self.player.level}\n"
@@ -1453,13 +1453,13 @@ class CraftingItemView(View):
             f"**Success Chance:** {int(success_chance * 100)}%\n"
             f"**Item Level Requirement:** {level_range[0]}"
         )
-        
+
         embed.add_field(
             name="Crafting Details",
             value=craft_details,
             inline=False
         )
-        
+
         return embed
 
 class CraftingEntryView(View):
@@ -1467,10 +1467,10 @@ class CraftingEntryView(View):
         super().__init__(timeout=60)
         self.player = player_data
         self.data_manager = data_manager
-        
+
         # Add buttons for main crafting actions
         self.add_buttons()
-    
+
     def add_buttons(self):
         """Add main crafting options buttons with improved styling"""
         # Craft Items button - Primary action
@@ -1482,7 +1482,7 @@ class CraftingEntryView(View):
         )
         craft_button.callback = self.craft_callback
         self.add_item(craft_button)
-        
+
         # Materials Encyclopedia button
         materials_button = Button(
             label="Materials Encyclopedia",
@@ -1492,7 +1492,7 @@ class CraftingEntryView(View):
         )
         materials_button.callback = self.materials_callback
         self.add_item(materials_button)
-        
+
         # Gather Materials button - Action button
         gather_button = Button(
             label="Gather Materials",
@@ -1502,7 +1502,7 @@ class CraftingEntryView(View):
         )
         gather_button.callback = self.gather_callback
         self.add_item(gather_button)
-        
+
         # Crafting Skills button
         skills_button = Button(
             label="Crafting Skills",
@@ -1512,7 +1512,7 @@ class CraftingEntryView(View):
         )
         skills_button.callback = self.skills_callback
         self.add_item(skills_button)
-        
+
         # Help button
         help_button = Button(
             label="Help",
@@ -1522,49 +1522,49 @@ class CraftingEntryView(View):
         )
         help_button.callback = self.help_callback
         self.add_item(help_button)
-    
+
     async def craft_callback(self, interaction: discord.Interaction):
         """Handle craft button click"""
         category_view = CraftingCategoryView(self.player, self.data_manager)
-        
+
         embed = discord.Embed(
             title="⚒️ Crafting Workshop",
             description="Select a crafting category to begin creating items.",
             color=discord.Color.gold()
         )
-        
+
         for category, data in CRAFTING_CATEGORIES.items():
             embed.add_field(
                 name=category,
                 value=data["description"],
                 inline=True
             )
-        
+
         await interaction.response.edit_message(embed=embed, view=category_view)
-    
+
     async def materials_callback(self, interaction: discord.Interaction):
         """Handle materials button click"""
         from materials import MaterialsView
-        
+
         view = MaterialsView(self.player, self.data_manager)
         embed = view.create_materials_embed()
-        
+
         await interaction.response.edit_message(embed=embed, view=view)
-    
+
     async def gather_callback(self, interaction: discord.Interaction):
         """Handle gather button click"""
         from materials import GatheringView
-        
+
         view = GatheringView(self.player, self.data_manager)
-        
+
         embed = discord.Embed(
             title="🔍 Gathering Materials",
             description="Select a gathering type to begin collecting materials for crafting.",
             color=discord.Color.green()
         )
-        
+
         await interaction.response.edit_message(embed=embed, view=view)
-    
+
     async def skills_callback(self, interaction: discord.Interaction):
         """Handle skills button click"""
         embed = discord.Embed(
@@ -1572,23 +1572,23 @@ class CraftingEntryView(View):
             description=f"**Your Crafting Skill Levels**",
             color=discord.Color.blue()
         )
-        
+
         # Ensure player has crafting_skills attribute
         if not hasattr(self.player, "crafting_skills"):
             self.player.crafting_skills = []
-            
+
         # Check if player has any crafting skills
         if self.player.crafting_skills:
             for skill in self.player.crafting_skills:
                 # Calculate exp needed for next level
                 exp_needed = int(100 * (skill.level ** 1.5))
                 progress = min(1.0, skill.exp / exp_needed)
-                
+
                 # Create progress bar
                 bar_length = 20
                 filled = int(bar_length * progress)
                 progress_bar = "█" * filled + "░" * (bar_length - filled)
-                
+
                 embed.add_field(
                     name=f"{skill.category} (Level {skill.level})",
                     value=f"{progress_bar} {skill.exp}/{exp_needed} XP",
@@ -1596,9 +1596,9 @@ class CraftingEntryView(View):
                 )
         else:
             embed.description = "**Your Crafting Skill Levels**\n\nYou haven't developed any crafting skills yet. Start crafting to gain experience!"
-        
+
         await interaction.response.edit_message(embed=embed, view=self)
-        
+
     async def help_callback(self, interaction: discord.Interaction):
         """Handle help button click - Shows information about crafting system"""
         embed = discord.Embed(
@@ -1606,7 +1606,7 @@ class CraftingEntryView(View):
             description="Guide to the crafting system in Ethereal Ascendancy",
             color=discord.Color.gold()
         )
-        
+
         embed.add_field(
             name="⚒️ Craft Items",
             value="Create weapons, armor, potions and other useful items.\n"
@@ -1617,7 +1617,7 @@ class CraftingEntryView(View):
                   "5. Click 'Craft Item' to attempt crafting",
             inline=False
         )
-        
+
         embed.add_field(
             name="📦 Materials",
             value="Materials are required for crafting.\n"
@@ -1627,7 +1627,7 @@ class CraftingEntryView(View):
                   "• Rarity of materials affects the quality of crafted items",
             inline=False
         )
-        
+
         embed.add_field(
             name="🔍 Gathering",
             value="Materials can be gathered through various activities.\n"
@@ -1637,7 +1637,7 @@ class CraftingEntryView(View):
                   "• Rare materials can be found in dungeons and special events",
             inline=False
         )
-        
+
         embed.add_field(
             name="📊 Crafting Skills",
             value="Each crafting category has its own skill that improves as you craft.\n"
@@ -1647,7 +1647,7 @@ class CraftingEntryView(View):
                   "• Skill level affects the quality of crafted items",
             inline=False
         )
-        
+
         # Add back button to return to main crafting view
         back_view = View(timeout=60)
         back_button = Button(
@@ -1656,7 +1656,7 @@ class CraftingEntryView(View):
             custom_id="back_to_crafting", 
             style=discord.ButtonStyle.gray
         )
-        
+
         async def back_callback(back_interaction):
             # Return to main crafting view
             embed = discord.Embed(
@@ -1664,89 +1664,89 @@ class CraftingEntryView(View):
                 description="Welcome to the crafting system! Here you can create powerful weapons, armor, potions, and other items from materials you've gathered in your adventures.",
                 color=discord.Color.gold()
             )
-            
+
             embed.add_field(
                 name="⚒️ Craft Items",
                 value="Create weapons, armor, potions and other useful items from gathered materials.",
                 inline=True
             )
-            
+
             embed.add_field(
                 name="📦 Materials Encyclopedia",
                 value="Browse the encyclopedia of available crafting materials.",
                 inline=True
             )
-            
+
             embed.add_field(
                 name="🔍 Gather Materials",
                 value="Collect raw materials for crafting from various sources.",
                 inline=True
             )
-            
+
             embed.add_field(
                 name="📊 Crafting Skills",
                 value="View your progress in various crafting disciplines.",
                 inline=True
             )
-            
+
             # Return to the main crafting view
             entry_view = CraftingEntryView(self.player, self.data_manager)
             await back_interaction.response.edit_message(embed=embed, view=entry_view)
-        
+
         back_button.callback = back_callback
         back_view.add_item(back_button)
-        
+
         await interaction.response.edit_message(embed=embed, view=back_view)
 
 async def crafting_command(ctx, data_manager: DataManager):
     """Main crafting command - craft items from gathered materials"""
     player = data_manager.get_player(ctx.author.id)
-    
+
     view = CraftingEntryView(player, data_manager)
-    
+
     embed = discord.Embed(
         title="🏺 Ethereal Ascendancy Crafting",
         description="Welcome to the crafting system! Here you can create powerful weapons, armor, potions, and other items from materials you've gathered in your adventures.",
         color=discord.Color.gold()
     )
-    
+
     embed.add_field(
         name="⚒️ Craft Items",
         value="Create weapons, armor, potions and other useful items from gathered materials.",
         inline=True
     )
-    
+
     embed.add_field(
         name="📦 Materials Encyclopedia",
         value="Browse the encyclopedia of available crafting materials.",
         inline=True
     )
-    
+
     embed.add_field(
         name="🔍 Gather Materials",
         value="Collect raw materials for crafting from various sources.",
         inline=True
     )
-    
+
     embed.add_field(
         name="📊 Crafting Skills",
         value="View your progress in various crafting disciplines.",
         inline=True
     )
-    
+
     total_materials = 0
     material_types = set()
-    
+
     # Count materials in inventory
     for inv_item in player.inventory:
         if "Material:" in inv_item.item.item_type:
             total_materials += inv_item.quantity
             material_types.add(inv_item.item.name)
-    
+
     embed.add_field(
         name="Your Materials",
         value=f"You have {total_materials} materials of {len(material_types)} different types in your inventory.",
         inline=False
     )
-    
+
     await ctx.send(embed=embed, view=view)

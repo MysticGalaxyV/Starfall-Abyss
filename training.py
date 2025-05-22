@@ -7,12 +7,13 @@ from typing import Dict, List, Optional, Tuple, Any
 
 from data_models import PlayerData, DataManager
 from utils import GAME_CLASSES
+from user_restrictions import RestrictedView
 
 
-class TrainingOptionView(View):
+class TrainingOptionView(RestrictedView):
 
-    def __init__(self, player_data: PlayerData, data_manager: DataManager):
-        super().__init__(timeout=60)
+    def __init__(self, player_data: PlayerData, data_manager: DataManager, authorized_user):
+        super().__init__(authorized_user, timeout=60)
         self.player_data = player_data
         self.data_manager = data_manager
         self.selected_option = None
@@ -479,7 +480,7 @@ async def train_command(ctx, data_manager: DataManager):
         inline=True)
 
     # Create training view
-    training_view = TrainingOptionView(player_data, data_manager)
+    training_view = TrainingOptionView(player_data, data_manager, ctx.author)
 
     await ctx.send(embed=embed, view=training_view)
 
