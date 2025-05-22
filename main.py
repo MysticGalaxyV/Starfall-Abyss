@@ -74,9 +74,18 @@ def admin_check(ctx):
 
 # Constants for the admin menu system
 GIVE_OPTIONS = {
-    "gold": {"emoji": "💰", "description": "Give gold to a player"},
-    "xp": {"emoji": "✨", "description": "Give XP to a player"},
-    "item": {"emoji": "🎁", "description": "Give an item to a player"}
+    "gold": {
+        "emoji": "💰",
+        "description": "Give gold to a player"
+    },
+    "xp": {
+        "emoji": "✨",
+        "description": "Give XP to a player"
+    },
+    "item": {
+        "emoji": "🎁",
+        "description": "Give an item to a player"
+    }
 }
 
 
@@ -846,12 +855,65 @@ async def battle_command(ctx, enemy_name: str = None, enemy_level: int = None):
 
     # If no specific enemy, choose random appropriate one
     if not enemy_name or not enemy_level:
+        # Expanded regular enemy list with much more variety
         enemy_types = [
-            "Cursed Wolf", "Forest Specter", "Ancient Treefolk",
-            "Cave Crawler", "Armored Golem", "Crystal Spider",
-            "Shrine Guardian", "Cursed Monk", "Vengeful Spirit", "Deep One",
-            "Abyssal Hunter", "Giant Squid", "Flame Knight", "Lava Golem",
-            "Fire Drake"
+            # Original enemies
+            "Cursed Wolf",
+            "Forest Specter",
+            "Ancient Treefolk",
+            "Cave Crawler",
+            "Armored Golem",
+            "Crystal Spider",
+            "Shrine Guardian",
+            "Cursed Monk",
+            "Vengeful Spirit",
+            "Deep One",
+            "Abyssal Hunter",
+            "Giant Squid",
+            "Flame Knight",
+            "Lava Golem",
+            "Fire Drake",
+            # Forest creatures
+            "Shadow Prowler",
+            "Thornbark Guardian",
+            "Wisp Enchanter",
+            "Dryad Scout",
+            "Feral Druid",
+            "Spore Shambler",
+            "Verdant Sentinel",
+            "Woodland Stalker",
+            # Mountain enemies
+            "Rock Hurler",
+            "Mountain Troll",
+            "Obsidian Golem",
+            "Storm Harpy",
+            "Cliff Ambusher",
+            "Avalanche Beast",
+            "Crystal Basilisk",
+            # Ocean/Water creatures
+            "Coral Guardian",
+            "Siren Enchantress",
+            "Kraken Spawn",
+            "Tidecaller",
+            "Pearl Defender",
+            "Abyssal Lurker",
+            "Reef Hunter",
+            # Desert dwellers
+            "Sand Wraith",
+            "Dust Devil",
+            "Mirage Stalker",
+            "Cactus Elemental",
+            "Dune Scorpion",
+            "Oasis Defender",
+            "Sand Shark",
+            # Dark realm creatures
+            "Soul Harvester",
+            "Void Walker",
+            "Nightmare Spawn",
+            "Dream Eater",
+            "Shadow Weaver",
+            "Nether Beast",
+            "Dark Oracle"
         ]
 
         # Choose enemy level based on player level
@@ -1071,6 +1133,183 @@ async def g_cmd(ctx, action: str = None, *args):
     await guild_command(ctx, action, *args)
 
 
+@bot.command(name="world_boss", aliases=["wb", "event_boss"])
+async def world_boss_cmd(ctx):
+    """Battle the active event boss (only works during special boss events)"""
+    player = data_manager.get_player(ctx.author.id)
+
+    # Check if player has started
+    if not player.class_name:
+        await ctx.send(
+            "❌ You haven't started your adventure yet! Use `!start` to choose a class."
+        )
+        return
+
+    # Import necessary modules
+    from achievements import QuestManager
+    import random
+
+    # Initialize quest manager
+    quest_manager = QuestManager(data_manager)
+
+    # Get active events
+    active_events = quest_manager.get_active_events()
+
+    # Filter for active boss events
+    boss_events = [
+        event for event in active_events
+        if event.get("effect", {}).get("type") == "world_boss"
+    ]
+
+    if not boss_events:
+        await ctx.send(
+            "❌ There is no active world boss event right now! Ask an admin to start a special boss event."
+        )
+        return
+
+    # Get the boss event details
+    boss_event = boss_events[0]  # Take the first boss event if multiple exist
+    boss_name = boss_event["effect"]["boss_name"]
+    boss_level = boss_event["effect"]["boss_level"]
+
+    # Check if player has sufficient energy
+    from utils import GAME_CLASSES
+    max_energy = player.get_max_battle_energy()
+    min_energy_needed = 20  # Minimum energy needed to use basic moves
+
+    if hasattr(player,
+               'battle_energy') and player.battle_energy < min_energy_needed:
+        # Restore energy to full
+        player.battle_energy = max_energy
+        data_manager.save_data()
+
+        # Notify player
+        embed = discord.Embed(
+            title="⚡ Energy Restored!",
+            description=
+            f"Your energy was too low to battle effectively. It has been restored to full ({max_energy}/{max_energy}).",
+            color=discord.Color.blue())
+        await ctx.send(embed=embed)
+
+    # Create boss introduction embed
+    boss_intro = discord.Embed(
+        title=f"🔥 WORLD BOSS - {boss_name}",
+        description=
+        f"You challenge the mighty world boss, {boss_name} (Level {boss_level})!",
+        color=discord.Color.dark_red())
+
+    # Add information about potential rewards
+    boss_intro.add_field(
+        name="Potential Rewards",
+        value=
+        "💎 Rare Equipment\n🌟 Mythical Items\n💰 Huge Gold Reward\n✨ Massive XP Boost",
+        inline=False)
+
+    await ctx.send(embed=boss_intro)
+
+    # Create a custom battle handler for the boss
+    class BossResultHandler:
+
+        def __init__(self, original_battle_func):
+            self.original_battle_func = original_battle_func
+
+        async def __call__(self, *args, **kwargs):
+            # Call the original battle function and get the result
+            # The battle function sets player_entity.is_alive() to check if player won
+            ctx, player, boss_name, boss_level, data_manager = args
+
+            # Run the original battle
+            await self.original_battle_func(*args, **kwargs)
+
+            # After battle, check if player won by checking their stats
+            # Players with wins incremented after a battle victory
+            previous_wins = player.wins
+            data_manager.save_data()  # Ensure data is refreshed
+            player = data_manager.get_player(
+                player.user_id)  # Get fresh player data
+
+            # If player won (wins increased), give special boss loot
+            if player.wins > previous_wins:
+                await self.award_boss_loot(ctx, player, boss_name, boss_level,
+                                           data_manager)
+
+        async def award_boss_loot(self, ctx, player, boss_name, boss_level,
+                                  data_manager):
+            """Award special loot for defeating a world boss"""
+            # Import necessary modules for item generation
+            from equipment import generate_rare_item, generate_random_item, add_item_to_inventory
+            from special_items import get_random_special_drop
+
+            # Special rewards for boss
+            bonus_gold = boss_level * random.randint(100, 200)
+            bonus_exp = boss_level * random.randint(50, 100)
+
+            # Award bonus gold and XP
+            player.add_gold(bonus_gold)
+            player.add_exp(bonus_exp)
+
+            # Create loot embed
+            loot_embed = discord.Embed(
+                title=f"🏆 Boss Defeated: {boss_name}",
+                description=
+                f"You have defeated the mighty {boss_name}! Here are your additional rewards:",
+                color=discord.Color.gold())
+
+            loot_embed.add_field(
+                name="Bonus Rewards",
+                value=f"💰 Gold: +{bonus_gold}\n✨ XP: +{bonus_exp}",
+                inline=False)
+
+            # 75% chance to get a rare item
+            if random.random() < 0.75:
+                rare_item = generate_rare_item(boss_level)
+                add_item_to_inventory(player, rare_item)
+
+                loot_embed.add_field(
+                    name="💎 Rare Item Found!",
+                    value=f"**{rare_item.name}**\n{rare_item.description}",
+                    inline=False)
+
+            # 25% chance to get a mythical item
+            if random.random() < 0.25:
+                special_item = await get_random_special_drop(player.class_level
+                                                             )
+                if special_item:
+                    add_item_to_inventory(player, special_item)
+
+                    loot_embed.add_field(
+                        name="🌟 Mythical Item Found!",
+                        value=
+                        f"**{special_item.name}**\n{special_item.description}",
+                        inline=False)
+
+            # Always give a random item as a consolation
+            if not loot_embed.fields or len(loot_embed.fields) < 3:
+                regular_item = generate_random_item(boss_level)
+                add_item_to_inventory(player, regular_item)
+
+                loot_embed.add_field(
+                    name="📦 Item Found",
+                    value=
+                    f"**{regular_item.name}**\n{regular_item.description}",
+                    inline=False)
+
+            # Save player data
+            data_manager.save_data()
+
+            # Send loot message
+            await ctx.send(embed=loot_embed)
+
+    # Import the battle system
+    from battle_system_new import start_battle
+
+    # Create a wrapper for the battle function
+    boss_battle_handler = BossResultHandler(start_battle)
+
+    # Start battle with the boss using the wrapper
+    await boss_battle_handler(ctx, player, boss_name, boss_level, data_manager)
+
+
 @bot.command(name="achievements")
 async def achievements_cmd(ctx):
     """View your achievements and badges"""
@@ -1090,36 +1329,31 @@ async def ach_cmd(ctx):
 
 
 class GiveOptionsView(discord.ui.View):
+
     def __init__(self, target_member: discord.Member):
         super().__init__(timeout=60)
         self.target_member = target_member
 
         # Add dropdown for resource type selection
         self.resource_select = discord.ui.Select(
-            placeholder="Select what to give",
-            min_values=1,
-            max_values=1
-        )
+            placeholder="Select what to give", min_values=1, max_values=1)
 
         # Add options for different resources
         for resource_id, data in GIVE_OPTIONS.items():
-            self.resource_select.add_option(
-                label=resource_id.replace('_', ' ').title(),
-                emoji=data["emoji"],
-                description=data["description"],
-                value=resource_id
-            )
+            self.resource_select.add_option(label=resource_id.replace(
+                '_', ' ').title(),
+                                            emoji=data["emoji"],
+                                            description=data["description"],
+                                            value=resource_id)
 
         # Set the callback function
         self.resource_select.callback = self.resource_select_callback
         self.add_item(self.resource_select)
 
         # Add cancel button
-        cancel_button = discord.ui.Button(
-            label="Cancel",
-            style=discord.ButtonStyle.secondary,
-            custom_id="cancel"
-        )
+        cancel_button = discord.ui.Button(label="Cancel",
+                                          style=discord.ButtonStyle.secondary,
+                                          custom_id="cancel")
         cancel_button.callback = self.cancel_callback
         self.add_item(cancel_button)
 
@@ -1146,8 +1380,15 @@ class GiveOptionsView(discord.ui.View):
             all_items = get_all_items() + get_all_special_items()
 
             # Sort items by rarity (legendary → epic → rare → uncommon → common)
-            rarity_order = {"legendary": 0, "epic": 1, "rare": 2, "uncommon": 3, "common": 4}
-            all_items.sort(key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
+            rarity_order = {
+                "legendary": 0,
+                "epic": 1,
+                "rare": 2,
+                "uncommon": 3,
+                "common": 4
+            }
+            all_items.sort(key=lambda x:
+                           (rarity_order.get(x.rarity.lower(), 999), x.name))
 
             # Create an item browser view
             view = ItemBrowserView(all_items, self.target_member, player)
@@ -1158,17 +1399,20 @@ class GiveOptionsView(discord.ui.View):
 
     async def cancel_callback(self, interaction: discord.Interaction):
         await interaction.response.edit_message(
-            content=f"Cancelled giving resources to {self.target_member.display_name}.",
-            view=None
-        )
+            content=
+            f"Cancelled giving resources to {self.target_member.display_name}.",
+            view=None)
         self.stop()
 
+
 class AmountInputModal(discord.ui.Modal):
+
     def __init__(self, target_member: discord.Member, resource_type: str):
         self.target_member = target_member
         self.resource_type = resource_type
         emoji = GIVE_OPTIONS[resource_type]["emoji"]
-        super().__init__(title=f"Give {resource_type.replace('_', ' ').title()} {emoji}")
+        super().__init__(
+            title=f"Give {resource_type.replace('_', ' ').title()} {emoji}")
 
         # Add text input for amount
         self.amount_input = discord.ui.TextInput(
@@ -1176,15 +1420,15 @@ class AmountInputModal(discord.ui.Modal):
             placeholder="Enter a number greater than 0",
             required=True,
             min_length=1,
-            max_length=10
-        )
+            max_length=10)
         self.add_item(self.amount_input)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
             amount = int(self.amount_input.value)
             if amount <= 0:
-                await interaction.response.send_message("❌ Amount must be greater than 0.", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ Amount must be greater than 0.", ephemeral=True)
                 return
 
             player = data_manager.get_player(self.target_member.id)
@@ -1201,7 +1445,7 @@ class AmountInputModal(discord.ui.Modal):
 
                 # Check for level ups
                 old_level = player.class_level
-                next_level_exp = int(100 * (old_level ** 1.5))
+                next_level_exp = int(100 * (old_level**1.5))
 
                 while player.class_exp >= next_level_exp:
                     player.class_level += 1
@@ -1209,21 +1453,19 @@ class AmountInputModal(discord.ui.Modal):
                     # Give bonus gold for level up
                     player.add_gold(player.class_level * 50)
                     # Update calculation for next level
-                    next_level_exp = int(100 * (player.class_level ** 1.5))
+                    next_level_exp = int(100 * (player.class_level**1.5))
 
                 # Format success message differently if player leveled up
                 if player.class_level > old_level:
                     success_message = (
                         f"Added **{amount}** XP to {self.target_member.mention}.\n"
                         f"They leveled up from **{old_level}** to **{player.class_level}**! 🎉\n"
-                        f"Current XP: **{player.class_exp}/{next_level_exp}**"
-                    )
+                        f"Current XP: **{player.class_exp}/{next_level_exp}**")
                 else:
                     success_message = (
                         f"Added **{amount}** XP to {self.target_member.mention}.\n"
                         f"Current level: **{player.class_level}**\n"
-                        f"XP: **{player.class_exp}/{next_level_exp}**"
-                    )
+                        f"XP: **{player.class_exp}/{next_level_exp}**")
                 color = discord.Color.purple()
                 title = "✨ XP Added"
 
@@ -1237,15 +1479,15 @@ class AmountInputModal(discord.ui.Modal):
             data_manager.save_data()
 
             # Send confirmation message
-            embed = discord.Embed(
-                title=title,
-                description=success_message,
-                color=color
-            )
+            embed = discord.Embed(title=title,
+                                  description=success_message,
+                                  color=color)
             await interaction.response.send_message(embed=embed)
 
         except ValueError:
-            await interaction.response.send_message("❌ Please enter a valid number.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ Please enter a valid number.", ephemeral=True)
+
 
 @bot.command(name="give")
 @commands.check(admin_check)
@@ -1258,8 +1500,8 @@ async def give_cmd(ctx, member: discord.Member = None):
     view = GiveOptionsView(member)
     await ctx.send(
         f"What would you like to give to **{member.display_name}**? Select an option:",
-        view=view
-    )
+        view=view)
+
 
 @bot.command(name="give_gold")
 @commands.check(admin_check)
@@ -1334,11 +1576,20 @@ async def give_item_cmd(ctx,
     all_items = get_all_items() + get_all_special_items()
 
     # Sort items by rarity (legendary, epic, rare, uncommon, common)
-    rarity_order = {"legendary": 0, "epic": 1, "rare": 2, "uncommon": 3, "common": 4}
-    all_items.sort(key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
+    rarity_order = {
+        "legendary": 0,
+        "epic": 1,
+        "rare": 2,
+        "uncommon": 3,
+        "common": 4
+    }
+    all_items.sort(
+        key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
 
     # Log the sort order for debugging
-    print(f"Items sorted by rarity, showing first 5: {[item.name + ' (' + item.rarity + ')' for item in all_items[:5]]}")
+    print(
+        f"Items sorted by rarity, showing first 5: {[item.name + ' (' + item.rarity + ')' for item in all_items[:5]]}"
+    )
 
     # Filter items if search term provided
     filtered_items = all_items
@@ -1405,13 +1656,8 @@ async def give_item_cmd(ctx,
         def add_rarity_filter(self):
             """Add dropdown for rarity filtering"""
             # Common rarities with their emoji indicators
-            rarities = [
-                ("Legendary", "🌟"),
-                ("Epic", "💠"),
-                ("Rare", "🔷"),
-                ("Uncommon", "🔹"),
-                ("Common", "⚪")
-            ]
+            rarities = [("Legendary", "🌟"), ("Epic", "💠"), ("Rare", "🔷"),
+                        ("Uncommon", "🔹"), ("Common", "⚪")]
 
             # Create select menu
             select = Select(
@@ -1420,7 +1666,8 @@ async def give_item_cmd(ctx,
                     discord.SelectOption(
                         label="All Rarities", value="All", default=True)
                 ] + [
-                    discord.SelectOption(label=f"{emoji} {rarity}", value=rarity)
+                    discord.SelectOption(label=f"{emoji} {rarity}",
+                                         value=rarity)
                     for rarity, emoji in rarities
                 ],
                 row=1)
@@ -1515,14 +1762,15 @@ async def give_item_cmd(ctx,
                 return
 
             # Create the item and add to inventory - overriding level requirements to allow any item
-            new_item = Item(item_id=generate_item_id(),
-                            name=self.selected_item.name,
-                            description=self.selected_item.description,
-                            item_type=self.selected_item.item_type,
-                            rarity=self.selected_item.rarity,
-                            stats=self.selected_item.stats,
-                            level_req=1,  # Set to level 1 to bypass restrictions
-                            value=self.selected_item.value)
+            new_item = Item(
+                item_id=generate_item_id(),
+                name=self.selected_item.name,
+                description=self.selected_item.description,
+                item_type=self.selected_item.item_type,
+                rarity=self.selected_item.rarity,
+                stats=self.selected_item.stats,
+                level_req=1,  # Set to level 1 to bypass restrictions
+                value=self.selected_item.value)
 
             add_item_to_inventory(self.player, new_item)
             data_manager.save_data()
@@ -1549,11 +1797,12 @@ async def give_item_cmd(ctx,
             type_emoji = type_emoji_map.get(new_item.item_type.lower(), "📦")
 
             # Add item details with visual indicators
-            embed.add_field(name="Item Details",
-                            value=f"**Type:** {type_emoji} {new_item.item_type.title()}\n"
-                            f"**Rarity:** {rarity_emoji} {new_item.rarity.title()}\n"
-                            f"**Description:** {new_item.description}",
-                            inline=False)
+            embed.add_field(
+                name="Item Details",
+                value=f"**Type:** {type_emoji} {new_item.item_type.title()}\n"
+                f"**Rarity:** {rarity_emoji} {new_item.rarity.title()}\n"
+                f"**Description:** {new_item.description}",
+                inline=False)
 
             # Add stats if any
             if new_item.stats:
@@ -1716,7 +1965,8 @@ async def give_item_cmd(ctx,
                     "material": "🧶",
                     "special": "✨"
                 }
-                type_emoji = type_emoji_map.get(self.selected_item.item_type.lower(), "📦")
+                type_emoji = type_emoji_map.get(
+                    self.selected_item.item_type.lower(), "📦")
 
                 embed.add_field(
                     name=f"🎯 Selected Item {rarity_emoji}",
@@ -1725,7 +1975,8 @@ async def give_item_cmd(ctx,
                     inline=False)
 
                 embed.add_field(name="📝 Description",
-                                value=self.selected_item.description or "No description available",
+                                value=self.selected_item.description
+                                or "No description available",
                                 inline=False)
 
                 # Add stats if any
@@ -2350,7 +2601,8 @@ async def slash_gather(interaction: discord.Interaction):
     await gather_command(ctx, data_manager)
 
 
-@bot.tree.command(name="tools", description="Equip and manage your gathering tools")
+@bot.tree.command(name="tools",
+                  description="Equip and manage your gathering tools")
 async def slash_tools(interaction: discord.Interaction):
     ctx = await bot.get_context(interaction)
     await tools_command(ctx, data_manager)
@@ -2768,8 +3020,19 @@ if not TOKEN:
     )
     TOKEN = "test_token_for_development_only"  # This will cause the bot to fail connecting, but code will run
 
-
 # Sync slash commands with Discord
+# This section was removed to avoid duplication issues
+
+
+@bot.tree.command(
+    name="world_boss",
+    description=
+    "Battle the active event boss (only works during special boss events)")
+async def slash_boss(interaction: discord.Interaction):
+    ctx = await bot.get_context(interaction)
+    await world_boss_cmd(ctx)
+
+
 @bot.command(name="sync")
 @commands.has_permissions(administrator=True)
 async def sync_command(ctx):

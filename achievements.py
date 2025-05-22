@@ -54,7 +54,7 @@ ACHIEVEMENTS = {
         "badge": "👑",
         "points": 100
     },
-    
+
     # Battle achievements
     "battle_novice": {
         "name": "Battle Novice",
@@ -110,7 +110,7 @@ ACHIEVEMENTS = {
         "badge": "🎯🎯",
         "points": 40
     },
-    
+
     # Dungeon achievements
     "dungeon_crawler": {
         "name": "Dungeon Crawler",
@@ -148,7 +148,7 @@ ACHIEVEMENTS = {
         "badge": "👹",
         "points": 30
     },
-    
+
     # Wealth achievements
     "small_fortune": {
         "name": "Small Fortune",
@@ -186,7 +186,7 @@ ACHIEVEMENTS = {
         "badge": "🛍️",
         "points": 30
     },
-    
+
     # Collection achievements
     "item_collector": {
         "name": "Item Collector",
@@ -251,7 +251,7 @@ ACHIEVEMENTS = {
         "badge": "✨",
         "points": 50
     },
-    
+
     # Training achievements
     "training_novice": {
         "name": "Training Novice",
@@ -289,7 +289,7 @@ ACHIEVEMENTS = {
         "badge": "🏆",
         "points": 25
     },
-    
+
     # Guild achievements
     "guild_member": {
         "name": "Guild Member",
@@ -336,7 +336,7 @@ ACHIEVEMENTS = {
         "badge": "👑",
         "points": 50
     },
-    
+
     # Special achievements
     "class_master": {
         "name": "Class Master",
@@ -534,6 +534,71 @@ SPECIAL_EVENTS = [
         "effect": {"type": "gold_multiplier", "value": 1.5},
         "duration": 1  # days
     },
+    # Dragon Bosses
+    {
+        "id": "special_boss_fire_dragon",
+        "name": "World Boss: Infernus the Fire Dragon",
+        "description": "A powerful fire dragon has appeared! Work together to defeat it for special fire-based rewards!",
+        "effect": {"type": "world_boss", "boss_name": "Infernus the Fire Dragon", "boss_level": lambda avg_lvl: avg_lvl + 20},
+        "duration": 0.5  # days (12 hours)
+    },
+    {
+        "id": "special_boss_ice_dragon",
+        "name": "World Boss: Glacius the Ice Dragon",
+        "description": "A fearsome ice dragon has appeared! Defeat it to claim rare frost items!",
+        "effect": {"type": "world_boss", "boss_name": "Glacius the Ice Dragon", "boss_level": lambda avg_lvl: avg_lvl + 22},
+        "duration": 0.5  # days (12 hours)
+    },
+    {
+        "id": "special_boss_storm_dragon",
+        "name": "World Boss: Tempestus the Storm Dragon",
+        "description": "A mighty storm dragon brings thunder and lightning! Defeat it for storm-infused rewards!",
+        "effect": {"type": "world_boss", "boss_name": "Tempestus the Storm Dragon", "boss_level": lambda avg_lvl: avg_lvl + 25},
+        "duration": 0.5  # days (12 hours)
+    },
+
+    # Elemental Lords
+    {
+        "id": "special_boss_fire_lord",
+        "name": "World Boss: Ignius the Fire Lord",
+        "description": "The lord of fire has emerged from the volcano! Battle this blazing enemy for fire-imbued rewards!",
+        "effect": {"type": "world_boss", "boss_name": "Ignius the Fire Lord", "boss_level": lambda avg_lvl: avg_lvl + 18},
+        "duration": 0.5  # days (12 hours)
+    },
+    {
+        "id": "special_boss_water_lord",
+        "name": "World Boss: Aquarius the Water Lord",
+        "description": "The ruler of the deep seas has risen! Defeat this watery foe for aquatic treasures!",
+        "effect": {"type": "world_boss", "boss_name": "Aquarius the Water Lord", "boss_level": lambda avg_lvl: avg_lvl + 19},
+        "duration": 0.5  # days (12 hours)
+    },
+
+    # Mythic Creatures
+    {
+        "id": "special_boss_phoenix",
+        "name": "World Boss: Eternus the Phoenix",
+        "description": "The immortal phoenix spreads its fiery wings! Defeat it before it can be reborn!",
+        "effect": {"type": "world_boss", "boss_name": "Eternus the Phoenix", "boss_level": lambda avg_lvl: avg_lvl + 23},
+        "duration": 0.5  # days (12 hours)
+    },
+    {
+        "id": "special_boss_kraken",
+        "name": "World Boss: Tentalus the Kraken",
+        "description": "The legendary sea monster attacks! Battle its many tentacles for deep-sea treasures!",
+        "effect": {"type": "world_boss", "boss_name": "Tentalus the Kraken", "boss_level": lambda avg_lvl: avg_lvl + 24},
+        "duration": 0.5  # days (12 hours)
+    },
+
+    # Undead Lords
+    {
+        "id": "special_boss_lich_king",
+        "name": "World Boss: Mortus the Lich King",
+        "description": "The dreaded Lich King commands his undead army! Destroy this necromancer for dark artifacts!",
+        "effect": {"type": "world_boss", "boss_name": "Mortus the Lich King", "boss_level": lambda avg_lvl: avg_lvl + 26},
+        "duration": 0.5  # days (12 hours)
+    },
+
+    # Generic Boss (fallback)
     {
         "id": "special_boss",
         "name": "World Boss: {boss_name}",
@@ -567,12 +632,12 @@ SPECIAL_EVENTS = [
 class AchievementTracker:
     def __init__(self, data_manager: DataManager):
         self.data_manager = data_manager
-    
+
     def get_player_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get a list of player's completed achievements"""
         if not hasattr(player, "achievements"):
             player.achievements = []
-        
+
         completed_achievements = []
         for achievement_id in player.achievements:
             if achievement_id in ACHIEVEMENTS:
@@ -580,27 +645,27 @@ class AchievementTracker:
                     "id": achievement_id,
                     **ACHIEVEMENTS[achievement_id]
                 })
-        
+
         return completed_achievements
-    
+
     def get_player_achievement_points(self, player: PlayerData) -> int:
         """Get total achievement points for player"""
         total_points = 0
-        
+
         if not hasattr(player, "achievements"):
             player.achievements = []
-        
+
         for achievement_id in player.achievements:
             if achievement_id in ACHIEVEMENTS:
                 total_points += ACHIEVEMENTS[achievement_id].get("points", 0)
-        
+
         return total_points
-    
+
     def get_player_available_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get a list of player's available (not yet completed) achievements"""
         if not hasattr(player, "achievements"):
             player.achievements = []
-        
+
         available_achievements = []
         for achievement_id, achievement in ACHIEVEMENTS.items():
             if achievement_id not in player.achievements:
@@ -608,113 +673,113 @@ class AchievementTracker:
                     "id": achievement_id,
                     **achievement
                 })
-        
+
         return available_achievements
-    
+
     def check_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Check and apply any newly completed achievements"""
         if not hasattr(player, "achievements"):
             player.achievements = []
-        
+
         if not hasattr(player, "achievement_progress"):
             player.achievement_progress = {}
-        
+
         newly_earned = []
-        
+
         # Get available achievements
         available_achievements = self.get_player_available_achievements(player)
-        
+
         for achievement in available_achievements:
             # Skip already earned
             if achievement["id"] in player.achievements:
                 continue
-            
+
             # Check if achievement is completed
             completed = self.check_achievement_completion(player, achievement)
-            
+
             if completed:
                 # Add achievement to player
                 player.achievements.append(achievement["id"])
-                
+
                 # Award rewards
                 self.award_achievement_rewards(player, achievement)
-                
+
                 # Add to newly earned list
                 newly_earned.append(achievement)
-                
+
                 # Check for meta achievements (like earning X achievements)
                 if achievement["category"] == "meta":
                     # Recheck achievements since we just earned one
                     return newly_earned + self.check_achievements(player)
-        
+
         return newly_earned
-    
+
     def check_achievement_completion(self, player: PlayerData, achievement: Dict[str, Any]) -> bool:
         """Check if an achievement is completed"""
         req_type = achievement["requirement"]["type"]
         req_value = achievement["requirement"]["value"]
-        
+
         # Check based on requirement type
         if req_type == "level":
             return player.class_level >= req_value
-        
+
         elif req_type == "wins":
             return hasattr(player, "wins") and player.wins >= req_value
-        
+
         elif req_type == "pvp_wins":
             return hasattr(player, "pvp_wins") and player.pvp_wins >= req_value
-        
+
         elif req_type == "dungeons_completed":
             return hasattr(player, "dungeons_completed") and player.dungeons_completed >= req_value
-        
+
         elif req_type == "bosses_defeated":
             return hasattr(player, "bosses_defeated") and player.bosses_defeated >= req_value
-        
+
         elif req_type == "gold_earned":
             return hasattr(player, "gold_earned") and player.gold_earned >= req_value
-        
+
         elif req_type == "gold_spent":
             return hasattr(player, "gold_spent") and player.gold_spent >= req_value
-        
+
         elif req_type == "unique_items":
             return hasattr(player, "inventory") and len(self.get_unique_items(player)) >= req_value
-        
+
         elif req_type == "unique_weapons":
             return hasattr(player, "inventory") and len(self.get_unique_items_by_type(player, "weapon")) >= req_value
-        
+
         elif req_type == "unique_armor":
             return hasattr(player, "inventory") and len(self.get_unique_items_by_type(player, "armor")) >= req_value
-        
+
         elif req_type == "unique_accessories":
             return hasattr(player, "inventory") and len(self.get_unique_items_by_type(player, "accessory")) >= req_value
-        
+
         elif req_type == "rare_items":
             return hasattr(player, "inventory") and len(self.get_items_by_rarity(player, ["rare", "epic", "legendary", "mythic"])) >= req_value
-        
+
         elif req_type == "epic_items":
             return hasattr(player, "inventory") and len(self.get_items_by_rarity(player, ["epic", "legendary", "mythic"])) >= req_value
-        
+
         elif req_type == "legendary_items":
             return hasattr(player, "inventory") and len(self.get_items_by_rarity(player, ["legendary", "mythic"])) >= req_value
-        
+
         elif req_type == "training_completed":
             return hasattr(player, "training_completed") and player.training_completed >= req_value
-        
+
         elif req_type == "advanced_training_completed":
             return hasattr(player, "advanced_training_completed") and player.advanced_training_completed >= req_value
-        
+
         elif req_type == "join_guild":
             # Check if player is in a guild
             if hasattr(self.data_manager, "member_guild_map"):
                 return player.user_id in self.data_manager.member_guild_map
             return False
-        
+
         elif req_type == "guild_contributions":
             return hasattr(player, "guild_contributions") and player.guild_contributions >= req_value
-        
+
         elif req_type == "guild_dungeons":
             return hasattr(player, "guild_dungeons") and player.guild_dungeons >= req_value
-        
+
         elif req_type == "guild_officer":
             # Check if player is a guild officer
             if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
@@ -723,7 +788,7 @@ class AchievementTracker:
                     guild_data = self.data_manager.guild_data[guild_name]
                     return player.user_id in guild_data.get("officers", [])
             return False
-        
+
         elif req_type == "guild_leader":
             # Check if player is a guild leader
             if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
@@ -732,133 +797,133 @@ class AchievementTracker:
                     guild_data = self.data_manager.guild_data[guild_name]
                     return player.user_id == guild_data.get("leader_id")
             return False
-        
+
         elif req_type == "class_changes":
             return hasattr(player, "class_changes") and player.class_changes >= req_value
-        
+
         elif req_type == "daily_claims":
             return hasattr(player, "daily_claims") and player.daily_claims >= req_value
-        
+
         elif req_type == "quests_completed":
             return hasattr(player, "quests_completed") and player.quests_completed >= req_value
-        
+
         elif req_type == "achievements_earned":
             return len(player.achievements) >= req_value
-        
+
         elif req_type == "achievement_points":
             return self.get_player_achievement_points(player) >= req_value
-        
+
         return False
-    
+
     def get_unique_items(self, player: PlayerData) -> List[str]:
         """Get list of unique item names in player inventory"""
         if not hasattr(player, "inventory"):
             return []
-        
+
         unique_items = set()
         for inv_item in player.inventory:
             unique_items.add(inv_item.item.name)
-        
+
         return list(unique_items)
-    
+
     def get_unique_items_by_type(self, player: PlayerData, item_type: str) -> List[str]:
         """Get list of unique items of a specific type"""
         if not hasattr(player, "inventory"):
             return []
-        
+
         unique_items = set()
         for inv_item in player.inventory:
             if inv_item.item.item_type == item_type:
                 unique_items.add(inv_item.item.name)
-        
+
         return list(unique_items)
-    
+
     def get_items_by_rarity(self, player: PlayerData, rarities: List[str]) -> List[str]:
         """Get list of items with specified rarities"""
         if not hasattr(player, "inventory"):
             return []
-        
+
         matching_items = []
         for inv_item in player.inventory:
             if inv_item.item.rarity in rarities:
                 matching_items.append(inv_item.item.name)
-        
+
         return matching_items
-    
+
     def award_achievement_rewards(self, player: PlayerData, achievement: Dict[str, Any]):
         """Award rewards for completing an achievement"""
         if "reward" not in achievement:
             return
-        
+
         reward = achievement["reward"]
-        
+
         # Award XP
         if "exp" in reward:
             player.add_exp(reward["exp"])
-        
+
         # Award gold
         if "gold" in reward:
             if not hasattr(player, "gold"):
                 player.gold = 0
             player.gold += reward["gold"]
-        
+
         # Award special item if any
         if "special_item" in reward:
             # Import here to avoid circular imports
             from special_items import create_special_reward_item
             from equipment import add_item_to_inventory
-            
+
             # Create the special reward item
             special_item = create_special_reward_item(reward["special_item"], achievement["name"])
-            
+
             # Add to inventory
             if special_item:
                 add_item_to_inventory(player, special_item)
-        
+
         # Handle server role reward if any
         if "server_role" in reward:
             # Store that the player has earned this role
             if not hasattr(player, "earned_roles"):
                 player.earned_roles = []
-            
+
             if reward["server_role"] not in player.earned_roles:
                 player.earned_roles.append(reward["server_role"])
-        
+
         # Save player data
         self.data_manager.save_data()
 
 class QuestManager:
     def __init__(self, data_manager: DataManager):
         self.data_manager = data_manager
-        
+
         # Initialize event system if not already
         if not hasattr(self.data_manager, "active_events"):
             self.data_manager.active_events = {}
-        
+
         # Check for event expiration
         self.check_expired_events()
-    
+
     def get_daily_quests(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get player's active daily quests"""
         today = datetime.datetime.now().strftime("%Y-%m-%d")
-        
+
         # Initialize player quest data if needed
         if not hasattr(player, "daily_quests"):
             player.daily_quests = {}
-        
+
         # Check if we need to generate new daily quests
         if today not in player.daily_quests:
             # Generate new daily quests
             player.daily_quests[today] = self.generate_daily_quests(player)
             self.data_manager.save_data()
-        
+
         return player.daily_quests[today]
-    
+
     def generate_daily_quests(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Generate a set of daily quests for a player"""
         # Select 3 random daily quests
         selected_quests = random.sample(DAILY_QUESTS, min(3, len(DAILY_QUESTS)))
-        
+
         # Customize values based on player level
         daily_quests = []
         for quest_template in selected_quests:
@@ -866,12 +931,12 @@ class QuestManager:
             level_factor = min(1.0, player.class_level / 50)  # Cap at level 50
             value_range = quest_template["max_value"] - quest_template["min_value"]
             quest_value = quest_template["min_value"] + int(value_range * level_factor)
-            
+
             # Calculate rewards
             rewards = {}
             for reward_type, reward_calc in quest_template["reward"].items():
                 rewards[reward_type] = reward_calc(quest_value)
-            
+
             # Create the quest
             quest = {
                 "id": quest_template["id"],
@@ -883,34 +948,34 @@ class QuestManager:
                 "completed": False,
                 "reward": rewards
             }
-            
+
             daily_quests.append(quest)
-        
+
         return daily_quests
-    
+
     def get_weekly_quests(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get player's active weekly quests"""
         # Get current week (ISO week number)
         today = datetime.datetime.now()
         current_week = f"{today.year}-W{today.isocalendar()[1]}"
-        
+
         # Initialize player quest data if needed
         if not hasattr(player, "weekly_quests"):
             player.weekly_quests = {}
-        
+
         # Check if we need to generate new weekly quests
         if current_week not in player.weekly_quests:
             # Generate new weekly quests
             player.weekly_quests[current_week] = self.generate_weekly_quests(player)
             self.data_manager.save_data()
-        
+
         return player.weekly_quests[current_week]
-    
+
     def generate_weekly_quests(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Generate a set of weekly quests for a player"""
         # Select 2 random weekly quests
         selected_quests = random.sample(WEEKLY_QUESTS, min(2, len(WEEKLY_QUESTS)))
-        
+
         # Customize values based on player level
         weekly_quests = []
         for quest_template in selected_quests:
@@ -918,12 +983,12 @@ class QuestManager:
             level_factor = min(1.0, player.class_level / 50)  # Cap at level 50
             value_range = quest_template["max_value"] - quest_template["min_value"]
             quest_value = quest_template["min_value"] + int(value_range * level_factor)
-            
+
             # Calculate rewards
             rewards = {}
             for reward_type, reward_calc in quest_template["reward"].items():
                 rewards[reward_type] = reward_calc(quest_value)
-            
+
             # Create the quest
             quest = {
                 "id": quest_template["id"],
@@ -935,11 +1000,11 @@ class QuestManager:
                 "completed": False,
                 "reward": rewards
             }
-            
+
             weekly_quests.append(quest)
-        
+
         return weekly_quests
-    
+
     def get_long_term_quests(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get player's long-term quests"""
         # Initialize player quest data if needed
@@ -947,13 +1012,13 @@ class QuestManager:
             # Generate all long-term quests
             player.long_term_quests = self.generate_long_term_quests()
             self.data_manager.save_data()
-        
+
         return player.long_term_quests
-    
+
     def generate_long_term_quests(self) -> List[Dict[str, Any]]:
         """Generate all long-term quests"""
         long_term_quests = []
-        
+
         for quest_template in LONG_TERM_QUESTS:
             # Create the quest
             quest = {
@@ -966,15 +1031,15 @@ class QuestManager:
                 "completed": False,
                 "reward": quest_template["reward"]
             }
-            
+
             long_term_quests.append(quest)
-        
+
         return long_term_quests
-    
+
     def update_quest_progress(self, player: PlayerData, quest_type: str, amount: int = 1) -> List[Dict[str, Any]]:
         """Update progress for all quests of a specific type and return completed quests"""
         completed_quests = []
-        
+
         # Check daily quests
         daily_quests = self.get_daily_quests(player)
         for quest in daily_quests:
@@ -983,7 +1048,7 @@ class QuestManager:
                 if quest["progress"] >= quest["value"]:
                     quest["completed"] = True
                     completed_quests.append(quest)
-        
+
         # Check weekly quests
         weekly_quests = self.get_weekly_quests(player)
         for quest in weekly_quests:
@@ -992,7 +1057,7 @@ class QuestManager:
                 if quest["progress"] >= quest["value"]:
                     quest["completed"] = True
                     completed_quests.append(quest)
-        
+
         # Check long-term quests
         long_term_quests = self.get_long_term_quests(player)
         for quest in long_term_quests:
@@ -1001,71 +1066,71 @@ class QuestManager:
                 if quest["progress"] >= quest["value"]:
                     quest["completed"] = True
                     completed_quests.append(quest)
-        
+
         # Award rewards for completed quests
         for quest in completed_quests:
             self.award_quest_rewards(player, quest)
-        
+
         # Update quest completion count for achievements
         if not hasattr(player, "quests_completed"):
             player.quests_completed = 0
         player.quests_completed += len(completed_quests)
-        
+
         # Save data
         self.data_manager.save_data()
-        
+
         return completed_quests
-    
+
     def award_quest_rewards(self, player: PlayerData, quest: Dict[str, Any]):
         """Award rewards for completing a quest"""
         if "reward" not in quest:
             return
-        
+
         reward = quest["reward"]
-        
+
         # Award XP with event multiplier
         if "exp" in reward:
             exp_amount = reward["exp"]
-            
+
             # Apply event multipliers if any
             if "active_events" in self.data_manager.__dict__:
                 for event_id, event_data in self.data_manager.active_events.items():
                     if event_data["effect"]["type"] == "exp_multiplier":
                         exp_amount = int(exp_amount * event_data["effect"]["value"])
-            
+
             player.add_exp(exp_amount)
-        
+
         # Award cursed energy with event multiplier
         if "gold" in reward:
             energy_amount = reward["gold"]
-            
+
             # Apply event multipliers if any
             if "active_events" in self.data_manager.__dict__:
                 for event_id, event_data in self.data_manager.active_events.items():
                     if event_data["effect"]["type"] == "gold_multiplier":
                         energy_amount = int(energy_amount * event_data["effect"]["value"])
-            
+
             # Add to player's cursed energy (the main currency)
             player.cursed_energy += energy_amount
-            
+
             # Track gold earned for achievements
             if not hasattr(player, "gold_earned"):
                 player.gold_earned = 0
             player.gold_earned += energy_amount
-        
+
         # Award special item if any
         if "special_item" in reward:
             # Import here to avoid circular imports
             from special_items import create_special_reward_item
             from equipment import add_item_to_inventory
-            
+
             # Create the special reward item
             special_item = create_special_reward_item(reward["special_item"], quest["name"])
-            
+
             # Add to inventory
             if special_item:
                 add_item_to_inventory(player, special_item)
-    
+
     def start_special_event(self, event_id: str, duration_override: float = None) -> Dict[str, Any]:
         """Start a special server event"""
         # Find the event template
@@ -1074,23 +1139,45 @@ class QuestManager:
             if evt["id"] == event_id:
                 event_template = evt
                 break
-        
+
         if not event_template:
             return None
-        
+
         # Create the event instance
         now = datetime.datetime.now()
-        
+
         # Set duration
         duration = duration_override if duration_override is not None else event_template["duration"]
         end_time = now + datetime.timedelta(days=duration)
-        
+
         # Create event data
         if event_id == "special_boss":
             # Get average player level for boss scaling
             avg_level = self.get_average_player_level()
-            boss_name = random.choice(["Abyssal Warlord", "Corrupted Dragon", "Elemental Titan", "Shadow Empress"])
-            
+            # Expanded boss list with even more epic options
+            boss_name = random.choice([
+                # Original bosses
+                "Abyssal Warlord", "Corrupted Dragon", "Elemental Titan", "Shadow Empress",
+                # New elemental bosses
+                "Inferno Overlord", "Tsunami Serpent", "Gale Ravager", "Earth Colossus", "Void Harbinger",
+                "Magma Lord", "Blizzard King", "Lightning Archon", "Venomous Hydra", "Crystal Emperor",
+                # New mythical creatures
+                "Ancient Behemoth", "Celestial Phoenix", "Frost Wyrm", "Thundering Leviathan", "Plague Monstrosity",
+                "Chimera Alpha", "Golden Sphinx", "Void Kraken", "Verdant Manticore", "Cerberus the Devourer",
+                # New unique bosses
+                "Chronos the Timeless", "Nyx the Night Terror", "Gorgon Queen", "Molten Giant", "Death's Executioner",
+                "Ares the Warlord", "Poseidon the Storm Bringer", "Hades the Soul Collector", "Atlas the Mountain", "Hermes the Swift Death",
+                # New legendary bosses
+                "The World Eater", "Nightmare King", "Star Devourer", "King of the Abyss", "Ancient God of Chaos",
+                "Ragnarok Harbinger", "Oblivion Walker", "Cosmic Destroyer", "The Dark Sovereign", "The Great Devourer",
+                # Celestial bosses
+                "Eclipse Lord", "Solaris the Sun Tyrant", "Lunar Empress", "Astral Annihilator", "Comet Rider",
+                # Ancient beings
+                "First One", "Elder Entity", "The Forgotten", "The Nameless", "Ancestor of Madness",
+                # Tech bosses
+                "Mech Overlord", "Armageddon Engine", "Neural Network Prime", "The Eradicator", "Rogue Colossus"
+            ])
+
             event_data = {
                 "id": event_id,
                 "name": event_template["name"].format(boss_name=boss_name),
@@ -1112,59 +1199,59 @@ class QuestManager:
                 "start_time": now.isoformat(),
                 "end_time": end_time.isoformat()
             }
-        
+
         # Add to active events
         self.data_manager.active_events[event_id] = event_data
         self.data_manager.save_data()
-        
+
         return event_data
-    
+
     def get_active_events(self) -> List[Dict[str, Any]]:
         """Get list of currently active events"""
         if not hasattr(self.data_manager, "active_events"):
             self.data_manager.active_events = {}
             return []
-        
+
         # Check for expired events
         self.check_expired_events()
-        
+
         # Return active events
         return list(self.data_manager.active_events.values())
-    
+
     def check_expired_events(self):
         """Check and remove expired events"""
         if not hasattr(self.data_manager, "active_events"):
             self.data_manager.active_events = {}
             return
-        
+
         now = datetime.datetime.now()
         expired_events = []
-        
+
         for event_id, event_data in self.data_manager.active_events.items():
             end_time = datetime.datetime.fromisoformat(event_data["end_time"])
             if now > end_time:
                 expired_events.append(event_id)
-        
+
         # Remove expired events
         for event_id in expired_events:
             del self.data_manager.active_events[event_id]
-        
+
         # Save if any were removed
         if expired_events:
             self.data_manager.save_data()
-    
+
     def get_average_player_level(self) -> int:
         """Get average level of all players"""
         total_level = 0
         player_count = 0
-        
+
         for player_id, player_data in self.data_manager.player_data.items():
             total_level += player_data.class_level
             player_count += 1
-        
+
         if player_count == 0:
             return 10  # Default if no players
-        
+
         return max(1, int(total_level / player_count))
 
 class AchievementsView(View):
@@ -1173,10 +1260,10 @@ class AchievementsView(View):
         self.player_data = player_data
         self.achievement_tracker = achievement_tracker
         self.current_category = "all"
-        
+
         # Add category selection
         self.add_category_select()
-    
+
     def add_category_select(self):
         """Add dropdown for achievement category filtering"""
         categories = [
@@ -1190,7 +1277,7 @@ class AchievementsView(View):
             discord.SelectOption(label="Guild", value="guild", emoji="🏰"),
             discord.SelectOption(label="Special", value="special", emoji="✨")
         ]
-        
+
         category_select = Select(
             placeholder="Filter by category",
             options=categories,
@@ -1199,7 +1286,7 @@ class AchievementsView(View):
         )
         category_select.callback = self.category_callback
         self.add_item(category_select)
-    
+
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
         values = interaction.data.get("values", [])
@@ -1208,21 +1295,21 @@ class AchievementsView(View):
         else:
             # Default to "All" if no selection was made
             self.current_category = "All"
-        
+
         # Create updated embed
         embed = self.create_achievements_embed()
-        
+
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     def create_achievements_embed(self) -> discord.Embed:
         """Create the achievements embed"""
         # Get player's achievements
         completed_achievements = self.achievement_tracker.get_player_achievements(self.player_data)
         available_achievements = self.achievement_tracker.get_player_available_achievements(self.player_data)
-        
+
         # Get total achievement points
         total_points = self.achievement_tracker.get_player_achievement_points(self.player_data)
-        
+
         # Create embed
         embed = discord.Embed(
             title=f"Achievements",
@@ -1230,12 +1317,12 @@ class AchievementsView(View):
                        f"Achievements Earned: **{len(completed_achievements)}/{len(ACHIEVEMENTS)}**",
             color=discord.Color.gold()
         )
-        
+
         # Filter by category if not "all"
         if self.current_category != "all":
             completed_achievements = [a for a in completed_achievements if a["category"] == self.current_category]
             available_achievements = [a for a in available_achievements if a["category"] == self.current_category]
-        
+
         # Add completed achievements
         if completed_achievements:
             completed_text = ""
@@ -1244,16 +1331,16 @@ class AchievementsView(View):
                 points = achievement.get("points", 0)
                 completed_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
                 completed_text += f"*{achievement['description']}*\n\n"
-            
+
             if len(completed_achievements) > 10:
                 completed_text += f"*And {len(completed_achievements) - 10} more...*"
-            
+
             embed.add_field(
                 name=f"✅ Completed Achievements ({len(completed_achievements)})",
                 value=completed_text or "None",
                 inline=False
             )
-        
+
         # Add available achievements
         if available_achievements:
             available_text = ""
@@ -1262,16 +1349,16 @@ class AchievementsView(View):
                 points = achievement.get("points", 0)
                 available_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
                 available_text += f"*{achievement['description']}*\n\n"
-            
+
             if len(available_achievements) > 5:
                 available_text += f"*And {len(available_achievements) - 5} more...*"
-            
+
             embed.add_field(
                 name=f"📋 Available Achievements ({len(available_achievements)})",
                 value=available_text or "None",
                 inline=False
             )
-        
+
         # Add achievement badges to user profile
         if completed_achievements:
             badges = []
@@ -1282,14 +1369,14 @@ class AchievementsView(View):
                     # Sort by points (highest first)
                     category_achievements.sort(key=lambda a: a.get("points", 0), reverse=True)
                     badges.append(category_achievements[0].get("badge", ""))
-            
+
             if badges:
                 embed.add_field(
                     name="Your Achievement Badges",
                     value=" ".join(badges[:5]),  # Limit to 5 badges
                     inline=False
                 )
-        
+
         return embed
 
 class QuestsView(View):
@@ -1298,10 +1385,10 @@ class QuestsView(View):
         self.player_data = player_data
         self.quest_manager = quest_manager
         self.current_tab = "daily"
-        
+
         # Add tab selection buttons
         self.add_tab_buttons()
-    
+
     def add_tab_buttons(self):
         """Add buttons for switching between quest types"""
         # Daily quests button
@@ -1313,7 +1400,7 @@ class QuestsView(View):
         )
         daily_btn.callback = self.daily_tab_callback
         self.add_item(daily_btn)
-        
+
         # Weekly quests button
         weekly_btn = Button(
             label="Weekly Quests",
@@ -1323,7 +1410,7 @@ class QuestsView(View):
         )
         weekly_btn.callback = self.weekly_tab_callback
         self.add_item(weekly_btn)
-        
+
         # Long-term quests button
         longterm_btn = Button(
             label="Long-term Quests",
@@ -1333,46 +1420,46 @@ class QuestsView(View):
         )
         longterm_btn.callback = self.longterm_tab_callback
         self.add_item(longterm_btn)
-    
+
     async def daily_tab_callback(self, interaction: discord.Interaction):
         """Show daily quests"""
         self.current_tab = "daily"
         self.clear_items()  # Clear existing buttons
         self.add_tab_buttons()  # Re-add buttons with updated states
-        
+
         embed = self.create_quests_embed()
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     async def weekly_tab_callback(self, interaction: discord.Interaction):
         """Show weekly quests"""
         self.current_tab = "weekly"
         self.clear_items()  # Clear existing buttons
         self.add_tab_buttons()  # Re-add buttons with updated states
-        
+
         embed = self.create_quests_embed()
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     async def longterm_tab_callback(self, interaction: discord.Interaction):
         """Show long-term quests"""
         self.current_tab = "longterm"
         self.clear_items()  # Clear existing buttons
         self.add_tab_buttons()  # Re-add buttons with updated states
-        
+
         embed = self.create_quests_embed()
         await interaction.response.edit_message(embed=embed, view=self)
-    
+
     def create_quests_embed(self) -> discord.Embed:
         """Create the quests embed based on current tab"""
         if self.current_tab == "daily":
             # Get daily quests
             quests = self.quest_manager.get_daily_quests(self.player_data)
-            
+
             embed = discord.Embed(
                 title=f"Daily Quests",
                 description="Complete these quests before the daily reset!",
                 color=discord.Color.green()
             )
-            
+
             # Add a reset time note
             today = datetime.datetime.now()
             tomorrow = today + datetime.timedelta(days=1)
@@ -1380,40 +1467,40 @@ class QuestsView(View):
             time_until_reset = reset_time - today
             hours, remainder = divmod(time_until_reset.seconds, 3600)
             minutes, _ = divmod(remainder, 60)
-            
+
             embed.set_footer(text=f"Resets in {hours} hours and {minutes} minutes")
-        
+
         elif self.current_tab == "weekly":
             # Get weekly quests
             quests = self.quest_manager.get_weekly_quests(self.player_data)
-            
+
             embed = discord.Embed(
                 title=f"Weekly Quests",
                 description="Complete these quests before the weekly reset!",
                 color=discord.Color.blue()
             )
-            
+
             # Add a reset time note
             today = datetime.datetime.now()
             days_until_monday = (7 - today.weekday()) % 7
             next_monday = today + datetime.timedelta(days=days_until_monday)
             reset_time = datetime.datetime(next_monday.year, next_monday.month, next_monday.day, 0, 0, 0)
             time_until_reset = reset_time - today
-            
+
             embed.set_footer(text=f"Resets in {time_until_reset.days} days and {time_until_reset.seconds // 3600} hours")
-        
+
         else:  # long-term
             # Get long-term quests
             quests = self.quest_manager.get_long_term_quests(self.player_data)
-            
+
             embed = discord.Embed(
                 title=f"Long-term Quests",
                 description="These challenging quests never expire!",
                 color=discord.Color.purple()
             )
-            
+
             embed.set_footer(text="Complete these quests for special rewards")
-        
+
         # Add active quests
         active_quests = [q for q in quests if not q["completed"]]
         if active_quests:
@@ -1424,7 +1511,7 @@ class QuestsView(View):
                 active_text += f"**{quest['name']}**\n"
                 active_text += f"{quest['description']}\n"
                 active_text += f"{progress_bar} ({progress}/{quest['value']})\n"
-                
+
                 # Add rewards
                 rewards_text = []
                 for reward_type, amount in quest["reward"].items():
@@ -1434,9 +1521,9 @@ class QuestsView(View):
                         rewards_text.append(f"{amount} Gold")
                     elif reward_type == "special_item":
                         rewards_text.append(f"Special Item: {amount}")
-                
+
                 active_text += f"**Rewards:** {', '.join(rewards_text)}\n\n"
-            
+
             embed.add_field(
                 name="📋 Active Quests",
                 value=active_text or "No active quests",
@@ -1448,7 +1535,7 @@ class QuestsView(View):
                 value="No active quests",
                 inline=False
             )
-        
+
         # Add completed quests
         completed_quests = [q for q in quests if q["completed"]]
         if completed_quests:
@@ -1456,16 +1543,16 @@ class QuestsView(View):
             for quest in completed_quests[:3]:  # Limit to 3 most recent
                 completed_text += f"**{quest['name']}** ✅\n"
                 completed_text += f"{quest['description']}\n\n"
-            
+
             if len(completed_quests) > 3:
                 completed_text += f"*And {len(completed_quests) - 3} more completed...*"
-            
+
             embed.add_field(
                 name="✅ Completed Quests",
                 value=completed_text or "No completed quests",
                 inline=False
             )
-        
+
         # Add active events if any
         active_events = self.quest_manager.get_active_events()
         if active_events:
@@ -1475,55 +1562,55 @@ class QuestsView(View):
                 end_time = datetime.datetime.fromisoformat(event["end_time"])
                 now = datetime.datetime.now()
                 time_left = end_time - now
-                
+
                 if time_left.days > 0:
                     time_str = f"{time_left.days}d {time_left.seconds // 3600}h remaining"
                 else:
                     hours, remainder = divmod(time_left.seconds, 3600)
                     minutes, _ = divmod(remainder, 60)
                     time_str = f"{hours}h {minutes}m remaining"
-                
+
                 events_text += f"**{event['name']}**\n"
                 events_text += f"{event['description']}\n"
                 events_text += f"*{time_str}*\n\n"
-            
+
             embed.add_field(
                 name="🎉 Active Events",
                 value=events_text,
                 inline=False
             )
-        
+
         return embed
-    
+
     def create_progress_bar(self, current: int, maximum: int, length: int = 10) -> str:
         """Create a text progress bar"""
         if maximum <= 0:
             return "Error: Invalid maximum value"
-        
+
         progress = min(1.0, current / maximum)
         filled_length = int(length * progress)
-        
+
         bar = "█" * filled_length + "░" * (length - filled_length)
-        
+
         return f"[{bar}]"
 
 async def achievements_command(ctx, data_manager: DataManager):
     """View your achievements and badges"""
     player_data = data_manager.get_player(ctx.author.id)
-    
+
     # Initialize achievement tracker
     achievement_tracker = AchievementTracker(data_manager)
-    
+
     # Check for new achievements
     new_achievements = achievement_tracker.check_achievements(player_data)
-    
+
     # Create view
     achievements_view = AchievementsView(player_data, achievement_tracker)
     achievements_embed = achievements_view.create_achievements_embed()
-    
+
     # Send the embed
     await ctx.send(embed=achievements_embed, view=achievements_view)
-    
+
     # If any new achievements were earned, announce them
     for achievement in new_achievements:
         new_achievement_embed = discord.Embed(
@@ -1531,7 +1618,7 @@ async def achievements_command(ctx, data_manager: DataManager):
             description=f"**{achievement['name']}**\n{achievement['description']}",
             color=discord.Color.gold()
         )
-        
+
         # Add rewards
         rewards_text = ""
         for reward_type, amount in achievement["reward"].items():
@@ -1543,14 +1630,14 @@ async def achievements_command(ctx, data_manager: DataManager):
                 rewards_text += f"Special Item: {amount}\n"
             elif reward_type == "server_role":
                 rewards_text += f"Server Role: {amount}\n"
-        
+
         if rewards_text:
             new_achievement_embed.add_field(
                 name="Rewards",
                 value=rewards_text,
                 inline=False
             )
-        
+
         # Add badge
         if "badge" in achievement:
             new_achievement_embed.add_field(
@@ -1558,20 +1645,20 @@ async def achievements_command(ctx, data_manager: DataManager):
                 value=achievement["badge"],
                 inline=False
             )
-        
+
         await ctx.send(embed=new_achievement_embed)
 
 async def quests_command(ctx, data_manager: DataManager):
     """View your active quests"""
     player_data = data_manager.get_player(ctx.author.id)
-    
+
     # Initialize quest manager
     quest_manager = QuestManager(data_manager)
-    
+
     # Create view
     quests_view = QuestsView(player_data, quest_manager)
     quests_embed = quests_view.create_quests_embed()
-    
+
     # Send the embed
     await ctx.send(embed=quests_embed, view=quests_view)
 
@@ -1581,38 +1668,38 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
     if not ctx.author.guild_permissions.administrator:
         await ctx.send("You don't have permission to use this command.")
         return
-    
+
     # Initialize quest manager
     quest_manager = QuestManager(data_manager)
-    
+
     if action == "start":
         if not event_id:
             # List available events
             events_list = "\n".join([f"• `{event['id']}`: {event['name']}" for event in SPECIAL_EVENTS])
-            
+
             await ctx.send(f"Available events to start:\n{events_list}\n\nUse `!event start <event_id> [duration]` to start an event.")
             return
-        
+
         # Try to start the event
         event_data = quest_manager.start_special_event(event_id, duration)
-        
+
         if event_data:
             # Calculate end time
             end_time = datetime.datetime.fromisoformat(event_data["end_time"])
             duration_str = f"{(end_time - datetime.datetime.now()).days} days and {((end_time - datetime.datetime.now()).seconds // 3600)} hours"
-            
+
             event_embed = discord.Embed(
                 title=f"🎉 Event Started: {event_data['name']}",
                 description=event_data["description"],
                 color=discord.Color.gold()
             )
-            
+
             event_embed.add_field(
                 name="Duration",
                 value=f"Event will last for {duration_str}",
                 inline=False
             )
-            
+
             # Add effect details
             effect_text = ""
             if event_data["effect"]["type"] == "exp_multiplier":
@@ -1625,68 +1712,68 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
                 effect_text = f"Training stat gains are multiplied by {event_data['effect']['value']}x!"
             elif event_data["effect"]["type"] == "world_boss":
                 effect_text = f"A world boss '{event_data['effect']['boss_name']}' (Level {event_data['effect']['boss_level']}) has appeared!"
-            
+
             if effect_text:
                 event_embed.add_field(
                     name="Effect",
                     value=effect_text,
                     inline=False
                 )
-            
+
             await ctx.send(embed=event_embed)
         else:
             await ctx.send(f"Error: Unknown event ID '{event_id}'")
-    
+
     elif action == "list":
         # List active events
         active_events = quest_manager.get_active_events()
-        
+
         if not active_events:
             await ctx.send("There are no active events.")
             return
-        
+
         events_embed = discord.Embed(
             title="Active Server Events",
             description="Currently running special events",
             color=discord.Color.gold()
         )
-        
+
         for event in active_events:
             # Calculate time remaining
             end_time = datetime.datetime.fromisoformat(event["end_time"])
             now = datetime.datetime.now()
             time_left = end_time - now
-            
+
             if time_left.days > 0:
                 time_str = f"{time_left.days}d {time_left.seconds // 3600}h remaining"
             else:
                 hours, remainder = divmod(time_left.seconds, 3600)
                 minutes, _ = divmod(remainder, 60)
                 time_str = f"{hours}h {minutes}m remaining"
-            
+
             events_embed.add_field(
                 name=event["name"],
                 value=f"{event['description']}\n*{time_str}*",
                 inline=False
             )
-        
+
         await ctx.send(embed=events_embed)
-    
+
     elif action == "end":
         if not event_id:
             await ctx.send("Please specify an event ID to end.")
             return
-        
+
         # Check if event exists
         if event_id in data_manager.active_events:
             # Remove the event
             del data_manager.active_events[event_id]
             data_manager.save_data()
-            
+
             await ctx.send(f"Event '{event_id}' has been ended.")
         else:
             await ctx.send(f"Error: No active event with ID '{event_id}'")
-    
+
     else:
         # Show help
         help_embed = discord.Embed(
@@ -1694,7 +1781,7 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
             description="Commands for managing server events",
             color=discord.Color.blue()
         )
-        
+
         help_embed.add_field(
             name="Available Commands",
             value="• `!event start <event_id> [duration]` - Start a new event\n"
@@ -1702,53 +1789,53 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
                   "• `!event end <event_id>` - End an active event",
             inline=False
         )
-        
+
         # Create event buttons view
         class EventCommandView(discord.ui.View):
             def __init__(self, quest_manager, data_manager):
                 super().__init__(timeout=60)
                 self.quest_manager = quest_manager
                 self.data_manager = data_manager
-                
+
             @discord.ui.button(label="List Available Events", style=discord.ButtonStyle.primary)
             async def list_events_button(self, interaction: discord.Interaction, button: discord.ui.Button):
                 events_list = "\n".join([f"• `{event['id']}`: {event['name']}" for event in SPECIAL_EVENTS])
                 await interaction.response.send_message(f"Available events to start:\n{events_list}", ephemeral=True)
-            
+
             @discord.ui.button(label="Start 1-Week Event", style=discord.ButtonStyle.success)
             async def start_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
                 # Create a select menu to choose an event
                 options = [discord.SelectOption(label=event["name"], value=event["id"], 
                           description=f"Start a 1-week {event['id']} event") 
                           for event in SPECIAL_EVENTS]
-                
+
                 select = discord.ui.Select(placeholder="Choose an event to start", options=options)
-                
+
                 event_view = discord.ui.View(timeout=30)
                 event_view.add_item(select)
-                
+
                 async def select_callback(select_interaction):
                     event_id = select.values[0]
                     # Start event for 7 days (1 week)
                     event_data = self.quest_manager.start_special_event(event_id, 7.0)
-                    
+
                     if event_data:
                         # Calculate end time
                         end_time = datetime.datetime.fromisoformat(event_data["end_time"])
                         duration_str = f"{(end_time - datetime.datetime.now()).days} days and {((end_time - datetime.datetime.now()).seconds // 3600)} hours"
-                        
+
                         event_embed = discord.Embed(
                             title=f"🎉 Event Started: {event_data['name']}",
                             description=event_data["description"],
                             color=discord.Color.gold()
                         )
-                        
+
                         event_embed.add_field(
                             name="Duration",
                             value=f"Event will last for {duration_str}",
                             inline=False
                         )
-                        
+
                         # Add effect details
                         effect_text = ""
                         if event_data["effect"]["type"] == "exp_multiplier":
@@ -1761,41 +1848,41 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
                             effect_text = f"Training stat gains are multiplied by {event_data['effect']['value']}x!"
                         elif event_data["effect"]["type"] == "world_boss":
                             effect_text = f"A world boss '{event_data['effect']['boss_name']}' (Level {event_data['effect']['boss_level']}) has appeared!"
-                        
+
                         if effect_text:
                             event_embed.add_field(
                                 name="Effect",
                                 value=effect_text,
                                 inline=False
                             )
-                            
+
                         await select_interaction.response.send_message(embed=event_embed)
                     else:
                         await select_interaction.response.send_message(f"Error: Unknown event ID '{event_id}'", ephemeral=True)
-                
+
                 select.callback = select_callback
                 await interaction.response.send_message("Select an event to start for 1 week:", view=event_view, ephemeral=True)
-            
+
             @discord.ui.button(label="End Active Event", style=discord.ButtonStyle.danger) 
             async def end_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
                 # Get active events
                 active_events = self.quest_manager.get_active_events()
-                
+
                 if not active_events:
                     await interaction.response.send_message("There are no active events to end.", ephemeral=True)
                     return
-                
+
                 # Create select menu with active events
                 options = [discord.SelectOption(label=event["name"], value=event["id"], 
                           description=f"End this event") for event in active_events]
-                
+
                 select = discord.ui.Select(placeholder="Choose an event to end", options=options)
                 end_view = discord.ui.View(timeout=30)
                 end_view.add_item(select)
-                
+
                 async def end_callback(end_interaction):
                     event_id = select.values[0]
-                    
+
                     # End the selected event
                     if event_id in self.data_manager.active_events:
                         del self.data_manager.active_events[event_id]
@@ -1803,10 +1890,10 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
                         await end_interaction.response.send_message(f"Event '{event_id}' has been ended.")
                     else:
                         await end_interaction.response.send_message(f"Error: No active event with ID '{event_id}'", ephemeral=True)
-                
+
                 select.callback = end_callback
                 await interaction.response.send_message("Select an event to end:", view=end_view, ephemeral=True)
-        
+
         # Send help embed with buttons
         await ctx.send(embed=help_embed, view=EventCommandView(quest_manager, data_manager))
 
