@@ -1,2 +1,4 @@
 .env
 run.sh
+player_data.json
+player_data_backup.json
