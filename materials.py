@@ -1105,18 +1105,23 @@ class GatheringView(View):
             description=f"You gathered {len(materials)} materials!",
             color=discord.Color.green())
 
-        # Group materials by name and show counts
-        material_counts = {}
+        # Group materials by name, tracking counts and actual values
+        material_data = {}
         for material in materials:
-            if material.name in material_counts:
-                material_counts[material.name] += 1
+            if material.name in material_data:
+                material_data[material.name]["count"] += 1
+                material_data[material.name]["total_value"] += material.value
             else:
-                material_counts[material.name] = 1
+                material_data[material.name] = {
+                    "count": 1,
+                    "total_value": material.value,
+                    "value_per_unit": material.value
+                }
 
         # Add each material to the embed
-        for name, count in material_counts.items():
-            embed.add_field(name=f"{name} x{count}",
-                            value=f"Value: {materials[0].value * count} gold",
+        for name, data in material_data.items():
+            embed.add_field(name=f"{name} x{data['count']}",
+                            value=f"Value: {data['total_value']} gold",
                             inline=True)
 
         # Also give some experience for gathering

@@ -917,6 +917,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             for effect_name in expired_effects:
                 del player_data.active_effects[effect_name]
 
+        # Check for achievements
+        new_achievements = data_manager.check_player_achievements(player_data)
+
         # Save data
         data_manager.save_data()
 

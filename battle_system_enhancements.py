@@ -21,7 +21,7 @@ def enhanced_battle_entity_init(self, name: str, stats: Dict[str, int], moves=No
     self.name = name
     self.stats = stats.copy()
     self.current_hp = stats["hp"]
-    
+
     # Use the player's dynamic max energy calculation if player is present
     if player_data and is_player and hasattr(player_data, "get_max_battle_energy"):
         self.max_energy = player_data.get_max_battle_energy()
@@ -29,12 +29,12 @@ def enhanced_battle_entity_init(self, name: str, stats: Dict[str, int], moves=No
     else:
         self.max_energy = stats.get("energy", 100)
         self.current_energy = self.max_energy
-        
+
     self.moves = moves or []
     self.is_player = is_player
     self.player_data = player_data
     self.status_effects = {}  # Effect name -> (turns remaining, effect strength)
-    
+
     # Process active effects from special items
     if is_player and player_data and hasattr(player_data, "active_effects"):
         # Apply any HP boosts from active effects
@@ -82,26 +82,26 @@ def find_potions_in_inventory(player_data: PlayerData):
     potions = []
     if not player_data or not hasattr(player_data, "inventory"):
         return potions
-    
+
     for inv_item in player_data.inventory:
         if not inv_item or not hasattr(inv_item, "item"):
             continue
-            
+
         item = inv_item.item
         # Check if it's a potion or usable item (health or energy effects)
         if (hasattr(item, "item_type") and item.item_type and item.item_type.lower() == "potion" or 
             hasattr(item, "name") and ("potion" in item.name.lower() or "elixir" in item.name.lower())):
-            
+
             # Default to "energy" effect if we can't determine the type
             effect_type = "energy"
-            
+
             # Try to determine the effect type from description
             if hasattr(item, "description") and item.description:
                 if "heal" in item.description.lower() or "health" in item.description.lower():
                     effect_type = "healing"
                 elif "energy" in item.description.lower():
                     effect_type = "energy"
-            
+
             # Add the potion to our list
             potions.append({
                 "name": item.name if hasattr(item, "name") else "Potion",
@@ -109,5 +109,5 @@ def find_potions_in_inventory(player_data: PlayerData):
                 "item": item,
                 "inventory_item": inv_item
             })
-    
+
     return potions

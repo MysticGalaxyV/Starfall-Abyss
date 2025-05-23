@@ -473,9 +473,16 @@ class PlayerData:
             # Refill battle energy on level up
             self.battle_energy = self.max_battle_energy
 
+            # Set a flag to check achievements after the whole leveling process
+
             # Calculate XP needed for the next level if not at max level
             if self.class_level < MAX_LEVEL:
                 xp_needed = self.calculate_xp_for_level(self.class_level)
+
+        # The leveled_up flag will be returned
+        # When handling this in the calling code, make sure to check achievements
+        # Since the PlayerData instance doesn't have direct access to the DataManager,
+        # achievement checking needs to happen in code that has access to both
 
         return leveled_up
 
@@ -656,6 +663,7 @@ class DataManager:
         self.member_guild_map = {}  # Maps member IDs to guild IDs
         self.guild_data = {}  # Guild data storage
         self.player_data = {}  # For compatibility with existing code
+        self.achievement_tracker = None  # Will be initialized after imports
 
         if not os.path.exists('player_data.json'):
             with open('player_data.json', 'w') as f:
@@ -724,6 +732,26 @@ class DataManager:
             self.players[user_id] = PlayerData(user_id)
             self.save_data()
         return self.players[user_id]
+
+    def check_player_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
+        """Check for new achievements and return any that were earned
+
+        This method should be called after any action that might
+        trigger an achievement (leveling up, winning battles, etc.)
+        """
+        # We need to import here to avoid circular imports
+        if self.achievement_tracker is None:
+            from achievements import AchievementTracker
+            self.achievement_tracker = AchievementTracker(self)
+
+        # Check for new achievements
+        new_achievements = self.achievement_tracker.check_achievements(player)
+
+        # If any achievements were earned, save the data
+        if new_achievements:
+            self.save_data()
+
+        return new_achievements
 
     def load_dungeons(self):
         """Load dungeon data from the DUNGEONS dictionary in dungeons.py"""

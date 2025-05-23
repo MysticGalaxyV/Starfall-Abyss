@@ -328,7 +328,7 @@ def calculate_exp_for_level(level: int) -> int:
 def calculate_battle_exp(enemy_level: int, player_level: int) -> int:
     """Calculate experience reward from a battle"""
     base_exp = 15 + (enemy_level * 5)
-    
+
     # Adjust based on level difference
     level_diff = enemy_level - player_level
     if level_diff > 0:
@@ -340,7 +340,7 @@ def calculate_battle_exp(enemy_level: int, player_level: int) -> int:
     else:
         # Same level
         exp_modifier = 1.0
-        
+
     return int(base_exp * exp_modifier)
 
 def format_time_until(time_seconds: int) -> str:
@@ -374,24 +374,24 @@ def get_random_enemy(zone: str, player_level: int) -> Dict[str, Any]:
         enemy for enemy in ENEMY_POOLS[zone] 
         if enemy["min_level"] <= player_level + 2 and enemy["max_level"] >= player_level - 2
     ]
-    
+
     # If no suitable enemies, get closest ones
     if not suitable_enemies:
         suitable_enemies = ENEMY_POOLS[zone]
-    
+
     # Select random enemy
     enemy = random.choice(suitable_enemies)
-    
+
     # Determine enemy level
     min_level = max(1, player_level - 2)
     max_level = player_level + 2
-    
+
     # Keep within enemy's level range
     min_level = max(min_level, enemy["min_level"])
     max_level = min(max_level, enemy["max_level"])
-    
+
     level = random.randint(min_level, max_level)
-    
+
     return {
         "name": enemy["name"],
         "level": level
@@ -401,7 +401,7 @@ def get_zone_boss(zone: str, player_level: int) -> Dict[str, Any]:
     """Get a zone's boss with appropriate level for the player"""
     boss = BOSSES[zone]
     boss_level = player_level + boss["level_offset"]
-    
+
     return {
         "name": boss["name"],
         "level": boss_level

@@ -188,6 +188,14 @@ class TrainingOptionView(RestrictedView):
         # Update last train time
         self.player_data.last_train = now
 
+        # Track training completion for achievements
+        if not hasattr(self.player_data, "training_completed"):
+            self.player_data.training_completed = 0
+        self.player_data.training_completed += 1
+
+        # Check for achievements
+        new_achievements = self.data_manager.check_player_achievements(self.player_data)
+
         # Save player data
         self.data_manager.save_data()
 

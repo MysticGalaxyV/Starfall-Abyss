@@ -717,11 +717,13 @@ class TrainingMinigameView(View):
             # Create a view to display the sequence
             display_view = View(timeout=None)
             for i, symbol_idx in enumerate(self.current_sequence):
+                # Calculate row number - max 5 buttons per row
+                row_num = i // 5
                 button = Button(
                     label=f"{i+1}: {symbols[symbol_idx]}",
                     style=discord.ButtonStyle.secondary,
                     disabled=True,
-                    row=0
+                    row=row_num
                 )
                 display_view.add_item(button)
 
@@ -791,7 +793,16 @@ class TrainingMinigameView(View):
             if round_num < rounds and self.round_complete:
                 await asyncio.sleep(1.5)
 
-        # After all rounds, process the results
+        # After all rounds, show a processing message
+        await interaction.edit_original_response(
+            content="Training complete! Processing results...",
+            view=None
+        )
+
+        # Small pause for better user experience
+        await asyncio.sleep(1.0)
+
+        # Process the results
         await self.process_training_results(interaction)
 
     async def run_timing_minigame(self, interaction: discord.Interaction):
@@ -1043,23 +1054,25 @@ class TrainingMinigameView(View):
         # Apply attribute gains if applicable
         if attribute_gain > 0:
             # Primary attribute
-            if primary_attr in self.player_data.attributes:
-                self.player_data.attributes[primary_attr] += attribute_gain
-            elif primary_attr == "energy" and hasattr(self.player_data, "max_energy"):
-                self.player_data.max_energy += energy_gain
+            if primary_attr in self.player_data.allocated_stats:
+                self.player_data.allocated_stats[primary_attr] += attribute_gain
+            elif primary_attr == "energy":
+                self.player_data.energy_training += energy_gain
 
             # Secondary attribute (half the gain)
-            if secondary_attr in self.player_data.attributes:
-                self.player_data.attributes[secondary_attr] += max(1, attribute_gain // 2)
+            if secondary_attr in self.player_data.allocated_stats:
+                self.player_data.allocated_stats[secondary_attr] += max(1, attribute_gain // 2)
 
         # Check for special rewards for perfect score
         special_rewards = None
         if success_percent == 100 and "special_rewards" in self.training_data and "perfect_score" in self.training_data["special_rewards"]:
             special_rewards = self.training_data["special_rewards"]["perfect_score"]
 
-            # Apply cursed energy reward if present
+            # Apply gold reward if present (previously cursed_energy)
             if "cursed_energy" in special_rewards:
-                self.player_data.cursed_energy += special_rewards["cursed_energy"]
+                # Convert cursed_energy rewards to gold
+                gold_reward = special_rewards["cursed_energy"]
+                self.player_data.gold += gold_reward
 
             # Apply effect if present
             if "effect" in special_rewards:
@@ -1089,6 +1102,14 @@ class TrainingMinigameView(View):
             self.player_data.training_cooldowns = {}
 
         self.player_data.training_cooldowns[self.training_type] = cooldown_until.isoformat()
+
+        # Track training completion for achievements
+        if not hasattr(self.player_data, "advanced_training_completed"):
+            self.player_data.advanced_training_completed = 0
+        self.player_data.advanced_training_completed += 1
+
+        # Check for achievements
+        new_achievements = self.data_manager.check_player_achievements(self.player_data)
 
         # Save player data
         self.data_manager.save_data()
@@ -1124,7 +1145,7 @@ class TrainingMinigameView(View):
             else:
                 gains_text += f"**{primary_attr.title()}:** +{attribute_gain}\n"
 
-            if secondary_attr in self.player_data.attributes:
+            if secondary_attr in self.player_data.allocated_stats:
                 secondary_gain = max(1, attribute_gain // 2)
                 gains_text += f"**{secondary_attr.title()}:** +{secondary_gain}\n"
         else:
@@ -1140,7 +1161,7 @@ class TrainingMinigameView(View):
         if special_rewards:
             rewards_text = ""
             if "cursed_energy" in special_rewards:
-                rewards_text += f"**Cursed Energy:** +{special_rewards['cursed_energy']} ✨\n"
+                rewards_text += f"**Gold:** +{special_rewards['cursed_energy']} 💰\n"
 
             if "effect" in special_rewards:
                 effect = special_rewards["effect"]
