@@ -433,16 +433,26 @@ class PlayerData:
             return True
         return False
 
-    def add_exp(self, exp_amount: int) -> bool:
-        """Add experience points and handle level ups. Returns True if leveled up."""
+    def add_exp(self, exp_amount: int, bypass_penalty: bool = False) -> bool:
+        """
+        Add experience points and handle level ups. Returns True if leveled up.
+
+        Parameters:
+        - exp_amount: The amount of XP to add
+        - bypass_penalty: If True, bypass the level penalty (used for admin commands)
+        """
         leveled_up = False
 
-        # Reduce the XP penalty for higher levels to make progression easier
-        level_penalty = max(
-            0.95,
-            1.0 - (self.class_level *
-                   0.002))  # 0.2% reduction per level, min 95% of original XP
-        adjusted_exp = int(exp_amount * level_penalty)
+        if bypass_penalty:
+            # Admin command - no penalty applied
+            adjusted_exp = exp_amount
+        else:
+            # Normal XP gain - apply level penalty
+            level_penalty = max(
+                0.95,
+                1.0 - (self.class_level *
+                      0.002))  # 0.2% reduction per level, min 95% of original XP
+            adjusted_exp = int(exp_amount * level_penalty)
 
         self.class_exp += adjusted_exp
 

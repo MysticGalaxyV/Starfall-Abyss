@@ -73,18 +73,80 @@ def admin_check(ctx):
 
 
 # Constants for the admin menu system
+# Constants for the enhanced admin give system
+GIVE_CATEGORIES = {
+    "resources": {
+        "emoji": "💰",
+        "name": "Resources",
+        "description": "Gold, XP, Skill Points, Battle Energy"
+    },
+    "items": {
+        "emoji": "🎁",
+        "name": "Items",
+        "description": "Weapons, Armor, Accessories, Tools, Materials"
+    },
+    "progress": {
+        "emoji": "📊",
+        "name": "Progress",
+        "description": "Stats, PvP History, Quest Completion"
+    }
+}
+
 GIVE_OPTIONS = {
+    # Resources category
     "gold": {
         "emoji": "💰",
-        "description": "Give gold to a player"
+        "description": "Give gold to a player",
+        "category": "resources"
     },
     "xp": {
         "emoji": "✨",
-        "description": "Give XP to a player"
+        "description": "Give experience points",
+        "category": "resources"
     },
-    "item": {
+    "skill_points": {
+        "emoji": "🎯",
+        "description": "Give skill points",
+        "category": "resources"
+    },
+    "battle_energy": {
+        "emoji": "⚡",
+        "description": "Increase max battle energy",
+        "category": "resources"
+    },
+
+    # Items category
+    "weapons": {
+        "emoji": "⚔️",
+        "description": "Give weapons",
+        "category": "items"
+    },
+    "armor": {
+        "emoji": "🛡️",
+        "description": "Give armor pieces",
+        "category": "items"
+    },
+    "items": {
         "emoji": "🎁",
-        "description": "Give an item to a player"
+        "description": "Give general items",
+        "category": "items"
+    },
+
+    # Progress category
+    "stats": {
+        "emoji": "📊",
+        "description": "Give stat points",
+        "category": "progress"
+    },
+    "pvp_history": {
+        "emoji": "⚔️",
+        "description": "Add PvP wins/losses",
+        "category": "progress"
+    },
+    "quest_complete": {
+        "emoji": "✅",
+        "description": "Mark quests as complete",
+        "category": "progress"
     }
 }
 
@@ -1328,7 +1390,519 @@ async def ach_cmd(ctx):
     await achievements_command(ctx, data_manager)
 
 
+class EnhancedGiveView(discord.ui.View):
+    """Enhanced give system with categories and nested options"""
+
+    def __init__(self, target_member: discord.Member):
+        super().__init__(timeout=60)
+        self.target_member = target_member
+        self.current_category = None
+        self.category_embed = None
+
+        # Add dropdown for category selection
+        self.category_select = discord.ui.Select(
+            placeholder="Select what to give...",
+            min_values=1,
+            max_values=1,
+            custom_id="category_select"
+        )
+
+        # Add options for different categories
+        for category_id, data in GIVE_CATEGORIES.items():
+            self.category_select.add_option(
+                label=data["name"],
+                emoji=data["emoji"],
+                description=data["description"],
+                value=category_id
+            )
+
+        # Set callback for category selection
+        self.category_select.callback = self.category_select_callback
+        self.add_item(self.category_select)
+
+        # Add cancel button
+        cancel_button = discord.ui.Button(
+            label="Cancel",
+            style=discord.ButtonStyle.secondary,
+            custom_id="cancel"
+        )
+        cancel_button.callback = self.cancel_callback
+        self.add_item(cancel_button)
+
+    async def category_select_callback(self, interaction: discord.Interaction):
+        # Get selected category
+        category_id = interaction.data["values"][0]
+        self.current_category = category_id
+
+        # Create an embed for the category options
+        category_data = GIVE_CATEGORIES[category_id]
+        embed = discord.Embed(
+            title=f"📦 Enhanced Give System",
+            description=f"Select what you want to give to {self.target_member.display_name}:",
+            color=discord.Color.gold()
+        )
+
+        # Add the category as a field in the embed
+        embed.add_field(
+            name=f"{category_data['emoji']} {category_data['name']}",
+            value=category_data['description'],
+            inline=False
+        )
+
+        # Create a new view with options specific to this category
+        options_view = CategoryOptionsView(self.target_member, category_id)
+
+        # Update the message with the new embed and view
+        await interaction.response.edit_message(embed=embed, view=options_view)
+        self.stop()
+
+    async def cancel_callback(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            content=f"Cancelled giving resources to {self.target_member.display_name}.",
+            view=None,
+            embed=None
+        )
+        self.stop()
+
+
+class CategoryOptionsView(discord.ui.View):
+    """View for showing options within a specific category"""
+
+    def __init__(self, target_member: discord.Member, category_id: str):
+        super().__init__(timeout=60)
+        self.target_member = target_member
+        self.category_id = category_id
+
+        # Add dropdown for option selection
+        self.option_select = discord.ui.Select(
+            placeholder="Select what to give...",
+            min_values=1,
+            max_values=1,
+            custom_id="option_select"
+        )
+
+        # Add options for the selected category
+        for resource_id, data in GIVE_OPTIONS.items():
+            if data["category"] == category_id:
+                self.option_select.add_option(
+                    label=resource_id.replace('_', ' ').title(),
+                    emoji=data["emoji"],
+                    description=data["description"],
+                    value=resource_id
+                )
+
+        # Set callback for option selection
+        self.option_select.callback = self.option_select_callback
+        self.add_item(self.option_select)
+
+        # Add back button
+        back_button = discord.ui.Button(
+            label="Back",
+            style=discord.ButtonStyle.secondary,
+            custom_id="back"
+        )
+        back_button.callback = self.back_callback
+        self.add_item(back_button)
+
+        # Add cancel button
+        cancel_button = discord.ui.Button(
+            label="Cancel",
+            style=discord.ButtonStyle.secondary,
+            custom_id="cancel"
+        )
+        cancel_button.callback = self.cancel_callback
+        self.add_item(cancel_button)
+
+    async def option_select_callback(self, interaction: discord.Interaction):
+        # Get selected option
+        option_id = interaction.data["values"][0]
+
+        # Process the selected option based on its type
+        if option_id == "items" or option_id == "weapons" or option_id == "armor":
+            # For items, show the item browser (with filtering if specified)
+            await interaction.response.defer()
+
+            # Get player data
+            player = data_manager.get_player(self.target_member.id)
+
+            # Import necessary functions
+            from equipment import get_all_items, add_item_to_inventory, generate_item_id
+            from special_items import get_all_special_items
+
+            # Combine regular and special items
+            all_items = get_all_items() + get_all_special_items()
+
+            # Filter items based on selected type
+            if option_id == "weapons":
+                filtered_items = [item for item in all_items if item.type.lower() == "weapon"]
+            elif option_id == "armor":
+                filtered_items = [item for item in all_items if item.type.lower() == "armor"]
+            else:
+                filtered_items = all_items
+
+            # Sort items by rarity
+            rarity_order = {
+                "legendary": 0,
+                "epic": 1,
+                "rare": 2,
+                "uncommon": 3,
+                "common": 4
+            }
+            filtered_items.sort(key=lambda x: (rarity_order.get(x.rarity.lower(), 999), x.name))
+
+            # Create an item browser view
+            view = ItemBrowserView(filtered_items, self.target_member, player)
+            embed = view.create_browser_embed()
+
+            await interaction.followup.send(embed=embed, view=view)
+            self.stop()
+        elif option_id == "stats":
+            # Show stats selection
+            await interaction.response.defer()
+
+            # Create a stats selection view
+            view = StatsSelectionView(self.target_member)
+            embed = view.create_stats_embed()
+
+            await interaction.followup.send(embed=embed, view=view)
+            self.stop()
+        else:
+            # For other resources, show amount input modal
+            modal = EnhancedAmountInputModal(self.target_member, option_id)
+            await interaction.response.send_modal(modal)
+
+    async def back_callback(self, interaction: discord.Interaction):
+        # Go back to category selection
+        view = EnhancedGiveView(self.target_member)
+        embed = discord.Embed(
+            title="📦 Enhanced Give System",
+            description=f"Select what you want to give to {self.target_member.display_name}:",
+            color=discord.Color.gold()
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+        self.stop()
+
+    async def cancel_callback(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            content=f"Cancelled giving resources to {self.target_member.display_name}.",
+            view=None,
+            embed=None
+        )
+        self.stop()
+
+
+class StatsSelectionView(discord.ui.View):
+    """View for selecting which stat to increase"""
+
+    def __init__(self, target_member: discord.Member):
+        super().__init__(timeout=60)
+        self.target_member = target_member
+
+        # Get player data
+        self.player = data_manager.get_player(target_member.id)
+
+        # Add buttons for stats
+        self.add_stat_button("Health", "❤️", 0)
+        self.add_stat_button("Cursed Power", "🔮", 0)
+        self.add_stat_button("Defense", "🛡️", 1)
+        self.add_stat_button("Speed", "💨", 1)
+
+        # Add back button
+        back_button = discord.ui.Button(
+            label="Back",
+            style=discord.ButtonStyle.secondary,
+            custom_id="back",
+            row=2
+        )
+        back_button.callback = self.back_callback
+        self.add_item(back_button)
+
+    def add_stat_button(self, stat_name: str, emoji: str, row: int):
+        button = discord.ui.Button(
+            label=stat_name,
+            emoji=emoji,
+            style=discord.ButtonStyle.primary,
+            custom_id=stat_name.lower(),
+            row=row
+        )
+        button.callback = self.stat_button_callback
+        self.add_item(button)
+
+    async def stat_button_callback(self, interaction: discord.Interaction):
+        stat_name = interaction.data["custom_id"]
+
+        # Create a modal for entering amount
+        modal = StatsAmountModal(self.target_member, stat_name)
+        await interaction.response.send_modal(modal)
+
+    async def back_callback(self, interaction: discord.Interaction):
+        # Go back to category selection within Resources
+        view = CategoryOptionsView(self.target_member, "progress")
+
+        category_data = GIVE_CATEGORIES["progress"]
+        embed = discord.Embed(
+            title=f"📦 Enhanced Give System",
+            description=f"Select what you want to give to {self.target_member.display_name}:",
+            color=discord.Color.gold()
+        )
+        embed.add_field(
+            name=f"{category_data['emoji']} {category_data['name']}",
+            value=category_data['description'],
+            inline=False
+        )
+
+        await interaction.response.edit_message(embed=embed, view=view)
+        self.stop()
+
+    def create_stats_embed(self):
+        """Create the stats selection embed"""
+        embed = discord.Embed(
+            title=f"📊 Give Stats to {self.target_member.display_name}",
+            description="Select a stat to increase by 1 point:",
+            color=discord.Color.blue()
+        )
+
+        embed.add_field(
+            name="Ready to Add Stats",
+            value=(
+                f"❤️ Health\n"
+                f"🔮 Cursed Power\n"
+                f"🛡️ Defense\n"
+                f"💨 Speed"
+            ),
+            inline=False
+        )
+
+        return embed
+
+
+class EnhancedAmountInputModal(discord.ui.Modal):
+    """Enhanced modal for entering resource amounts"""
+
+    def __init__(self, target_member: discord.Member, resource_type: str):
+        self.target_member = target_member
+        self.resource_type = resource_type
+
+        # Get emoji and formatted title
+        resource_data = GIVE_OPTIONS.get(resource_type, {})
+        emoji = resource_data.get("emoji", "📦")
+        formatted_title = resource_type.replace('_', ' ').title()
+
+        super().__init__(title=f"Give {formatted_title} {emoji}")
+
+        # Add text input for amount
+        self.amount_input = discord.ui.TextInput(
+            label=f"Amount Of {formatted_title} To Give",
+            placeholder="Enter number of points (e.g., 5, 10, 25)",
+            required=True,
+            min_length=1,
+            max_length=10
+        )
+        self.add_item(self.amount_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            amount = int(self.amount_input.value)
+            if amount <= 0:
+                await interaction.response.send_message(
+                    "❌ Amount must be greater than 0.",
+                    ephemeral=True
+                )
+                return
+
+            # Get player data
+            player = data_manager.get_player(self.target_member.id)
+
+            # Process different resource types
+            success_message = ""
+            title = ""
+            color = discord.Color.green()
+
+            if self.resource_type == "gold":
+                player.gold += amount
+                success_message = f"Added **{amount}** gold to {self.target_member.mention}.\nNew balance: **{player.gold}** 💰"
+                title = "💰 Gold Added"
+
+            elif self.resource_type == "xp":
+                old_level = player.class_level
+                old_exp = player.class_exp
+
+                # Apply XP with bypass_penalty=True to ensure exact amount is given
+                leveled_up = player.add_exp(amount, bypass_penalty=True)
+                next_level_exp = player.xp_to_next_level()
+
+                # Admin command always gives exact amount specified
+                success_message = f"Added **{amount}** XP to {self.target_member.mention}.\nCurrent level: **{player.class_level}** | XP: **{player.class_exp}/{next_level_exp}**"
+
+                if leveled_up:
+                    success_message += f"\n\n🎉 **Level Up!** {self.target_member.mention} is now level **{player.class_level}**!"
+
+                title = "✨ XP Added"
+                color = discord.Color.purple()
+
+            elif self.resource_type == "skill_points":
+                player.skill_points += amount
+                success_message = f"Added **{amount}** skill points to {self.target_member.mention}.\nNew total: **{player.skill_points}** 🎯"
+                title = "🎯 Skill Points Added"
+                color = discord.Color.blue()
+
+            elif self.resource_type == "battle_energy":
+                # Increase max battle energy
+                player.max_battle_energy += amount
+                player.battle_energy = player.max_battle_energy  # Refill energy
+                success_message = f"Increased max battle energy for {self.target_member.mention} by **{amount}**.\nNew maximum: **{player.max_battle_energy}** ⚡"
+                title = "⚡ Battle Energy Increased"
+                color = discord.Color.gold()
+
+            elif self.resource_type == "pvp_history":
+                # Add PvP wins
+                player.pvp_wins += amount
+                success_message = f"Added **{amount}** PvP win(s) to {self.target_member.mention}.\nPvP record: **{player.pvp_wins}** wins / **{player.pvp_losses}** losses"
+                title = "⚔️ PvP History Updated"
+                color = discord.Color.red()
+
+            elif self.resource_type == "quest_complete":
+                # For simplicity, mark a number of quests as complete
+                # In a real implementation, you would want to select specific quests
+                success_message = f"Marked **{amount}** quest(s) as complete for {self.target_member.mention}."
+                title = "✅ Quests Completed"
+                color = discord.Color.green()
+
+            # Save player data
+            data_manager.save_data()
+
+            # Send confirmation message
+            embed = discord.Embed(
+                title=title,
+                description=success_message,
+                color=color
+            )
+            await interaction.response.send_message(embed=embed)
+
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Please enter a valid number.",
+                ephemeral=True
+            )
+
+
+class StatsAmountModal(discord.ui.Modal):
+    """Modal for entering stat point amounts"""
+
+    def __init__(self, target_member: discord.Member, stat_name: str):
+        self.target_member = target_member
+        self.stat_name = stat_name
+
+        # Get emoji based on stat
+        emoji_map = {
+            "health": "❤️",
+            "cursed power": "🔮",
+            "defense": "🛡️",
+            "speed": "💨"
+        }
+        emoji = emoji_map.get(stat_name, "📊")
+
+        super().__init__(title=f"Give {stat_name.title()} Points {emoji}")
+
+        # Add text input for amount
+        self.amount_input = discord.ui.TextInput(
+            label=f"Amount Of {stat_name.title()} To Give",
+            placeholder="Enter number of points (e.g., 5, 10, 25)",
+            required=True,
+            min_length=1,
+            max_length=10
+        )
+        self.add_item(self.amount_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            amount = int(self.amount_input.value)
+            if amount <= 0:
+                await interaction.response.send_message(
+                    "❌ Amount must be greater than 0.",
+                    ephemeral=True
+                )
+                return
+
+            # Get player data
+            player = data_manager.get_player(self.target_member.id)
+
+            # Update the appropriate stat
+            stat_attr = self.stat_name.lower().replace(" ", "_")
+
+            # Handle special case for cursed power - map to power in allocated_stats
+            if stat_attr == "cursed_power":
+                if "power" in player.allocated_stats:
+                    player.allocated_stats["power"] += amount
+                else:
+                    player.allocated_stats["power"] = amount
+                current_value = player.allocated_stats["power"]
+            elif stat_attr == "health":
+                # For health, update the current_hp and max HP in allocated_stats
+                if "hp" in player.allocated_stats:
+                    player.allocated_stats["hp"] += amount
+                else:
+                    player.allocated_stats["hp"] = amount
+                player.current_hp += amount  # Also increase current HP
+                current_value = player.allocated_stats["hp"]
+            elif stat_attr == "defense" or stat_attr == "speed":
+                # Map to the correct stat name in allocated_stats
+                if stat_attr in player.allocated_stats:
+                    player.allocated_stats[stat_attr] += amount
+                else:
+                    player.allocated_stats[stat_attr] = amount
+                current_value = player.allocated_stats[stat_attr]
+            else:
+                # Generic fallback for any direct attributes
+                if hasattr(player, stat_attr):
+                    current_value = getattr(player, stat_attr) + amount
+                    setattr(player, stat_attr, current_value)
+                else:
+                    await interaction.response.send_message(
+                        f"❌ Unable to find stat attribute: {stat_attr}",
+                        ephemeral=True
+                    )
+                    return
+
+            # Save player data
+            data_manager.save_data()
+
+            # Get emoji for the stat
+            emoji_map = {
+                "health": "❤️",
+                "cursed_power": "🔮",
+                "defense": "🛡️",
+                "speed": "💨"
+            }
+            emoji = emoji_map.get(stat_attr, "📊")
+
+            # Create confirmation message with appropriate title and description
+            title = f"{emoji} {self.stat_name.title()} Increased"
+
+            if stat_attr == "health":
+                description = f"Added **{amount}** {self.stat_name} points to {self.target_member.mention}.\nNew value: **{current_value}** {emoji}"
+            elif stat_attr == "cursed_power":
+                description = f"Added **{amount}** Cursed Power points to {self.target_member.mention}.\nNew value: **{current_value}** {emoji}"
+            else:
+                description = f"Added **{amount}** {self.stat_name} points to {self.target_member.mention}.\nNew value: **{current_value}** {emoji}"
+
+            # Send confirmation message
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=discord.Color.blue()
+            )
+            await interaction.response.send_message(embed=embed)
+
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Please enter a valid number.",
+                ephemeral=True
+            )
+
+
 class GiveOptionsView(discord.ui.View):
+    """Legacy class for backward compatibility - now redirects to EnhancedGiveView"""
 
     def __init__(self, target_member: discord.Member):
         super().__init__(timeout=60)
@@ -1340,20 +1914,25 @@ class GiveOptionsView(discord.ui.View):
 
         # Add options for different resources
         for resource_id, data in GIVE_OPTIONS.items():
-            self.resource_select.add_option(label=resource_id.replace(
-                '_', ' ').title(),
-                                            emoji=data["emoji"],
-                                            description=data["description"],
-                                            value=resource_id)
+            # Only include original options for backward compatibility
+            if resource_id in ["gold", "xp", "items"]:
+                self.resource_select.add_option(
+                    label=resource_id.replace('_', ' ').title(),
+                    emoji=data["emoji"],
+                    description=data["description"],
+                    value=resource_id
+                )
 
         # Set the callback function
         self.resource_select.callback = self.resource_select_callback
         self.add_item(self.resource_select)
 
         # Add cancel button
-        cancel_button = discord.ui.Button(label="Cancel",
-                                          style=discord.ButtonStyle.secondary,
-                                          custom_id="cancel")
+        cancel_button = discord.ui.Button(
+            label="Cancel",
+            style=discord.ButtonStyle.secondary,
+            custom_id="cancel"
+        )
         cancel_button.callback = self.cancel_callback
         self.add_item(cancel_button)
 
@@ -1362,7 +1941,7 @@ class GiveOptionsView(discord.ui.View):
         resource_type = interaction.data["values"][0]
 
         # Create a modal to ask for amount
-        if resource_type != "item":
+        if resource_type != "items":
             modal = AmountInputModal(self.target_member, resource_type)
             await interaction.response.send_modal(modal)
         else:
@@ -1489,15 +2068,31 @@ class AmountInputModal(discord.ui.Modal):
 @bot.command(name="give")
 @commands.check(admin_check)
 async def give_cmd(ctx, member: discord.Member = None):
-    """[Admin] Give resources to a user with interactive selection"""
+    """[Admin] Give resources to a user with an enhanced interactive menu"""
     if not member:
         await ctx.send("❌ Please specify a user to give resources to.")
         return
 
-    view = GiveOptionsView(member)
-    await ctx.send(
-        f"What would you like to give to **{member.display_name}**? Select an option:",
-        view=view)
+    # Create enhanced give view with categories
+    view = EnhancedGiveView(member)
+
+    # Create embed for the give menu
+    embed = discord.Embed(
+        title="📦 Enhanced Give System",
+        description=f"Select what you want to give to {member.display_name}:",
+        color=discord.Color.gold()
+    )
+
+    # Add categories as fields
+    for category_id, data in GIVE_CATEGORIES.items():
+        embed.add_field(
+            name=f"{data['emoji']} {data['name']}",
+            value=data['description'],
+            inline=True
+        )
+
+    # Send the message with embed and view
+    await ctx.send(embed=embed, view=view)
 
 
 @bot.command(name="give_gold")
