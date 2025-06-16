@@ -1493,8 +1493,9 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         cursed_energy_reward = int(base_gold * target_data.class_level *
                                    level_multiplier * challenge_bonus)
 
-        # Add rewards
-        leveled_up = player_data.add_exp(exp_reward)
+        # Add rewards with event-aware XP method
+        exp_result = player_data.add_exp(exp_reward, data_manager=data_manager)
+        leveled_up = exp_result["leveled_up"]
         player_data.add_gold(cursed_energy_reward)  # Using gold instead of cursed energy
         
         # Track gold earned for achievements
@@ -1575,8 +1576,13 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
             f"{ctx.author.display_name} defeated {target_member.display_name} in battle!",
             color=discord.Color.green())
 
+        # Create XP display with event multipliers
+        xp_display = f"EXP: +{exp_reward} 📊"
+        if exp_result["event_multiplier"] > 1.0:
+            xp_display = f"EXP: {exp_reward} → {exp_result['adjusted_exp']} 📊 (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+
         result_embed.add_field(name="Rewards",
-                               value=f"EXP: +{exp_reward} 📊\n"
+                               value=f"{xp_display}\n"
                                f"Gold: +{cursed_energy_reward} 💰",
                                inline=False)
 

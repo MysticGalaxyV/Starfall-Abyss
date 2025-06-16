@@ -1243,10 +1243,9 @@ class TrainingMinigameView(View):
             )
 
         # Add experience with Double XP event display
-        exp_text = f"**EXP Gained:** {exp_gain}"
+        exp_text = f"**EXP Gained:** {exp_result['adjusted_exp']}"
         if exp_result["event_multiplier"] > 1.0:
-            base_exp = int(exp_gain / exp_result["event_multiplier"])
-            exp_text = f"**EXP Gained:** {base_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            exp_text = f"**EXP Gained:** {exp_gain} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
         
         embed.add_field(
             name="Experience",

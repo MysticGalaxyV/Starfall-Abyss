@@ -817,10 +817,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             color=discord.Color.green())
 
         # Create rewards text with Double XP event display
-        rewards_text = f"Experience: {exp_reward} XP"
+        rewards_text = f"Experience: {exp_result['adjusted_exp']} XP"
         if exp_result["event_multiplier"] > 1.0:
-            base_exp = int(exp_reward / exp_result["event_multiplier"])
-            rewards_text = f"Experience: {base_exp} XP → {exp_result['adjusted_exp']} XP (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            rewards_text = f"Experience: {exp_reward} → {exp_result['adjusted_exp']} XP (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
         rewards_text += f" 📊\nGold: {gold_reward} 💰"
         
         rewards_embed.add_field(name="Rewards",
