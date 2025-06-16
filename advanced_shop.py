@@ -1713,11 +1713,12 @@ class AdvancedShopView(RestrictedView):
 
                 # Format item stats
                 stats_text = ""
-                for stat, value in item["stats"].items():
-                    stats_text += f"{stat.capitalize()}: +{value}, "
+                if "stats" in item and item["stats"]:
+                    for stat, value in item["stats"].items():
+                        stats_text += f"{stat.capitalize()}: +{value}, "
 
-                if stats_text:
-                    stats_text = stats_text[:-2]  # Remove trailing comma and space
+                    if stats_text:
+                        stats_text = stats_text[:-2]  # Remove trailing comma and space
 
                 # Add special effect
                 special_effect = item.get("special_effect", None)
