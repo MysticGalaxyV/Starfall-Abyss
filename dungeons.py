@@ -751,23 +751,9 @@ class DungeonProgressView(View):
         else:
             current_hp = max_hp
 
-        # Get player moves based on class
-        player_moves = []
-
-        # Basic moves for everyone
-        player_moves.append(BattleMove("Basic Attack", 1.0, 10))
-        player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-
-        # Class-specific special moves
-        if self.player_data.class_name == "Spirit Striker":
-            player_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
-            player_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
-        elif self.player_data.class_name == "Domain Tactician":
-            player_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
-            player_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
-        elif self.player_data.class_name == "Flash Rogue":
-            player_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
-            player_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
+        # Use unified move generation system
+        from unified_moves import get_player_moves
+        player_moves = get_player_moves(self.player_data.class_name or "Warrior")
 
         # Create player entity
         player_entity = BattleEntity(
@@ -781,9 +767,10 @@ class DungeonProgressView(View):
         # Set current HP to maintain battle continuity while preserving max HP
         player_entity.current_hp = current_hp
 
-        # Create enemy entity
+        # Create enemy entity using unified move system
         enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
-        enemy_moves = generate_enemy_moves(enemy_name)
+        from unified_moves import get_enemy_moves
+        enemy_moves = get_enemy_moves(enemy_name)
 
         enemy_entity = BattleEntity(
             enemy_name,

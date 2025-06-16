@@ -49,7 +49,7 @@ class BattleEntity:
         self.moves = moves or []
         self.is_player = is_player
         self.player_data = player_data
-        self.level = None  # Will be set for display purposes (int or None)
+        self.level: Optional[int] = None  # Will be set for display purposes
         self.status_effects = {
         }  # Effect name -> (turns remaining, effect strength)
 
@@ -964,35 +964,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
     # Calculate player stats including equipment and level
     player_stats = player_data.get_stats(GAME_CLASSES)
 
-    # Get player moves based on class
-    player_moves = []
-
-    # Basic moves for everyone
-    player_moves.append(BattleMove("Basic Attack", 1.0, 10))
-    player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-
-    # Class-specific special moves
-    if player_data.class_name == "Spirit Striker":
-        player_moves.append(
-            BattleMove("Cursed Combo", 2.0, 35, "weakness",
-                       "Deal damage and weaken enemy"))
-        player_moves.append(
-            BattleMove("Soul Siphon", 1.2, 20, "energy_restore",
-                       "Deal damage and restore energy"))
-    elif player_data.class_name == "Domain Tactician":
-        player_moves.append(
-            BattleMove("Barrier Pulse", 0.8, 30, "shield",
-                       "Deal damage and gain a shield"))
-        player_moves.append(
-            BattleMove("Tactical Heal", 0.5, 25, "heal",
-                       "Deal damage and heal yourself"))
-    elif player_data.class_name == "Flash Rogue":
-        player_moves.append(
-            BattleMove("Shadowstep", 1.7, 30, "strength",
-                       "Deal damage and gain increased damage"))
-        player_moves.append(
-            BattleMove("Quick Strikes", 0.7, 15, None,
-                       "Deal multiple quick strikes"))
+    # Use unified move generation system
+    from unified_moves import get_player_moves
+    player_moves = get_player_moves(player_data.class_name or "Warrior")
 
     # Create player entity
     player_entity = BattleEntity(ctx.author.display_name,
@@ -1001,12 +975,14 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                                  is_player=True,
                                  player_data=player_data)
 
-    # Create enemy entity
+    # Create enemy entity using unified move system
     enemy_stats = generate_enemy_stats(enemy_name, enemy_level,
                                        player_data.class_level)
-    enemy_moves = generate_enemy_moves(enemy_name)
+    from unified_moves import get_enemy_moves
+    enemy_moves = get_enemy_moves(enemy_name)
 
     enemy_entity = BattleEntity(enemy_name, enemy_stats, enemy_moves)
+    enemy_entity.level = enemy_level  # Set level for display
 
     # Create battle embed
     embed = discord.Embed(
