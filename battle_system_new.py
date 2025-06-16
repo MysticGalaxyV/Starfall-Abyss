@@ -775,7 +775,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
 
         # Award rewards
         # Add rewards - ensure we're adding all rewards properly
-        player_data.add_exp(exp_reward)
+        leveled_up = player_data.add_exp(exp_reward, data_manager=data_manager)
         player_data.add_gold(gold_reward)
 
         # No need to manually track gold_earned since add_gold already does this
@@ -857,7 +857,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         # Give some consolation rewards
         consolation_exp = int(
             calculate_exp_reward(enemy_level, player_data.class_level) * 0.25)
-        player_data.add_exp(consolation_exp)
+        leveled_up = player_data.add_exp(consolation_exp, data_manager=data_manager)
 
         # Regenerate health and energy after battle defeat - partial recovery
         from utils import GAME_CLASSES

@@ -1085,20 +1085,10 @@ class TrainingMinigameView(View):
             energy_gain = self.current_difficulty.get("energy_gain", 5)
 
         # Apply the gains
-        levelup_threshold = 100 * self.player_data.class_level
         old_level = self.player_data.class_level
 
-        # Update XP
-        self.player_data.class_exp += exp_gain
-
-        # Check for level up
-        leveled_up = False
-        while self.player_data.class_exp >= levelup_threshold:
-            self.player_data.class_exp -= levelup_threshold
-            self.player_data.class_level += 1
-            self.player_data.skill_points += 3
-            levelup_threshold = 100 * self.player_data.class_level
-            leveled_up = True
+        # Update XP using proper method that handles Double XP events
+        leveled_up = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
 
         # Apply attribute gains if applicable
         if attribute_gain > 0:

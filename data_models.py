@@ -433,16 +433,21 @@ class PlayerData:
             return True
         return False
 
-    def add_exp(self, exp_amount: int, bypass_penalty: bool = False, data_manager=None) -> bool:
+    def add_exp(self, exp_amount: int, bypass_penalty: bool = False, data_manager=None) -> dict:
         """
-        Add experience points and handle level ups. Returns True if leveled up.
+        Add experience points and handle level ups. Returns dict with level info and event details.
 
         Parameters:
         - exp_amount: The amount of XP to add
         - bypass_penalty: If True, bypass the level penalty (used for admin commands)
         - data_manager: DataManager instance to check for active events
+        
+        Returns:
+        - dict with keys: leveled_up (bool), event_multiplier (float), event_name (str), adjusted_exp (int)
         """
         leveled_up = False
+        event_multiplier = 1.0
+        event_name = None
 
         if bypass_penalty:
             # Admin command - no penalty applied
@@ -460,8 +465,10 @@ class PlayerData:
             for event_id, event_data in data_manager.active_events.items():
                 effect = event_data.get('effect', {})
                 if effect.get('type') == 'exp_multiplier':
-                    multiplier = effect.get('value', 1.0)
-                    adjusted_exp = int(adjusted_exp * multiplier)
+                    event_multiplier = effect.get('value', 1.0)
+                    event_name = event_data.get('name', 'XP Event')
+                    adjusted_exp = int(adjusted_exp * event_multiplier)
+                    break  # Only apply the first XP multiplier event
 
         self.class_exp += adjusted_exp
 
@@ -470,7 +477,12 @@ class PlayerData:
         leveled_up = False
 
         if self.class_level >= MAX_LEVEL:
-            return False
+            return {
+                "leveled_up": False,
+                "event_multiplier": event_multiplier,
+                "event_name": event_name,
+                "adjusted_exp": adjusted_exp
+            }
 
         # Calculate XP needed for next level using the standard formula
         xp_needed = self.calculate_xp_for_level(self.class_level)
@@ -503,7 +515,12 @@ class PlayerData:
         # Since the PlayerData instance doesn't have direct access to the DataManager,
         # achievement checking needs to happen in code that has access to both
 
-        return leveled_up
+        return {
+            "leveled_up": leveled_up,
+            "event_multiplier": event_multiplier,
+            "event_name": event_name,
+            "adjusted_exp": adjusted_exp
+        }
 
     def to_dict(self) -> Dict[str, Any]:
         return {
