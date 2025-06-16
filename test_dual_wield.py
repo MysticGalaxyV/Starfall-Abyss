@@ -63,7 +63,7 @@ def test_dual_wield_system():
     
     # Test with non-dual wield class
     print(f"\n" + "="*50)
-    print("Testing with Spirit Striker (non-dual wield class)")
+    print("Testing with Spirit Striker (now can dual wield)")
     
     player2 = PlayerData(67890)
     player2.class_name = "Spirit Striker"
@@ -75,17 +75,21 @@ def test_dual_wield_system():
     add_item_to_inventory(player2, weapon1)
     add_item_to_inventory(player2, weapon2)
     
-    # Try to equip both (should only allow one)
+    # Equip both weapons (now should work for all classes)
     player2.inventory[0].equipped = True
     player2.equipped_items["weapon"] = player2.inventory[0].item.item_id
     
+    player2.inventory[1].equipped = True
+    player2.equipped_items["weapon2"] = player2.inventory[1].item.item_id
+    
     print(f"Equipped main weapon: {player2.inventory[0].item.name}")
+    print(f"Equipped off-hand weapon: {player2.inventory[1].item.name}")
     print(f"Equipped items: {player2.equipped_items}")
     
-    # Second weapon should not be equippable to weapon2 slot for non-dual wield class
+    # Now all classes can dual wield
     stats2 = player2.get_stats(GAME_CLASSES)
-    print(f"Stats with single weapon:")
-    print(f"Power: {stats2['power']} (should only include main weapon)")
+    print(f"Stats with dual weapons:")
+    print(f"Power: {stats2['power']} (should include both weapons with off-hand penalty)")
     
     print("\nDual wield system test completed!")
 

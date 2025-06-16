@@ -962,14 +962,6 @@ class InventoryView(RestrictedView):
                     break
         
         equipped_text = "\n".join(equipped_text_lines) if equipped_text_lines else "None"
-        
-        # Add dual wield indicator for classes that support it
-        if self.player_data.class_name and can_dual_wield(self.player_data.class_name):
-            dual_wield_status = "⚔️ Dual Wield Class"
-            if equipped_text != "None":
-                equipped_text = f"{dual_wield_status}\n{equipped_text}"
-            else:
-                equipped_text = f"{dual_wield_status}\n{equipped_text}"
 
         embed.add_field(
             name="🔆 Equipped Items",

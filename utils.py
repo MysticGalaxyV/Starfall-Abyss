@@ -139,10 +139,8 @@ ADVANCED_CLASSES = {
 GAME_CLASSES = {**STARTER_CLASSES, **ADVANCED_CLASSES}
 
 def can_dual_wield(class_name: str) -> bool:
-    """Check if a class can dual wield weapons"""
-    if class_name in GAME_CLASSES:
-        return GAME_CLASSES[class_name].get("dual_wield", False)
-    return False
+    """Check if a class can dual wield weapons - now enabled for all classes"""
+    return True
 
 # Game skills and abilities
 GAME_SKILLS = {
