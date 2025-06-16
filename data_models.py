@@ -376,7 +376,72 @@ class PlayerData:
                         else:
                             base_stats[stat] += value
 
+        # Add skill tree bonuses
+        skill_bonuses = self.calculate_skill_tree_bonuses()
+        for stat, bonus in skill_bonuses.items():
+            if stat in base_stats:
+                base_stats[stat] += bonus
+
         return base_stats
+
+    def calculate_skill_tree_bonuses(self) -> Dict[str, int]:
+        """Calculate stat bonuses from all skill tree investments"""
+        bonuses = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
+        
+        # Define skill tree effects - maps skill names to their stat bonuses
+        skill_effects = {
+            # Strength Tree
+            "Power Strike": {"power": 5},  # 5% per level, converted to flat bonus
+            "Brute Force": {"power": 3},   # Weapon damage increase
+            "Weapon Mastery": {"power": 4},
+            "Smashing Blow": {"power": 8},
+            "Titan's Grip": {"power": 15},
+            
+            # Dexterity Tree  
+            "Precise Shot": {"power": 3, "speed": 2},  # Accuracy translates to power/speed
+            "Quick Draw": {"speed": 5},
+            "Evasive Maneuvers": {"speed": 4, "defense": 2},
+            "Critical Eye": {"power": 6},
+            "Sniper's Focus": {"power": 12},
+            
+            # Intelligence Tree
+            "Arcane Mind": {"power": 5},   # Magical damage = power
+            "Spell Mastery": {"power": 3}, # More efficient spells = more damage
+            "Elemental Affinity": {"power": 4},
+            "Counterspell": {"defense": 5}, # Magic resistance
+            "Archmage's Presence": {"power": 10},
+            
+            # Wisdom Tree
+            "Healing Touch": {"hp": 15},
+            "Spirit Link": {"defense": 3, "hp": 10},
+            "Protective Aura": {"defense": 6},
+            "Divine Intervention": {"hp": 20, "defense": 3},
+            "Resurrection": {"hp": 25},
+            
+            # Vitality Tree
+            "Iron Skin": {"defense": 5},
+            "Endurance": {"hp": 20},
+            "Regeneration": {"hp": 15, "defense": 2},
+            "Unbreakable": {"defense": 8},
+            "Undying Will": {"hp": 30, "defense": 5},
+            
+            # Agility Tree
+            "Quick Reflexes": {"speed": 5},
+            "Dual Wielding": {"power": 4, "speed": 2},
+            "Shadow Step": {"speed": 6, "defense": 3},
+            "Exploit Weakness": {"power": 8},
+            "Assassination": {"power": 15}
+        }
+        
+        # Calculate bonuses from each skill tree
+        for tree_name, tree_skills in self.skill_tree.items():
+            for skill_name, skill_level in tree_skills.items():
+                if skill_name in skill_effects and skill_level > 0:
+                    # Apply bonuses per level invested
+                    for stat, bonus_per_level in skill_effects[skill_name].items():
+                        bonuses[stat] += bonus_per_level * skill_level
+        
+        return bonuses
 
     def add_gold(self, amount: int) -> int:
         """Add gold with no maximum limit. Returns the amount added."""

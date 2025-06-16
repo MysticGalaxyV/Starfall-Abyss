@@ -99,15 +99,56 @@ class BattleEntity:
     def is_alive(self) -> bool:
         return self.current_hp > 0
 
+    def get_skill_level(self, skill_name: str) -> int:
+        """Get the level of a specific skill from player's skill tree"""
+        if not self.is_player or not self.player_data:
+            return 0
+        
+        # Search through all skill trees for the skill
+        for tree_name, tree_skills in self.player_data.skill_tree.items():
+            if skill_name in tree_skills:
+                return tree_skills[skill_name]
+        return 0
+
     def calculate_damage(self, move: BattleMove,
                          target: 'BattleEntity') -> int:
         """Calculate damage for a move against a target"""
         # Base damage is attacker's power * move's damage multiplier
         base_damage = int(self.stats["power"] * move.damage_multiplier)
 
+        # Apply skill tree effects for players
+        if self.is_player and self.player_data:
+            # Critical Eye skill - increased critical chance
+            crit_chance = 0.1  # Base 10% crit chance
+            critical_eye_level = self.get_skill_level("Critical Eye")
+            if critical_eye_level > 0:
+                crit_chance += critical_eye_level * 0.05  # +5% per level
+            
+            # Check for critical hit
+            if random.random() < crit_chance:
+                base_damage = int(base_damage * 1.5)  # 1.5x damage on crit
+                
+            # Exploit Weakness skill - increased critical damage
+            exploit_weakness_level = self.get_skill_level("Exploit Weakness")
+            if exploit_weakness_level > 0 and random.random() < crit_chance:
+                crit_multiplier = 1.5 + (exploit_weakness_level * 0.1)  # +10% crit damage per level
+                base_damage = int(self.stats["power"] * move.damage_multiplier * crit_multiplier)
+
+        # Apply Brute Force skill - chance to ignore defense
+        ignore_defense = False
+        if self.is_player and self.player_data:
+            brute_force_level = self.get_skill_level("Brute Force")
+            if brute_force_level > 0:
+                ignore_chance = brute_force_level * 0.1  # 10% per level
+                if random.random() < ignore_chance:
+                    ignore_defense = True
+
         # Defense reduces damage by a percentage (50 defense = 25% reduction)
-        defense_reduction = target.stats["defense"] / 200
-        reduced_damage = base_damage * (1 - defense_reduction)
+        if ignore_defense:
+            reduced_damage = base_damage  # Skip defense calculation
+        else:
+            defense_reduction = target.stats["defense"] / 200
+            reduced_damage = base_damage * (1 - defense_reduction)
 
         # Apply random variance (±10%)
         variance = random.uniform(0.9, 1.1)
@@ -147,11 +188,44 @@ class BattleEntity:
             else:
                 return 0, "❌ Not enough energy!"
 
-        self.current_energy -= move.energy_cost
+        # Apply Spell Mastery skill - reduces energy cost
+        actual_energy_cost = move.energy_cost
+        if self.is_player and self.player_data:
+            spell_mastery_level = self.get_skill_level("Spell Mastery")
+            if spell_mastery_level > 0:
+                energy_reduction = spell_mastery_level * 0.1  # 10% reduction per level
+                actual_energy_cost = max(1, int(move.energy_cost * (1 - energy_reduction)))
+        
+        self.current_energy -= actual_energy_cost
+
+        # Check for evasion skills on target before calculating damage
+        if target.is_player and target.player_data:
+            # Evasive Maneuvers skill - increased dodge chance
+            evasive_level = target.get_skill_level("Evasive Maneuvers")
+            shadow_step_level = target.get_skill_level("Shadow Step")
+            
+            dodge_chance = 0
+            if evasive_level > 0:
+                dodge_chance += evasive_level * 0.05  # 5% per level
+            if shadow_step_level > 0:
+                dodge_chance += shadow_step_level * 0.08  # 8% per level (better skill)
+            
+            if dodge_chance > 0 and random.random() < dodge_chance:
+                return 0, f"💨 {target.name} dodged the attack!"
 
         # Calculate and apply damage
         damage = self.calculate_damage(move, target)
         effect_msg = ""
+
+        # Quick Draw skill - chance for extra attack
+        if self.is_player and self.player_data:
+            quick_draw_level = self.get_skill_level("Quick Draw")
+            if quick_draw_level > 0:
+                extra_attack_chance = quick_draw_level * 0.1  # 10% per level
+                if random.random() < extra_attack_chance:
+                    extra_damage = self.calculate_damage(move, target)
+                    damage += extra_damage
+                    effect_msg += f"\n⚡ Quick Draw activated! Extra attack for {extra_damage} bonus damage!"
 
         # Check for active effects (special items) on attacker
         if self.is_player and self.player_data and hasattr(
