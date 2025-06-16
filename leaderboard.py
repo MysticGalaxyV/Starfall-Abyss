@@ -175,16 +175,24 @@ class LeaderboardView(View):
                     user = self.bot.get_user(int(user_id))
                     if user:
                         username = user.display_name
+                    else:
+                        # If user not in cache, use their ID but in a cleaner format
+                        username = f"Player {user_id}"
             except (ValueError, TypeError, AttributeError):
                 # If there's any error converting user_id or finding the user, just use the ID
-                pass
+                username = f"Player {user_id}"
 
+            # Build the value string conditionally
+            value_parts = [f"**{category_display.get(self.category, 'Level')}:** {value_display}"]
+            value_parts.append(f"**Class:** {player.class_name or 'None'}")
+            
+            # Only show level if we're not already sorting by level
+            if self.category != "level":
+                value_parts.append(f"**Level:** {player.class_level}")
+            
             embed.add_field(
                 name=f"{medal}Rank #{rank}: {username}",
-                value=
-                f"**{category_display.get(self.category, 'Level')}:** {value_display}\n"
-                f"**Class:** {player.class_name or 'None'}\n"
-                f"**Level:** {player.class_level}",
+                value="\n".join(value_parts),
                 inline=False)
 
         total_players = len(sorted_players)
