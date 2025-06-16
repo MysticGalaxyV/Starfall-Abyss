@@ -211,66 +211,66 @@ class ItemSelectView(View):
         # Update the view
         self.clear_items()
         self.add_item_select()
-        self.add_cursed_energy_button()
+        self.add_gold_button()
         self.add_control_buttons()
 
         action_type = "offering" if self.is_offering else "requesting"
         await interaction.response.edit_message(
             content=
-            f"Currently {action_type}: {len(self.selected_items)} items and {self.cursed_energy_amount} cursed energy",
+            f"Currently {action_type}: {len(self.selected_items)} items and {self.gold_amount} gold",
             view=self)
 
-    def add_cursed_energy_button(self):
-        """Add button for cursed energy input"""
-        ce_button = Button(
+    def add_gold_button(self):
+        """Add button for gold input"""
+        gold_button = Button(
             style=discord.ButtonStyle.primary,
-            label=f"Set Cursed Energy: {self.cursed_energy_amount}",
-            custom_id="set_cursed_energy")
-        ce_button.callback = self.cursed_energy_button_callback
-        self.add_item(ce_button)
+            label=f"Set Gold: {self.gold_amount}",
+            custom_id="set_gold")
+        gold_button.callback = self.gold_button_callback
+        self.add_item(gold_button)
 
-    async def cursed_energy_button_callback(self,
+    async def gold_button_callback(self,
                                             interaction: discord.Interaction):
-        """Handle cursed energy button click"""
+        """Handle gold button click"""
 
-        # Create a modal for cursed energy input
-        class CursedEnergyInputModal(discord.ui.Modal,
-                                     title="Enter Cursed Energy Amount"):
-            ce_input = discord.ui.TextInput(
-                label="Cursed Energy Amount",
-                placeholder="Enter amount of cursed energy",
-                default=str(self.cursed_energy_amount),
+        # Create a modal for gold input
+        class GoldInputModal(discord.ui.Modal,
+                                     title="Enter Gold Amount"):
+            gold_input = discord.ui.TextInput(
+                label="Gold Amount",
+                placeholder="Enter amount of gold",
+                default=str(self.gold_amount),
                 required=True)
 
             async def on_submit(self, modal_interaction: discord.Interaction):
                 try:
-                    ce_amount = int(self.ce_input.value)
+                    gold_amount = int(self.gold_input.value)
 
-                    # Validate cursed energy amount
-                    if ce_amount < 0:
+                    # Validate gold amount
+                    if gold_amount < 0:
                         await modal_interaction.response.send_message(
-                            "Cursed energy amount cannot be negative.",
+                            "Gold amount cannot be negative.",
                             ephemeral=True)
                         return
 
-                    if ce_amount > self.parent.player_data.cursed_energy and self.parent.is_offering:
+                    if gold_amount > self.parent.player_data.gold and self.parent.is_offering:
                         await modal_interaction.response.send_message(
-                            f"You don't have enough cursed energy. You have {self.parent.player_data.cursed_energy} cursed energy.",
+                            f"You don't have enough gold. You have {self.parent.player_data.gold} gold.",
                             ephemeral=True)
                         return
 
-                    self.parent.cursed_energy_amount = ce_amount
+                    self.parent.gold_amount = gold_amount
 
                     # Update the view
                     self.parent.clear_items()
                     self.parent.add_item_select()
-                    self.parent.add_cursed_energy_button()
+                    self.parent.add_gold_button()
                     self.parent.add_control_buttons()
 
                     action_type = "offering" if self.parent.is_offering else "requesting"
                     await modal_interaction.response.edit_message(
                         content=
-                        f"Currently {action_type}: {len(self.parent.selected_items)} items and {self.parent.cursed_energy_amount} cursed energy",
+                        f"Currently {action_type}: {len(self.parent.selected_items)} items and {self.parent.gold_amount} gold",
                         view=self.parent)
                 except ValueError:
                     await modal_interaction.response.send_message(

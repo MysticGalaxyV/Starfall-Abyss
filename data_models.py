@@ -188,9 +188,8 @@ class PlayerData:
         self.class_exp = 0
         self.user_level = 1
         self.user_exp = 0
-        self.gold = 100  # Currency (changed from cursed_energy)
+        self.gold = 100  # Primary currency
         self.max_gold = 1000000  # Very high maximum as there's no cap on currency
-        self.cursed_energy = 0  # Legacy field - we now use gold consistently as currency
         self.battle_energy = 100  # Battle resource
         self.max_battle_energy = 100  # Base max battle resource
         self.energy_training = 0  # Additional energy from specialized training
@@ -618,10 +617,6 @@ class PlayerData:
             self.gold,
             "max_gold":
             self.max_gold,
-            "cursed_energy":
-            self.cursed_energy,  # Store actual cursed energy
-            "max_cursed_energy":
-            self.max_gold,  # For backward compatibility
             "unlocked_classes":
             self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
@@ -711,12 +706,8 @@ class PlayerData:
         if "gold" in data:
             player.gold = data["gold"]
         elif "cursed_energy" in data:
-            # Convert old cursed_energy to gold
+            # Convert old cursed_energy to gold for backward compatibility
             player.gold = data["cursed_energy"]
-
-        # Load actual cursed energy (used for special abilities)
-        if "cursed_energy" in data:
-            player.cursed_energy = data["cursed_energy"]
 
         # Handle maximum currency
         if "max_gold" in data:
