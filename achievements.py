@@ -916,7 +916,7 @@ class AchievementTracker:
 
         # Award XP
         if "exp" in reward:
-            player.add_exp(reward["exp"])
+            player.add_exp(reward["exp"], data_manager=self.data_manager)
 
         # Award gold
         if "gold" in reward:
@@ -1187,14 +1187,8 @@ class QuestManager:
         # Award XP with event multiplier
         if "exp" in reward:
             exp_amount = reward["exp"]
-
-            # Apply event multipliers if any
-            if "active_events" in self.data_manager.__dict__:
-                for event_id, event_data in self.data_manager.active_events.items():
-                    if event_data["effect"]["type"] == "exp_multiplier":
-                        exp_amount = int(exp_amount * event_data["effect"]["value"])
-
-            player.add_exp(exp_amount)
+            # Use the proper event-aware XP method
+            player.add_exp(exp_amount, data_manager=self.data_manager)
 
         # Award gold with event multiplier
         if "gold" in reward:

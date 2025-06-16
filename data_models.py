@@ -449,26 +449,27 @@ class PlayerData:
         event_multiplier = 1.0
         event_name = None
 
-        if bypass_penalty:
-            # Admin command - no penalty applied
-            adjusted_exp = exp_amount
-        else:
-            # Normal XP gain - apply level penalty
-            level_penalty = max(
-                0.95,
-                1.0 - (self.class_level *
-                      0.002))  # 0.2% reduction per level, min 95% of original XP
-            adjusted_exp = int(exp_amount * level_penalty)
-
-        # Apply event multipliers
+        # Apply event multipliers FIRST to the original amount
+        event_modified_exp = exp_amount
         if data_manager and hasattr(data_manager, 'active_events'):
             for event_id, event_data in data_manager.active_events.items():
                 effect = event_data.get('effect', {})
                 if effect.get('type') == 'exp_multiplier':
                     event_multiplier = effect.get('value', 1.0)
                     event_name = event_data.get('name', 'XP Event')
-                    adjusted_exp = int(adjusted_exp * event_multiplier)
+                    event_modified_exp = int(exp_amount * event_multiplier)
                     break  # Only apply the first XP multiplier event
+
+        if bypass_penalty:
+            # Admin command - no penalty applied
+            adjusted_exp = event_modified_exp
+        else:
+            # Normal XP gain - apply level penalty to the event-modified amount
+            level_penalty = max(
+                0.95,
+                1.0 - (self.class_level *
+                      0.002))  # 0.2% reduction per level, min 95% of original XP
+            adjusted_exp = int(event_modified_exp * level_penalty)
 
         self.class_exp += adjusted_exp
 

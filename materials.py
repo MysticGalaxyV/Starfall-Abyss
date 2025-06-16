@@ -1128,11 +1128,18 @@ class GatheringView(View):
         base_xp = 10 + (self.player.class_level // 5
                         )  # Use class_level instead of level
         total_xp = base_xp * len(materials)
-        leveled_up = self.player.add_exp(total_xp)
+        exp_result = self.player.add_exp(total_xp, data_manager=self.data_manager)
+
+        # Create XP display with event multipliers
+        xp_display = f"+{total_xp} XP"
+        if exp_result["event_multiplier"] > 1.0:
+            adjusted_xp = exp_result["adjusted_exp"]
+            event_name = exp_result["event_name"]
+            xp_display = f"{total_xp} → {adjusted_xp} XP (🎉 {event_name} {exp_result['event_multiplier']}x!)"
 
         embed.add_field(name="Experience Gained",
-                        value=f"+{total_xp} XP" +
-                        (" (Level Up!)" if leveled_up else ""),
+                        value=xp_display +
+                        (" (Level Up!)" if exp_result["leveled_up"] else ""),
                         inline=False)
 
         # Send the result without replacing the view to avoid errors
