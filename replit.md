@@ -211,6 +211,14 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Migration Script: Created sync_achievement_stats.py to fix existing player data (updated 26 dungeon completions for main player)
   - Achievement Validation: Verified system now properly awards achievements (tested: Dungeon Crawler, Dungeon Master, Boss Hunter)
   - System Integration: Achievement checking now works correctly across battles, dungeons, and level-ups with proper stat tracking
+- June 16, 2025. Completely eliminated cursed energy currency and unified all systems to use gold:
+  - Currency Unification: Removed cursed energy as separate currency, all rewards now use gold exclusively
+  - Achievement System: Updated all achievement rewards to use gold instead of cursed energy
+  - Training System: Advanced training special rewards now award gold for perfect scores
+  - Trading System: Player-to-player trading interface updated to handle gold transactions only
+  - Data Models: Added legacy methods (add_cursed_energy/remove_cursed_energy) for backward compatibility that redirect to gold methods
+  - Migration Support: Created conversion script to migrate any existing cursed energy balances to gold
+  - System Simplification: Single currency system reduces complexity and improves user experience
 
 ## User Preferences
 

@@ -41,7 +41,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
         }
     },
     "Agility Course": {
@@ -58,7 +58,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "time_window": 2.5, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
         }
     },
     "Cursed Energy Control": {
@@ -75,7 +75,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
         }
     },
     "Tactical Analysis": {
@@ -92,7 +92,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "questions": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
+            "perfect_score": {"gold": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
         }
     },
     "Energy Cultivation": {
@@ -1108,9 +1108,16 @@ class TrainingMinigameView(View):
         if success_percent == 100 and "special_rewards" in self.training_data and "perfect_score" in self.training_data["special_rewards"]:
             special_rewards = self.training_data["special_rewards"]["perfect_score"]
 
-            # Apply gold reward if present (convert old cursed_energy rewards to gold)
-            if "cursed_energy" in special_rewards:
-                # Convert cursed_energy rewards to gold
+            # Apply gold reward if present
+            if "gold" in special_rewards:
+                gold_reward = special_rewards["gold"]
+                self.player_data.add_gold(gold_reward)
+                # Track gold earned for achievements
+                if not hasattr(self.player_data, "gold_earned"):
+                    self.player_data.gold_earned = 0
+                self.player_data.gold_earned += gold_reward
+            # Legacy support for old cursed_energy rewards (redirect to gold)
+            elif "cursed_energy" in special_rewards:
                 gold_reward = special_rewards["cursed_energy"]
                 self.player_data.add_gold(gold_reward)
                 # Track gold earned for achievements
