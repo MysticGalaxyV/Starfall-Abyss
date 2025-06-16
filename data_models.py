@@ -198,6 +198,7 @@ class PlayerData:
         self.inventory = []  # List[InventoryItem]
         self.equipped_items = {
             "weapon": None,
+            "weapon2": None,  # Second weapon slot for dual wielding
             "armor": None,
             "accessory": None
         }

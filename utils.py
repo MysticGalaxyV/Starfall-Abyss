@@ -41,7 +41,8 @@ STARTER_CLASSES = {
         "abilities": {
             "active": "Shadowstep",
             "passive": "First Strike"
-        }
+        },
+        "dual_wield": True
     }
 }
 
@@ -112,7 +113,8 @@ ADVANCED_CLASSES = {
         "requirements": {
             "base_class": "Flash Rogue",
             "level": 10
-        }
+        },
+        "dual_wield": True
     },
     "Limitless Sorcerer": {
         "role": "Special",
@@ -135,6 +137,12 @@ ADVANCED_CLASSES = {
 
 # Merge starter and advanced classes for easy access
 GAME_CLASSES = {**STARTER_CLASSES, **ADVANCED_CLASSES}
+
+def can_dual_wield(class_name: str) -> bool:
+    """Check if a class can dual wield weapons"""
+    if class_name in GAME_CLASSES:
+        return GAME_CLASSES[class_name].get("dual_wield", False)
+    return False
 
 # Game skills and abilities
 GAME_SKILLS = {
