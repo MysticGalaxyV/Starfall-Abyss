@@ -2036,7 +2036,7 @@ class AmountInputModal(discord.ui.Modal):
                 exp_text = f"Added **{amount}** XP to {self.target_member.mention}."
                 if exp_result["event_multiplier"] > 1.0:
                     exp_text = f"Added **{amount}** XP → **{exp_result['adjusted_exp']}** XP to {self.target_member.mention} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
-
+                
                 # Format success message differently if player leveled up
                 if player.class_level > old_level:
                     success_message = (
@@ -2139,7 +2139,7 @@ async def give_xp_cmd(ctx, member: discord.Member, amount: int):
     exp_text = f"Added **{amount}** XP to {member.mention}."
     if exp_result["event_multiplier"] > 1.0:
         exp_text = f"Added **{amount}** XP → **{exp_result['adjusted_exp']}** XP to {member.mention} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
-
+    
     embed = discord.Embed(
         title="📊 XP Added",
         description=f"{exp_text}\nCurrent level: **{player.class_level}** | XP: **{player.class_exp}**/{player.xp_to_next_level()}",
