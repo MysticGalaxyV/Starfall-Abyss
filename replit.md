@@ -233,6 +233,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Error Resolution: Eliminated AttributeError exceptions in profile and shop commands
   - Data Integrity: Verified all core systems (battles, shops, profiles) function without errors
   - Import Validation: Confirmed all modules load correctly without initialization failures
+- June 16, 2025. Fixed achievement points deduction system:
+  - Root Issue: get_player_achievement_points function used max(0, earned-spent) which prevented negative balances
+  - Solution: Removed max(0, ...) constraint to allow proper tracking of overspent points
+  - Testing: Verified system correctly shows negative balances when players spend more than earned
+  - Shop Integration: Confirmed existing validation properly prevents purchases with insufficient points
+  - Result: Achievement shop now properly deducts points and accurately reflects player balances
 
 ## User Preferences
 
