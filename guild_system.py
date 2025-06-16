@@ -1968,8 +1968,17 @@ class GuildShopView(RestrictedView):
 
         # Increase max members
         self.guild.max_members += 5
+        
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(5000 * 0.2)  # 1000 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
 
-        await interaction.response.send_message(f"✅ Guild capacity increased to {self.guild.max_members} members!")
+        message = f"✅ Guild capacity increased to {self.guild.max_members} members! Guild gained {exp_reward} XP."
+        if leveled_up:
+            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_guild_banner(self, interaction: discord.Interaction):
@@ -1982,7 +1991,16 @@ class GuildShopView(RestrictedView):
             self.guild.upgrades["guild_banner"]["level"] += 1
             self.guild.upgrades["guild_banner"]["bonus"] += 0.01
 
-        await interaction.response.send_message(f"✅ Guild Banner purchased! Members now get +{self.guild.upgrades['guild_banner']['bonus'] * 100}% XP bonus.")
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(2500 * 0.2)  # 500 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
+        message = f"✅ Guild Banner purchased! Members now get +{self.guild.upgrades['guild_banner']['bonus'] * 100}% XP bonus. Guild gained {exp_reward} XP."
+        if leveled_up:
+            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_storage_expansion(self, interaction: discord.Interaction):
@@ -1994,7 +2012,16 @@ class GuildShopView(RestrictedView):
             # Add more slots
             self.guild.upgrades["storage"]["slots"] += 10
 
-        await interaction.response.send_message(f"✅ Guild storage expanded! Total slots: {self.guild.upgrades['storage']['slots']}")
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(3000 * 0.2)  # 600 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
+        message = f"✅ Guild storage expanded! Total slots: {self.guild.upgrades['storage']['slots']}. Guild gained {exp_reward} XP."
+        if leveled_up:
+            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_xp_boost(self, interaction: discord.Interaction):
@@ -2006,7 +2033,16 @@ class GuildShopView(RestrictedView):
             "expires": expiration.isoformat()
         }
 
-        await interaction.response.send_message("✅ Guild XP Boost active for 7 days! All guild XP earned will be increased by 30%.")
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(7500 * 0.2)  # 1500 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
+        message = "✅ Guild XP Boost active for 7 days! All guild XP earned will be increased by 30%. Guild gained {} XP.".format(exp_reward)
+        if leveled_up:
+            message += " 🎉 Guild leveled up to level {}!".format(self.guild.level)
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_material_crate(self, interaction: discord.Interaction):
@@ -2028,8 +2064,17 @@ class GuildShopView(RestrictedView):
             else:
                 self.guild.upgrades["storage_items"][material] = quantity
 
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(4000 * 0.2)  # 800 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
         materials_list = ", ".join([f"{random.randint(3, 8)}x {m}" for m in random.sample(materials, 3)])
-        await interaction.response.send_message(f"✅ Material Crate purchased! Added to guild storage: {materials_list} and more!")
+        message = f"✅ Material Crate purchased! Added to guild storage: {materials_list} and more! Guild gained {exp_reward} XP."
+        if leveled_up:
+            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_emblem_customization(self, interaction: discord.Interaction):
@@ -2037,7 +2082,16 @@ class GuildShopView(RestrictedView):
         # Allow customization of guild emblem
         self.guild.upgrades["custom_emblem"] = True
 
-        await interaction.response.send_message("✅ Guild Emblem Customization purchased! Use `!guild emblem` to customize your guild's emblem.")
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(1000 * 0.2)  # 200 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
+        message = "✅ Guild Emblem Customization purchased! Use `!guild emblem` to customize your guild's emblem. Guild gained {} XP.".format(exp_reward)
+        if leveled_up:
+            message += " 🎉 Guild leveled up to level {}!".format(self.guild.level)
+
+        await interaction.response.send_message(message)
         return True
 
     async def purchase_dungeon_key(self, interaction: discord.Interaction):
@@ -2059,7 +2113,16 @@ class GuildShopView(RestrictedView):
             "rewards_multiplier": 1.5
         }
 
-        await interaction.response.send_message(f"✅ Special Guild Dungeon Key purchased! '{dungeon}' is now available for 24 hours with 50% bonus rewards. Start with `!guild dungeon`!")
+        # Award guild experience for purchase (20% of item cost)
+        exp_reward = int(6000 * 0.2)  # 1200 exp
+        leveled_up = self.guild.add_exp(exp_reward)
+        self.guild_manager.save_guilds()
+
+        message = f"✅ Special Guild Dungeon Key purchased! '{dungeon}' is now available for 24 hours with 50% bonus rewards. Guild gained {exp_reward} XP. Start with `!guild dungeon`!"
+        if leveled_up:
+            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
+
+        await interaction.response.send_message(message)
         return True
 
 class GuildTeamDungeonView(View):
