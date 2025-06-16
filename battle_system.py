@@ -578,14 +578,17 @@ class BattleView(RestrictedView):
 
         # Check if enemy is defeated
         if not self.enemy.is_alive():
-            # Battle won
+            # Add victory message to battle log
+            self.battle_log.append(f"🎉 **VICTORY!** {self.player.name} defeated {self.enemy.name}!")
+            
+            # Create final battle embed
+            embed = self.create_battle_embed()
+            embed.color = 0x00ff00  # Green for victory
+            embed.title = "🎉 Battle Result: Victory"
+            
             self.stop()
             await asyncio.sleep(1)
-            await interaction.edit_original_response(
-                content=f"🎉 Victory! You defeated {self.enemy.name}!\n"
-                f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-                f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡",
-                view=None)
+            await interaction.edit_original_response(embed=embed, view=None)
             return
 
         # Enemy turn
@@ -640,25 +643,22 @@ class BattleView(RestrictedView):
                     view=None)
                 return
 
-        # Update status effects
+        # Update status effects and log changes
         player_status_msg = self.player.update_status_effects()
         enemy_status_msg = self.enemy.update_status_effects()
+        
+        # Add status effect updates to battle log if they exist
+        if player_status_msg:
+            self.battle_log.append(f"🔄 **{self.player.name}**: {player_status_msg}")
+        if enemy_status_msg:
+            self.battle_log.append(f"🔄 **{self.enemy.name}**: {enemy_status_msg}")
 
         # Update buttons for next turn
         self.update_buttons()
 
-        # Show battle status
-        battle_stats = (
-            f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
-            f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
-            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
-            f"{player_status_msg}{enemy_status_msg}")
-
-        message_content = self.get_safe_message_content(interaction)
-        await interaction.edit_original_response(content=message_content +
-                                                 f"\n\n{battle_stats}",
-                                                 view=self)
+        # Update with complete battle state
+        embed = self.create_battle_embed()
+        await interaction.edit_original_response(embed=embed, view=self)
 
     async def on_item_selected(self, interaction: discord.Interaction,
                                item_name: str, item_effect: str):
@@ -830,25 +830,22 @@ class BattleView(RestrictedView):
                 await interaction.edit_original_response(embed=embed, view=None)
                 return
 
-        # Update status effects
+        # Update status effects and log changes
         player_status_msg = self.player.update_status_effects()
         enemy_status_msg = self.enemy.update_status_effects()
+        
+        # Add status effect updates to battle log if they exist
+        if player_status_msg:
+            self.battle_log.append(f"🔄 **{self.player.name}**: {player_status_msg}")
+        if enemy_status_msg:
+            self.battle_log.append(f"🔄 **{self.enemy.name}**: {enemy_status_msg}")
 
         # Update buttons for next turn
         self.update_buttons()
 
-        # Show battle status
-        battle_stats = (
-            f"Your HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️ | "
-            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
-            f"{self.enemy.name}'s HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️ | "
-            f"Energy: {self.enemy.current_energy}/{self.enemy.stats.get('energy', 100)} ⚡"
-            f"{player_status_msg}{enemy_status_msg}")
-
-        message_content = self.get_safe_message_content(interaction)
-        await interaction.edit_original_response(content=message_content +
-                                                 f"\n\n{battle_stats}",
-                                                 view=self)
+        # Update with complete battle state
+        embed = self.create_battle_embed()
+        await interaction.edit_original_response(embed=embed, view=self)
 
 
 async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
