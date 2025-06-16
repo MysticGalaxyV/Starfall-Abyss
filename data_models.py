@@ -259,6 +259,7 @@ class PlayerData:
         # Achievement shop tracking
         self.purchased_achievement_items = []  # List of purchased achievement items
         self.profile_tags = []  # List of earned profile tags
+        self.spent_achievement_points = 0  # Total achievement points spent on shop items
 
     def get_max_battle_energy(self) -> int:
         """

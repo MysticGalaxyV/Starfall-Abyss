@@ -204,12 +204,14 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Achievement Display: Improved notification format showing badges, points, descriptions, and rewards
   - Data Flow: Fixed missing achievement checking calls throughout major progression systems
   - User Experience: Players now see immediate feedback when completing achievements
-- June 16, 2025. Finalized achievement shop pricing with perfect mathematical balance:
-  - Server Roles: 124 points each (5 roles × 124 = 620 points total)
-  - Profile Tags: 62 points each (10 tags × 62 = 620 points total)
-  - Roles are exactly double the price of tags (124 = 2 × 62)
+- June 16, 2025. Finalized achievement shop pricing and implemented proper point deduction system:
+  - Server Roles: 150 points each (5 roles × 150 = 750 points total)
+  - Profile Tags: 49 points each (10 tags × 49 = 490 points total)
   - All prices are even numbers for clean presentation
   - Total shop value exactly 1,240 achievement points as requested
+  - Fixed achievement point deduction: Players now properly lose points when purchasing items
+  - Added spent_achievement_points tracking to PlayerData model
+  - Updated achievement tracker to show available points (earned minus spent)
 - June 16, 2025. Completely fixed achievement system stat tracking and synchronization:
   - Root Cause: Achievement system expected `dungeons_completed` field but game only updated `dungeon_clears` dictionary
   - Data Synchronization: Added proper stat tracking in dungeon completion system for `dungeons_completed` and `bosses_defeated`

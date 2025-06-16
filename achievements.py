@@ -700,8 +700,8 @@ class AchievementTracker:
         return completed_achievements
 
     def get_player_achievement_points(self, player: PlayerData) -> int:
-        """Get total achievement points for player"""
-        total_points = 0
+        """Get available achievement points for player (earned minus spent)"""
+        total_earned = 0
 
         if not hasattr(player, "achievements"):
             player.achievements = []
@@ -716,9 +716,14 @@ class AchievementTracker:
                 continue
                 
             if achievement_id in ACHIEVEMENTS:
-                total_points += ACHIEVEMENTS[achievement_id].get("points", 0)
+                total_earned += ACHIEVEMENTS[achievement_id].get("points", 0)
 
-        return total_points
+        # Initialize spent_achievement_points if it doesn't exist
+        if not hasattr(player, "spent_achievement_points"):
+            player.spent_achievement_points = 0
+
+        # Return available points (earned minus spent)
+        return max(0, total_earned - player.spent_achievement_points)
 
     def get_player_available_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get a list of player's available (not yet completed) achievements"""
