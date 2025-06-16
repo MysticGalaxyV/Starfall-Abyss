@@ -185,6 +185,12 @@ class TrainingOptionView(RestrictedView):
         battle_energy_gain = random.randint(3, 8)
         energy_added = self.player_data.add_battle_energy(battle_energy_gain)
 
+        # Check for energy training boost and level energy boost
+        training_energy_boost = False  # Basic training doesn't boost max energy
+        level_energy_boost = 0
+        if leveled_up:
+            level_energy_boost = 5  # Energy boost per level
+
         # Update last train time
         self.player_data.last_train = now
 
@@ -192,6 +198,28 @@ class TrainingOptionView(RestrictedView):
         if not hasattr(self.player_data, "training_completed"):
             self.player_data.training_completed = 0
         self.player_data.training_completed += 1
+
+        # Update quest progress for training completion
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Collect quest completion messages
+        quest_messages = []
+        
+        # Update daily training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update weekly training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "weekly_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update long-term training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "total_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         # Check for achievements
         new_achievements = self.data_manager.check_player_achievements(self.player_data)
@@ -214,6 +242,11 @@ class TrainingOptionView(RestrictedView):
                 f"**Max Energy:** {self.player_data.max_battle_energy} "
                 f"{'(↑ +1)' if training_energy_boost else ''}"),
             inline=False)
+
+        # Add quest completion messages if any
+        if quest_messages:
+            quest_text = "\n".join(quest_messages)
+            embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
 
         if leveled_up:
             embed.add_field(

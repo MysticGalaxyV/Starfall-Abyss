@@ -1037,32 +1037,54 @@ class DungeonProgressView(View):
 
             await channel.send(embed=victory_embed)
 
-            # Handle quest progression
-            # Update quest progress for all participants
+            # Handle quest progression and collect quest completion messages
             from achievements import QuestManager
             quest_manager = QuestManager(self.data_manager)
+            quest_messages = []
 
             if self.is_team_dungeon:
                 # Update for all team members
                 for player in self.team_player_data:
+                    # Daily dungeon quests
                     completed_quests = quest_manager.update_quest_progress(player, "daily_dungeons")
                     for quest in completed_quests:
-                        quest_manager.award_quest_rewards(player, quest)
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
-                    # Also update for weekly_dungeons if applicable
+                    # Weekly dungeon quests
                     completed_weekly = quest_manager.update_quest_progress(player, "weekly_dungeons")
                     for quest in completed_weekly:
-                        quest_manager.award_quest_rewards(player, quest)
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
+                        
+                    # Long-term dungeon quests
+                    completed_longterm = quest_manager.update_quest_progress(player, "total_dungeons")
+                    for quest in completed_longterm:
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
             else:
                 # Solo player
+                # Daily dungeon quests
                 completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_dungeons")
                 for quest in completed_quests:
-                    quest_manager.award_quest_rewards(self.player_data, quest)
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
-                # Also update for weekly_dungeons if applicable
+                # Weekly dungeon quests
                 completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_dungeons")
                 for quest in completed_weekly:
-                    quest_manager.award_quest_rewards(self.player_data, quest)
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
+                    
+                # Long-term dungeon quests
+                completed_longterm = quest_manager.update_quest_progress(self.player_data, "total_dungeons")
+                for quest in completed_longterm:
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
+
+            # Show quest completion messages if any
+            if quest_messages:
+                quest_text = "\n".join(quest_messages)
+                quest_embed = discord.Embed(
+                    title="🎯 Quest Progress",
+                    description=quest_text,
+                    color=discord.Color.gold()
+                )
+                await channel.send(embed=quest_embed)
 
             # Reset accumulated dungeon damage and restore full health
             from utils import GAME_CLASSES

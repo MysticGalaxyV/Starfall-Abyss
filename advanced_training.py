@@ -1152,17 +1152,23 @@ class TrainingMinigameView(View):
         from achievements import QuestManager
         quest_manager = QuestManager(self.data_manager)
         
+        # Collect quest completion messages
+        quest_messages = []
+        
         # Update daily training quests
-        completed_daily_quests = quest_manager.update_quest_progress(
-            self.player_data, "daily_training")
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
         
         # Update weekly training quests
-        completed_weekly_quests = quest_manager.update_quest_progress(
-            self.player_data, "weekly_training")
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "weekly_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
         
         # Update long-term training quests
-        completed_longterm_quests = quest_manager.update_quest_progress(
-            self.player_data, "total_training")
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "total_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         # Check for achievements
         new_achievements = self.data_manager.check_player_achievements(self.player_data)
@@ -1236,6 +1242,11 @@ class TrainingMinigameView(View):
             value=f"**EXP Gained:** {exp_gain}",
             inline=True
         )
+
+        # Add quest completion messages if any
+        if quest_messages:
+            quest_text = "\n".join(quest_messages)
+            embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
 
         # Add level up notification if applicable
         if leveled_up:

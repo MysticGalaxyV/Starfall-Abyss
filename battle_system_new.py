@@ -1065,7 +1065,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         player_data=player_data)
 
     target_stats = {
-        "hp": target_data.hp,
+        "hp": target_data.current_hp,
         "power": target_data.strength,
         "defense": target_data.defense,
         "speed": target_data.dexterity
