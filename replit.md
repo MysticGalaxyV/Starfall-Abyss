@@ -191,6 +191,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Level 50+: 750+ XP per battle (25% of 3000+ XP Astral Nexus completion)
   - Maintains level difference modifiers for fighting stronger/weaker enemies
   - Creates balanced progression where 4 battles equals one dungeon completion
+- June 16, 2025. Fixed leaderboard and equipment system bugs:
+  - Leaderboard: Fixed username display to show Discord names instead of player IDs
+  - Equipment: Fixed equip button errors by adding weapon2 key migration for existing players
+  - Equipment: Cleaned up tool name display by removing "Cursed Tool:" prefix from weapon names
+  - Dual Wielding: Restored proper class restrictions - only Flash Rogue and Shadow Assassin can dual wield
+  - Data Migration: Added automatic cleanup for invalid weapon configurations on player load
 
 ## User Preferences
 

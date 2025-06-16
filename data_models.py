@@ -773,6 +773,19 @@ class PlayerData:
         # Data migration: Ensure weapon2 key exists in equipped_items
         if "weapon2" not in player.equipped_items:
             player.equipped_items["weapon2"] = None
+            
+        # Data validation: Clean up invalid dual weapon configurations
+        from utils import can_dual_wield
+        if player.class_name and not can_dual_wield(player.class_name):
+            # If class can't dual wield but has weapon2 equipped, unequip it
+            if player.equipped_items.get("weapon2"):
+                # Find and unequip the weapon2 item
+                for inv_item in player.inventory:
+                    if (hasattr(inv_item.item, "item_id") and 
+                        inv_item.item.item_id == player.equipped_items["weapon2"]):
+                        inv_item.equipped = False
+                        break
+                player.equipped_items["weapon2"] = None
 
         # Convert inventory
         if "inventory" in data:

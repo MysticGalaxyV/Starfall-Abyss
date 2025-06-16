@@ -594,6 +594,14 @@ class ItemActionView(View):
                         slot = "weapon"
                 else:
                     # Single weapon slot for non-dual wielding classes
+                    # If they have a weapon in weapon2 slot, unequip it first
+                    if "weapon2" in self.player_data.equipped_items and self.player_data.equipped_items["weapon2"]:
+                        for inv_item in self.player_data.inventory:
+                            if hasattr(inv_item.item, "item_id") and inv_item.item.item_id == self.player_data.equipped_items["weapon2"]:
+                                inv_item.equipped = False
+                                break
+                        self.player_data.equipped_items["weapon2"] = None
+                    
                     slot = "weapon"
             elif self.inventory_item.item.item_type == "armor":
                 slot = "armor"
