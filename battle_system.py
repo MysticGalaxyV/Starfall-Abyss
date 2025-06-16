@@ -1168,12 +1168,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                 del player_data.active_effects[effect_name]
 
         # Check for achievements
-        print(f"Debug: Checking achievements for player {player_data.class_name} level {player_data.class_level}")
-        print(f"Debug: Player wins: {getattr(player_data, 'wins', 0)}")
-        print(f"Debug: Player dungeons completed: {getattr(player_data, 'dungeons_completed', 0)}")
-        print(f"Debug: Player achievements: {len(getattr(player_data, 'achievements', []))}")
         new_achievements = data_manager.check_player_achievements(player_data)
-        print(f"Debug: Found {len(new_achievements)} new achievements")
 
         # Save data
         data_manager.save_data()
