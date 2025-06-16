@@ -3553,12 +3553,9 @@ async def _show_help(ctx, category: str = None):
         await ctx.send(embed=embed)
 
 
+
 # === SLASH COMMANDS ===
-                "notes":
-                "Actions: create, join, leave, list, members, contribute, and more"
-            }
-        },
-        "Progress": {
+
             "Achievements": {
                 "description": "View your achievements and badges",
                 "usage":
