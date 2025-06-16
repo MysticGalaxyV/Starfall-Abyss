@@ -1365,16 +1365,17 @@ def generate_enemy_moves(enemy_name: str) -> List[BattleMove]:
 
 def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
     """Calculate experience reward based on enemy and player levels"""
-    base_exp = 20 + (enemy_level * 10)
+    # Much lower base XP rewards
+    base_exp = 5 + (enemy_level * 2)
 
     # Adjust based on level difference
     level_diff = enemy_level - player_level
     if level_diff > 0:
         # More exp for defeating higher level enemies
-        exp_modifier = 1.0 + (level_diff * 0.2)
+        exp_modifier = 1.0 + (level_diff * 0.15)
     elif level_diff < 0:
         # Less exp for defeating lower level enemies
-        exp_modifier = max(0.3, 1.0 + (level_diff * 0.1))
+        exp_modifier = max(0.2, 1.0 + (level_diff * 0.1))
     else:
         # Same level
         exp_modifier = 1.0
