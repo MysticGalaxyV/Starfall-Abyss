@@ -671,7 +671,7 @@ class DungeonProgressView(View):
 
             # Award bonuses
             self.player_data.cursed_energy += bonus_cursed_energy
-            self.player_data.add_exp(bonus_exp)
+            exp_result = self.player_data.add_exp(bonus_exp, data_manager=self.data_manager)
 
             # Create embed for treasure
             embed = discord.Embed(
@@ -680,10 +680,17 @@ class DungeonProgressView(View):
                 color=treasure["color"]
             )
 
+            # Create proper EXP display with event information
+            exp_display = f"EXP: {bonus_exp}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"EXP: {bonus_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"EXP: {exp_result['adjusted_exp']}"
+            
             embed.add_field(
                 name="Rewards",
                 value=f"Cursed Energy: +{bonus_cursed_energy} 🔮\n"
-                      f"EXP: +{bonus_exp} 📊",
+                      f"{exp_display} 📊",
                 inline=False
             )
 
@@ -880,7 +887,7 @@ class DungeonProgressView(View):
 
             # Award partial rewards
             self.player_data.add_gold(gold_reward)
-            self.player_data.add_exp(exp_reward)
+            exp_result = self.player_data.add_exp(exp_reward, data_manager=self.data_manager)
 
             # Send defeat message
             defeat_embed = discord.Embed(
@@ -889,9 +896,16 @@ class DungeonProgressView(View):
                 color=discord.Color.red()
             )
 
+            # Create proper EXP display with event information for defeat case
+            exp_display = f"EXP: {exp_reward}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"EXP: {exp_reward} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"EXP: {exp_result['adjusted_exp']}"
+            
             defeat_embed.add_field(
                 name="Partial Rewards",
-                value=f"EXP: +{exp_reward} 📊\n"
+                value=f"{exp_display} 📊\n"
                       f"Gold: +{gold_reward} 💰",
                 inline=False
             )

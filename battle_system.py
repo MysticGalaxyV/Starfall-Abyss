@@ -1098,9 +1098,16 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             description=f"You defeated the {enemy_name}!",
             color=discord.Color.green())
 
+        # Create proper EXP display with event information
+        exp_display = f"EXP Gained: {exp_reward}"
+        if exp_result["event_multiplier"] > 1.0:
+            exp_display = f"EXP Gained: {exp_reward} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        else:
+            exp_display = f"EXP Gained: {exp_result['adjusted_exp']}"
+        
         result_embed.add_field(
             name="Rewards",
-            value=f"EXP: +{exp_reward} 📊\n"
+            value=f"{exp_display} 📊\n"
             f"Gold: +{gold_reward} 💰{drop_msg}{special_drop_msg}",
             inline=False)
 
@@ -1145,8 +1152,15 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             description=f"You were defeated by the {enemy_name}!",
             color=discord.Color.red())
 
+        # Create proper EXP display with event information for defeat case
+        exp_display = f"EXP: {pity_exp}"
+        if exp_result["event_multiplier"] > 1.0:
+            exp_display = f"EXP: {pity_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        else:
+            exp_display = f"EXP: {exp_result['adjusted_exp']}"
+            
         result_embed.add_field(name="Consolation",
-                               value=f"EXP: +{pity_exp} 📊\n"
+                               value=f"{exp_display} 📊\n"
                                f"You'll get them next time!",
                                inline=False)
 
