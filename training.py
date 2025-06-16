@@ -189,7 +189,8 @@ class TrainingOptionView(RestrictedView):
             option_data['attribute']] += attribute_gain
 
         # Add exp
-        leveled_up = self.player_data.add_exp(exp_gain)
+        exp_result = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
+        leveled_up = exp_result["leveled_up"]
 
         # Add some battle energy
         battle_energy_gain = random.randint(3, 8)
@@ -245,11 +246,18 @@ class TrainingOptionView(RestrictedView):
             description=f"You've completed {option_data['name']} training!",
             color=discord.Color.green())
 
+        # Create proper EXP display with event information
+        exp_display = f"EXP Gained: {exp_gain}"
+        if exp_result["event_multiplier"] > 1.0:
+            exp_display = f"EXP Gained: {exp_gain} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        else:
+            exp_display = f"EXP Gained: {exp_result['adjusted_exp']}"
+        
         embed.add_field(
             name="Results",
             value=(
                 f"**{option_data['attribute'].title()}:** +{attribute_gain}\n"
-                f"**EXP Gained:** {exp_gain}\n"
+                f"**{exp_display}**\n"
                 f"**Battle Energy:** +{energy_added} ✨\n"
                 f"**Max Energy:** {self.player_data.max_battle_energy} "
                 f"{'(↑ +1)' if training_energy_boost else ''}"),

@@ -931,7 +931,8 @@ class DungeonProgressView(View):
 
             # Award rewards
             self.player_data.add_gold(total_gold)
-            leveled_up = self.player_data.add_exp(total_exp)
+            exp_result = self.player_data.add_exp(total_exp, data_manager=self.data_manager)
+            leveled_up = exp_result["leveled_up"]
 
             # Update dungeon clear count
             if self.dungeon_name not in self.player_data.dungeon_clears:
@@ -956,13 +957,21 @@ class DungeonProgressView(View):
                 color=discord.Color.gold()
             )
 
+            # Create proper EXP display with event information
+            exp_display = f"Total EXP: {total_exp}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"Total EXP: {total_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"Total EXP: {exp_result['adjusted_exp']}"
+            
             victory_embed.add_field(
                 name="Rewards",
                 value=f"Base Gold: {gold_reward} 💰\n"
                       f"Bonus Gold: +{bonus_gold} 💰\n"
                       f"Base EXP: {exp_reward} 📊\n"
                       f"Bonus EXP: +{bonus_exp} 📊\n"
-                      f"Total: {total_gold} 💰 and {total_exp} EXP",
+                      f"{exp_display}\n"
+                      f"Total Gold: {total_gold} 💰",
                 inline=False
             )
 
