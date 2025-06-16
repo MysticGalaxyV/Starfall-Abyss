@@ -246,6 +246,11 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Level Up Notifications: Players now see "Guild leveled up!" messages when purchases trigger level ups
   - Testing: Verified guild experience system properly accumulates and triggers level progression
   - Result: Guilds can now level up through shop purchases and member contributions
+- June 16, 2025. Fixed guild upgrade button display issue:
+  - Root Issue: Guild upgrade buttons weren't showing due to upgrade name mismatch
+  - Problem: Guild initialization used "cursed_energy_boost" but GUILD_UPGRADES defined "gold_boost"
+  - Solution: Updated guild initialization to use "gold_boost" to match upgrade definitions
+  - Result: Guild upgrade buttons now display properly for leaders and officers in upgrades menu
 
 ## User Preferences
 

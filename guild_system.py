@@ -30,7 +30,7 @@ class Guild:
             "bank_level": 1,
             "member_capacity": 1,
             "exp_boost": 1,
-            "cursed_energy_boost": 1  # Renamed from gold_boost
+            "gold_boost": 1
         }
 
         # Perks based on guild level
