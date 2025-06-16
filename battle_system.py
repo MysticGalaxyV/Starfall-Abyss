@@ -306,6 +306,15 @@ class BattleEntity:
             if move.effect == "heal":
                 heal_amount = int(self.stats["hp"] * 0.2)
 
+                # Apply skill-based healing bonuses
+                if self.is_player and self.player_data:
+                    # Healing Touch skill - increases healing effectiveness
+                    healing_touch_level = self.get_skill_level("Healing Touch")
+                    if healing_touch_level > 0:
+                        healing_bonus = 1 + (healing_touch_level * 0.05)  # 5% per level
+                        heal_amount = int(heal_amount * healing_bonus)
+                        effect_msg += f"\n💚 Healing Touch enhanced the healing!"
+
                 # Check for healing boost from Reverse Cursed Technique
                 if self.is_player and self.player_data and hasattr(
                         self.player_data, "special_abilities"):
@@ -327,9 +336,26 @@ class BattleEntity:
                                           self.current_energy + energy_amount)
                 effect_msg += f"\n⚡ {self.name} restored {energy_amount} energy!"
             elif move.effect == "weakness":
-                target.status_effects["weakness"] = (
-                    2, 0.25)  # 2 turns, 25% more damage
-                effect_msg += f"\n🟣 {target.name} is weakened for 2 turns!"
+                # Check for Counterspell skill - chance to nullify negative effects
+                resisted = False
+                if target.is_player and target.player_data:
+                    counterspell_level = target.get_skill_level("Counterspell")
+                    unbreakable_level = target.get_skill_level("Unbreakable")
+                    
+                    resistance_chance = 0
+                    if counterspell_level > 0:
+                        resistance_chance += counterspell_level * 0.15  # 15% per level
+                    if unbreakable_level > 0:
+                        resistance_chance += unbreakable_level * 0.1   # 10% per level
+                    
+                    if resistance_chance > 0 and random.random() < resistance_chance:
+                        resisted = True
+                        effect_msg += f"\n🛡️ {target.name} resisted the weakness effect!"
+                
+                if not resisted:
+                    target.status_effects["weakness"] = (2, 0.25)  # 2 turns, 25% more damage
+                    effect_msg += f"\n🟣 {target.name} is weakened for 2 turns!"
+                    
             elif move.effect == "strength":
                 self.status_effects["strength"] = (
                     2, 0.25)  # 2 turns, 25% more damage
