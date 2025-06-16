@@ -644,9 +644,9 @@ SPECIAL_EVENTS = [
     # Generic Boss (fallback)
     {
         "id": "special_boss",
-        "name": "World Boss: {boss_name}",
+        "name": "World Boss: Ancient Behemoth",
         "description": "A powerful world boss has appeared! Work together to defeat it for special rewards!",
-        "effect": {"type": "world_boss", "boss_level": lambda avg_lvl: avg_lvl + 20},
+        "effect": {"type": "world_boss", "boss_name": "Ancient Behemoth", "boss_level": lambda avg_lvl: avg_lvl + 20},
         "duration": 0.5  # days (12 hours)
     },
     {
@@ -1895,10 +1895,29 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
 
             @discord.ui.button(label="Start 1-Week Event", style=discord.ButtonStyle.success)
             async def start_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-                # Create a select menu to choose an event
-                options = [discord.SelectOption(label=event["name"], value=event["id"], 
-                          description=f"Start a 1-week {event['id']} event") 
-                          for event in SPECIAL_EVENTS]
+                # Create a select menu to choose an event with validation
+                options = []
+                seen_values = set()
+                seen_labels = set()
+                
+                for event in SPECIAL_EVENTS:
+                    # Skip if we've already seen this value or label
+                    if event["id"] in seen_values or event["name"] in seen_labels:
+                        continue
+                    
+                    # Create option with truncated description if needed
+                    description = f"Start a 1-week {event['id']} event"
+                    if len(description) > 100:
+                        description = description[:97] + "..."
+                    
+                    options.append(discord.SelectOption(
+                        label=event["name"][:100],  # Ensure label fits Discord limits
+                        value=event["id"][:100],    # Ensure value fits Discord limits
+                        description=description
+                    ))
+                    
+                    seen_values.add(event["id"])
+                    seen_labels.add(event["name"])
 
                 select = discord.ui.Select(placeholder="Choose an event to start", options=options)
 
