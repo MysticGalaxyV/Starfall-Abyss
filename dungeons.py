@@ -1096,6 +1096,37 @@ class DungeonProgressView(View):
                 )
                 await channel.send(embed=quest_embed)
 
+            # Check for achievements after dungeon completion
+            new_achievements = self.data_manager.check_player_achievements(self.player_data)
+            
+            # Show achievement completions if any
+            if new_achievements:
+                achievement_text = ""
+                for achievement in new_achievements:
+                    badge = achievement.get("badge", "🏆")
+                    points = achievement.get("points", 0)
+                    achievement_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
+                    achievement_text += f"*{achievement['description']}*\n"
+                    
+                    # Add rewards info
+                    if achievement.get("reward"):
+                        rewards = []
+                        reward_data = achievement["reward"]
+                        if "exp" in reward_data:
+                            rewards.append(f"EXP: +{reward_data['exp']}")
+                        if "gold" in reward_data:
+                            rewards.append(f"Gold: +{reward_data['gold']}")
+                        if rewards:
+                            achievement_text += f"Rewards: {', '.join(rewards)}\n"
+                    achievement_text += "\n"
+                
+                achievement_embed = discord.Embed(
+                    title="🏆 New Achievements!",
+                    description=achievement_text.strip(),
+                    color=discord.Color.gold()
+                )
+                await channel.send(embed=achievement_embed)
+
             # Reset accumulated dungeon damage and restore full health
             from utils import GAME_CLASSES
             self.player_data.reset_dungeon_damage(GAME_CLASSES, True)

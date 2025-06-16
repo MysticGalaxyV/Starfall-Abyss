@@ -197,6 +197,13 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Equipment: Cleaned up tool name display by removing "Cursed Tool:" prefix from weapon names
   - Dual Wielding: Restored proper class restrictions - only Flash Rogue and Shadow Assassin can dual wield
   - Data Migration: Added automatic cleanup for invalid weapon configurations on player load
+- June 16, 2025. Fixed achievement system completion notifications:
+  - Battle System: Added achievement display after battle victories with detailed reward information
+  - Dungeon System: Added achievement notifications after dungeon completions
+  - Level Up System: Enhanced level-up achievement checking for comprehensive coverage
+  - Achievement Display: Improved notification format showing badges, points, descriptions, and rewards
+  - Data Flow: Fixed missing achievement checking calls throughout major progression systems
+  - User Experience: Players now see immediate feedback when completing achievements
 
 ## User Preferences
 
