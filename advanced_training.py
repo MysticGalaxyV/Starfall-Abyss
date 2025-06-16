@@ -1148,6 +1148,22 @@ class TrainingMinigameView(View):
             self.player_data.advanced_training_completed = 0
         self.player_data.advanced_training_completed += 1
 
+        # Update quest progress for training completion
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Update daily training quests
+        completed_daily_quests = quest_manager.update_quest_progress(
+            self.player_data, "daily_training")
+        
+        # Update weekly training quests
+        completed_weekly_quests = quest_manager.update_quest_progress(
+            self.player_data, "weekly_training")
+        
+        # Update long-term training quests
+        completed_longterm_quests = quest_manager.update_quest_progress(
+            self.player_data, "total_training")
+
         # Check for achievements
         new_achievements = self.data_manager.check_player_achievements(self.player_data)
 

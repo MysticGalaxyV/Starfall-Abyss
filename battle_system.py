@@ -1011,6 +1011,13 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             player_data, "daily_wins")
         completed_weekly_quests = quest_manager.update_quest_progress(
             player_data, "weekly_wins")
+        
+        # Update long-term battle tracking
+        completed_longterm_quests = quest_manager.update_quest_progress(
+            player_data, "total_wins")
+
+        # Update gold quest tracking
+        quest_manager.update_quest_progress(player_data, "daily_gold", gold_reward)
 
         if "boss" in enemy_name.lower():
             # This is a boss battle
@@ -1027,6 +1034,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             from equipment import add_item_to_inventory
             add_item_to_inventory(player_data, new_item)
 
+            # Update item collection quest progress
+            quest_manager.update_quest_progress(player_data, "daily_items")
+
             drop_msg = f"\n⚡ The {enemy_name} dropped: **{new_item.name}**!"
 
         # Check for special item drop (rarer)
@@ -1040,6 +1050,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                 # Add to inventory
                 from equipment import add_item_to_inventory
                 add_item_to_inventory(player_data, special_item)
+
+                # Update item collection quest progress for special items too
+                quest_manager.update_quest_progress(player_data, "daily_items")
 
                 special_drop_msg = f"\n🌟 Rare drop! You found: **{special_item.name}**!"
 
@@ -1478,6 +1491,15 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         player_data.wins += 1
         target_data.losses += 1
 
+        # Update quest progress for PvP victory
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        
+        # Update daily and weekly PvP quest progress for winner
+        quest_manager.update_quest_progress(player_data, "daily_pvp")
+        quest_manager.update_quest_progress(player_data, "weekly_pvp")
+        quest_manager.update_quest_progress(player_data, "daily_gold", cursed_energy_reward)
+
         # Record this battle in pvp_history if it doesn't exist yet
         if not hasattr(player_data, 'pvp_history'):
             player_data.pvp_history = []
@@ -1576,6 +1598,15 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         # Update stats
         target_data.wins += 1
         player_data.losses += 1
+
+        # Update quest progress for PvP victory
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        
+        # Update daily and weekly PvP quest progress for winner
+        quest_manager.update_quest_progress(target_data, "daily_pvp")
+        quest_manager.update_quest_progress(target_data, "weekly_pvp")
+        quest_manager.update_quest_progress(target_data, "daily_gold", gold_reward)
 
         # Record this battle in pvp_history if it doesn't exist yet
         if not hasattr(player_data, 'pvp_history'):
