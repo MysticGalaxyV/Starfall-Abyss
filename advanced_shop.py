@@ -1024,7 +1024,7 @@ ADVANCED_SHOP_ITEMS = {
             "one_time_purchase": True
         },
 
-        # Profile Tags (49 points each for 10 tags = 490 points)
+        # Profile Tags (50 points each for 9 tags + 40 points for 1 tag = 490 points)
         {
             "name": "🌀 Domain Master Tag",
             "description": "Display 'Domain Master' on your profile. Mastery of cursed technique domains!",
@@ -1033,7 +1033,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1044,7 +1044,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1055,7 +1055,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1066,7 +1066,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1077,7 +1077,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1088,7 +1088,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1099,7 +1099,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1110,7 +1110,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
@@ -1121,18 +1121,18 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 50,
             "one_time_purchase": True
         },
         {
             "name": "🏆 Ascended Champion Tag",
-            "description": "Display 'Ascended Champion' on your profile. Ultimate achievement mastery!",
+            "description": "Display 'Ascended Champion' on your profile. Ultimate achievement mastery! The ultimate tag for completionists.",
             "item_type": "profile_tag",
             "tag_text": "🏆 Ascended Champion",
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 49,
+            "achievement_points": 40,
             "one_time_purchase": True
         }
     ]
