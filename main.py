@@ -3272,165 +3272,288 @@ async def slash_help(interaction: discord.Interaction, category: str = None):
 
 async def _show_help(ctx, category: str = None):
     help_pages = {
-        "Basic": {
+        "Getting Started": {
             "Start": {
-                "description": "Begin your journey and select your class",
+                "description": "Begin your journey and select your starting class",
                 "usage": "!start or /start",
-                "notes": "Choose your starting class and begin your adventure"
+                "notes": "Choose from Spirit Striker, Domain Tactician, or Flash Rogue"
             },
             "Profile": {
-                "description": "View your stats and progress",
+                "description": "View your character stats and progress",
                 "usage": "!profile [user] (alias: !p) or /profile",
-                "notes": "Shows character level, class, stats, and equipment"
+                "notes": "Shows level, class, stats, equipment, and guild info"
             },
             "Daily": {
                 "description": "Claim your daily rewards",
                 "usage": "!daily or /daily",
-                "notes": "Claim gold (🔮) and items every 24 hours"
-            },
-            "Balance": {
-                "description": "Check your current gold balance",
-                "usage": "!balance (aliases: !bal) or /balance",
-                "notes": "View your current gold (🔮) and battle energy (✨)"
-            },
-            "Leaderboard": {
-                "description":
-                "View the top players leaderboard and rankings",
-                "usage":
-                "!leaderboard [category] (aliases: !lb, !top, !rankings) or /leaderboard",
-                "notes":
-                "Categories: level, gold, wins, pvp_wins, dungeons_completed, bosses_defeated"
-            },
-            "Levels": {
-                "description":
-                "View your level information and progression details",
-                "usage":
-                "!levels or /levels",
-                "notes":
-                "Shows detailed level progress with XP requirements and growth stats"
-            },
-            "Monsters": {
-                "description":
-                "Shows all available monsters/enemies that can be battled",
-                "usage": "!monsters (aliases: !mobs, !enemies) or /monsters",
-                "notes": "Lists all enemies by zone with their level ranges"
+                "notes": "Claim gold and items every 24 hours with streak bonuses"
             },
             "Help": {
-                "description": "Show this help message",
+                "description": "Show command help organized by category",
                 "usage": "!help [category] or /help",
-                "notes": "Shows command information by category"
+                "notes": "Categories: Getting Started, Character, Combat, Equipment, Exploration, Social, Crafting, Admin"
             }
         },
-        "Battle": {
+        "Character Management": {
+            "Balance": {
+                "description": "Check your current gold and battle energy",
+                "usage": "!balance (aliases: !bal) or /balance",
+                "notes": "View gold for purchases and battle energy for combat"
+            },
+            "Level": {
+                "description": "View detailed level progression information",
+                "usage": "!level (aliases: !lvl, !progression) or /level",
+                "notes": "Shows XP requirements, stat growth, and progression details"
+            },
+            "Change Class": {
+                "description": "Switch to another unlocked class",
+                "usage": "!change_class (aliases: !cc, !class) or /change_class",
+                "notes": "Requires meeting unlock requirements for advanced classes"
+            },
+            "Use": {
+                "description": "Use consumable items from your inventory",
+                "usage": "!use <item_name> or /use",
+                "notes": "Consume potions, elixirs, and other usable items"
+            },
+            "Special Items": {
+                "description": "View and use special items and transformation abilities",
+                "usage": "!special_items (aliases: !sitems, !si) or /special_items",
+                "notes": "Use rare transformation items and special abilities"
+            }
+        },
+        "Combat & Training": {
             "Battle": {
-                "description": "Battle an enemy or another player",
-                "usage":
-                "!battle [@player] OR !battle [enemy_name] [enemy_level] (alias: !b) or /battle",
-                "notes":
-                "PvE and PvP combat with special abilities and effects"
+                "description": "Battle enemies or other players for XP and rewards",
+                "usage": "!battle [enemy_name] [enemy_level] (alias: !b) or /battle",
+                "notes": "PvE and PvP combat with energy-based abilities and effects"
             },
             "PvP History": {
-                "description":
-                "View your PvP battle history and stats",
-                "usage":
-                "!pvphistory (aliases: !pvp, !pvpstats) or /pvphistory",
-                "notes":
-                "See your win/loss record, recent battles, and cooldown status"
+                "description": "View your PvP battle statistics and recent fights",
+                "usage": "!pvphistory (aliases: !pvp, !pvpstats) or /pvphistory", 
+                "notes": "Shows win/loss record, recent battles, and cooldown status"
             },
             "Train": {
-                "description": "Train to improve your stats",
+                "description": "Basic training to improve character stats",
                 "usage": "!train (alias: !t) or /train",
-                "notes": "Basic training to gain small stat improvements"
+                "notes": "Simple stat training with cooldowns, gives modest improvements"
             },
             "Advanced Training": {
-                "description": "Participate in advanced training exercises",
-                "usage":
-                "!advanced_training (alias: !atrain) or /advanced_training",
-                "notes": "Specialized training minigames with better rewards"
+                "description": "Interactive training minigames with better rewards",
+                "usage": "!advanced_training (alias: !atrain) or /advanced_training",
+                "notes": "Reaction, timing, and skill-based training challenges"
             },
             "Skills": {
-                "description": "Allocate skill points",
+                "description": "Allocate skill points earned from leveling up",
                 "usage": "!skills (alias: !sk) or /skills",
-                "notes": "Spend skill points earned from leveling up"
+                "notes": "Spend skill points to permanently improve stats"
             },
             "Skill Tree": {
-                "description": "View and allocate points in your skill tree",
+                "description": "Advanced skill progression system with specialized paths",
                 "usage": "!skilltree (aliases: !skt, !tree) or /skilltree",
-                "notes": "Advanced skill progression system"
+                "notes": "Unlock powerful abilities and stat bonuses"
+            },
+            "Monsters": {
+                "description": "View all available enemies that can be battled",
+                "usage": "!monsters (aliases: !mobs, !enemies) or /monsters",
+                "notes": "Lists enemies by zone with level ranges and rewards"
             }
         },
-        "Equipment": {
+        "Equipment & Shopping": {
             "Equipment": {
-                "description": "View and manage your equipment",
+                "description": "View and manage your inventory and equipped gear",
                 "usage": "!equipment (alias: !e) or /equipment",
-                "notes": "Equip, unequip, and sell items in your inventory"
+                "notes": "Equip, unequip, sell items. Shows dual weapon slots for rogues"
             },
             "Inventory": {
-                "description": "View your inventory and equipped items",
+                "description": "Alternative access to equipment management",
                 "usage": "!inventory (aliases: !i, !inv) or /inventory",
-                "notes": "Alternate way to access equipment management"
+                "notes": "Same as equipment command with different interface"
             },
             "Shop": {
-                "description": "Browse the item shop",
+                "description": "Browse the basic item shop by level tiers",
                 "usage": "!shop or /shop",
-                "notes": "Basic shop with common items"
+                "notes": "Purchase weapons, armor, accessories, and consumables"
             },
             "Advanced Shop": {
-                "description": "Browse the enhanced shop with filters",
+                "description": "Enhanced shop with categories and filtering options",
                 "usage": "!advanced_shop (alias: !ashop) or /advanced_shop",
-                "notes":
-                "Shop with more items, categories, and filtering options"
+                "notes": "More items, better organization, and advanced filters"
             },
             "Buy": {
-                "description": "Buy an item from the shop",
+                "description": "Purchase items directly from the shop",
                 "usage": "!buy <item_name>",
-                "notes":
-                "Purchase items with gold (🔮) to improve your character"
+                "notes": "Quick purchase command for known item names"
+            },
+            "Tools": {
+                "description": "View and equip gathering tools for material collection",
+                "usage": "!tools (alias: !tool) or /tools",
+                "notes": "Manage mining, foraging, and other specialized tools"
             }
         },
-        "Exploration": {
+        "Exploration & Activities": {
             "Dungeon": {
-                "description": "Enter a dungeon",
+                "description": "Enter dungeons to fight bosses and find rare items",
                 "usage": "!dungeon (alias: !d) or /dungeon",
-                "notes": "Explore dungeons to find rare items and earn rewards"
+                "notes": "Multi-floor dungeons with increasing difficulty and rewards"
             },
             "Gather": {
-                "description": "Gather materials for crafting",
+                "description": "Collect raw materials from the environment",
                 "usage": "!gather (alias: !collect) or /gather",
-                "notes":
-                "Collect raw materials from the environment for crafting"
-            }
-        },
-        "Crafting": {
-            "Materials": {
-                "description": "View the materials encyclopedia",
-                "usage": "!materials (aliases: !mats, !mat) or /materials",
-                "notes":
-                "Browse all available crafting materials and their uses"
+                "notes": "Mining, foraging, fishing, and other gathering activities"
             },
-            "Craft": {
-                "description":
-                "Craft items from gathered materials",
-                "usage":
-                "!craft (alias: !crafting) or /craft",
-                "notes":
-                "Create weapons, armor, potions, and other items from materials"
+            "Materials": {
+                "description": "Browse the complete materials encyclopedia",
+                "usage": "!materials (aliases: !mats, !mat) or /materials",
+                "notes": "View all crafting materials, their sources, and uses"
             },
             "Encyclopedia": {
-                "description":
-                "Browse the complete item encyclopedia",
-                "usage":
-                "!encyclopedia [category] (aliases: !codex, !browser, !items) or /encyclopedia",
-                "notes":
-                "Browse all items, weapons, armor, and materials in the game"
+                "description": "Comprehensive database of all game items and content",
+                "usage": "!encyclopedia [category] (aliases: !codex, !browser, !items) or /encyclopedia",
+                "notes": "Browse weapons, armor, materials, and special items"
             }
         },
-        "Guild": {
+        "Social & Progress": {
             "Guild": {
-                "description":
-                "Guild system - create, join, or manage a guild",
-                "usage":
-                "!guild [action] [args] (alias: !g) or /guild",
+                "description": "Create, join, and manage guilds for cooperative play",
+                "usage": "!guild [action] (alias: !g) or /guild",
+                "notes": "Actions: create, join, leave, list, members, contribute, shop, dungeon"
+            },
+            "Trade": {
+                "description": "Secure trading system with other players",
+                "usage": "!trade <user> (aliases: !tr) or /trade",
+                "notes": "Exchange items and gold safely with confirmation system"
+            },
+            "Achievements": {
+                "description": "View earned achievements and track progress",
+                "usage": "!achievements (aliases: !achieve, !ach) or /achievements",
+                "notes": "Unlock badges and earn rewards for accomplishments"
+            },
+            "Quests": {
+                "description": "View active daily, weekly, and long-term quests",
+                "usage": "!quests (alias: !q) or /quests",
+                "notes": "Complete objectives for bonus rewards and progression"
+            },
+            "Leaderboard": {
+                "description": "View top players ranked by various statistics",
+                "usage": "!leaderboard [category] (aliases: !lb, !top, !rankings) or /leaderboard",
+                "notes": "Categories: level, gold, wins, pvp_wins, dungeons_completed, bosses_defeated"
+            }
+        },
+        "Crafting & Creation": {
+            "Craft": {
+                "description": "Create items from gathered materials using recipes",
+                "usage": "!craft (alias: !crafting) or /craft",
+                "notes": "Combine materials to make weapons, armor, potions, and tools"
+            }
+        },
+        "Admin Commands": {
+            "Give Gold": {
+                "description": "[Admin] Add gold to a player's balance",
+                "usage": "!give_gold <user> <amount>",
+                "notes": "Administrative command for currency management"
+            },
+            "Give Item": {
+                "description": "[Admin] Add items to a player's inventory",
+                "usage": "!give_item <user> <item_name> [quantity]",
+                "notes": "Grant specific items with optional quantity"
+            },
+            "Give XP": {
+                "description": "[Admin] Award experience points to players",
+                "usage": "!give_xp <user> <amount>",
+                "notes": "Grant XP which may trigger automatic level-ups"
+            },
+            "Give Class": {
+                "description": "[Admin] Unlock classes for players",
+                "usage": "!give_class <user> <class_name>",
+                "notes": "Grant access to advanced classes regardless of requirements"
+            },
+            "Give Skill": {
+                "description": "[Admin] Grant specific skills to players",
+                "usage": "!give_skill <user> <skill_id>",
+                "notes": "Add skills directly to player's skill collection"
+            },
+            "Give Achievement": {
+                "description": "[Admin] Award achievements to players",
+                "usage": "!give_achievement <user> <achievement_id>",
+                "notes": "Grant specific achievements and their associated rewards"
+            },
+            "Event": {
+                "description": "[Admin] Manage server-wide special events",
+                "usage": "!event [action] [event_id] [duration] or /event",
+                "notes": "Start, list, or end special events like Double XP Weekend"
+            },
+            "Sync": {
+                "description": "[Admin] Synchronize slash commands with Discord",
+                "usage": "!sync",
+                "notes": "Update Discord with latest slash command changes"
+            }
+        }
+    }
+
+    if category:
+        # Show specific category
+        category_title = category.replace("_", " ").title()
+        if category_title in help_pages:
+            embed = discord.Embed(
+                title=f"📚 {GAME_NAME} Help - {category_title}",
+                description=f"Commands in the {category_title} category:",
+                color=discord.Color.blue()
+            )
+            
+            for cmd_name, cmd_info in help_pages[category_title].items():
+                embed.add_field(
+                    name=f"**{cmd_name}**",
+                    value=f"{cmd_info['description']}\n"
+                          f"**Usage:** `{cmd_info['usage']}`\n"
+                          f"**Notes:** {cmd_info['notes']}",
+                    inline=False
+                )
+            
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send(f"❌ Category '{category}' not found. Use `!help` to see all categories.")
+    else:
+        # Show category overview
+        embed = discord.Embed(
+            title=f"📚 {GAME_NAME} Help",
+            description="Welcome to Starfall Abyss! Here are all available command categories:\n"
+                       "Use `!help [category]` to see detailed commands for each category.",
+            color=discord.Color.gold()
+        )
+        
+        category_descriptions = {
+            "Getting Started": "🏁 Essential commands for new players",
+            "Character Management": "👤 Manage your character stats and progression", 
+            "Combat & Training": "⚔️ Battle, training, and skill development",
+            "Equipment & Shopping": "🛍️ Inventory, shops, and gear management",
+            "Exploration & Activities": "🗺️ Dungeons, gathering, and exploration",
+            "Social & Progress": "👥 Guilds, trading, achievements, and leaderboards",
+            "Crafting & Creation": "🔨 Material crafting and item creation",
+            "Admin Commands": "⚙️ Administrative tools (admins only)"
+        }
+        
+        for category_name, description in category_descriptions.items():
+            cmd_count = len(help_pages.get(category_name, {}))
+            embed.add_field(
+                name=f"**{category_name}**",
+                value=f"{description}\n({cmd_count} commands)",
+                inline=True
+            )
+        
+        embed.add_field(
+            name="📖 Quick Tips",
+            value="• Most commands work with both `!command` and `/command`\n"
+                  "• Use `/start` to begin your adventure\n"
+                  "• Check `/profile` to see your character info\n"
+                  "• Join a guild with `/guild` for cooperative play",
+            inline=False
+        )
+        
+        embed.set_footer(text="Example: !help combat to see all combat commands")
+        await ctx.send(embed=embed)
+
+
+# === SLASH COMMANDS ===
                 "notes":
                 "Actions: create, join, leave, list, members, contribute, and more"
             }
