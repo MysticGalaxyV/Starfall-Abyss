@@ -1025,14 +1025,13 @@ class GatheringView(View):
         if best_tool:
             tool_name, efficiency = best_tool
             embed.add_field(
-                name="Tool",
-                value=f"Using {tool_name}\nEfficiency: {efficiency:.1f}x",
+                name="🧰 Tool Equipped",
+                value=f"**{tool_name}**\nEfficiency Bonus: {efficiency:.1f}x\n✅ Ready to gather!",
                 inline=False)
         else:
             embed.add_field(
-                name="No Tool",
-                value=
-                "You don't have any tools for this gathering type. Gathering will be less efficient.",
+                name="⚠️ No Tool Equipped",
+                value="You don't have any tools equipped for this gathering type.\nUse `!tools` to equip tools for better results!",
                 inline=False)
 
         await interaction.response.edit_message(embed=embed, view=self)
@@ -1107,11 +1106,26 @@ class GatheringView(View):
         # Save player data
         self.data_manager.save_data()
 
-        # Create result embed
+        # Create result embed with tool information
         embed = discord.Embed(
             title=f"🔍 Gathering Results: {self.selected_category}",
             description=f"You gathered {len(materials)} materials!",
             color=discord.Color.green())
+
+        # Add tool information to results
+        if best_tool:
+            tool_name, tool_efficiency = best_tool
+            embed.add_field(
+                name="🧰 Tool Used",
+                value=f"{tool_name}\nEfficiency Bonus: {tool_efficiency:.1f}x",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="🧰 Tool Used",
+                value="No tool equipped\nConsider equipping a tool for better results!",
+                inline=False
+            )
 
         # Group materials by name, tracking counts and actual values
         material_data = {}
