@@ -926,6 +926,16 @@ class DungeonProgressView(View):
                 self.player_data.dungeon_clears[self.dungeon_name] = 1
             else:
                 self.player_data.dungeon_clears[self.dungeon_name] += 1
+                
+            # Update achievement stat - increment total dungeons completed
+            if not hasattr(self.player_data, 'dungeons_completed'):
+                self.player_data.dungeons_completed = 0
+            self.player_data.dungeons_completed += 1
+            
+            # Update boss defeat count for achievements
+            if not hasattr(self.player_data, 'bosses_defeated'):
+                self.player_data.bosses_defeated = 0
+            self.player_data.bosses_defeated += 1
 
             # Update quest progress for dungeons
             from achievements import QuestManager

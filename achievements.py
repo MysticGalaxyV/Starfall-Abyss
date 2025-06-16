@@ -743,11 +743,12 @@ class AchievementTracker:
                     earned_ids.append(ach)
             
             if achievement["id"] in earned_ids:
+                print(f"Debug: Skipping already earned achievement '{achievement['name']}'")
                 continue
 
             # Check if achievement is completed
             completed = self.check_achievement_completion(player, achievement)
-            print(f"Debug: Checking achievement '{achievement['name']}': {completed}")
+            print(f"Debug: Checking achievement '{achievement['name']}': {completed} (requires {achievement['requirement']})")
 
             if completed:
                 print(f"Debug: Achievement '{achievement['name']}' completed! Adding to newly earned.")

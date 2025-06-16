@@ -1078,6 +1078,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
 
         # Update stats
         player_data.wins += 1
+        
+        # Track achievement stats
+        if not hasattr(player_data, 'gold_earned'):
+            player_data.gold_earned = 0
+        player_data.gold_earned += gold_reward
 
         # Update quest progress for daily and weekly quest tracking
         from achievements import QuestManager
