@@ -305,14 +305,24 @@ class DungeonProgressView(View):
         # Check if player has inventory and items
         if hasattr(self.player_data, 'inventory') and self.player_data.inventory:
             for i, inv_item in enumerate(self.player_data.inventory):
-                # Only show consumable items that can be used in dungeons
-                if (inv_item.get('item_type', '') == "consumable" or 
-                    inv_item.get('type', '') == "consumable" or 
-                    inv_item.get('category', '') == "potion") and inv_item.get('quantity', 0) > 0:
-
-                    # Add item info to usable items list
+                # Handle both InventoryItem objects and dictionary items
+                if hasattr(inv_item, 'item'):
+                    # InventoryItem object
+                    item_type = inv_item.item.item_type if hasattr(inv_item.item, 'item_type') else ''
+                    quantity = inv_item.quantity
+                    item_name = inv_item.item.name if hasattr(inv_item.item, 'name') else f"Item #{i+1}"
+                    item_desc = inv_item.item.description if hasattr(inv_item.item, 'description') else 'A usable item'
+                else:
+                    # Dictionary item (legacy support)
+                    item_type = inv_item.get('item_type', inv_item.get('type', ''))
+                    quantity = inv_item.get('quantity', 0)
                     item_name = inv_item.get('name', f"Item #{i+1}")
                     item_desc = inv_item.get('description', 'A usable item')
+
+                # Only show consumable items that can be used in dungeons
+                if (item_type == "consumable" or 
+                    item_type == "potion") and quantity > 0:
+
                     usable_items.append({
                         'name': item_name,
                         'description': item_desc,
@@ -727,9 +737,12 @@ class DungeonProgressView(View):
         # Calculate player stats including equipment and level
         player_stats = self.player_data.get_stats(GAME_CLASSES)
 
-        # Apply cumulative damage - use HP from previous battles
+        # Store max HP separately and use current HP for battle continuity
+        max_hp = player_stats["hp"]
         if hasattr(self, 'player_current_hp'):
-            player_stats["hp"] = min(player_stats["hp"], self.player_current_hp)
+            current_hp = min(max_hp, self.player_current_hp)
+        else:
+            current_hp = max_hp
 
         # Get player moves based on class
         player_moves = []
@@ -757,6 +770,9 @@ class DungeonProgressView(View):
             is_player=True,
             player_data=self.player_data
         )
+        
+        # Set current HP to maintain battle continuity while preserving max HP
+        player_entity.current_hp = current_hp
 
         # Create enemy entity
         enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
@@ -775,10 +791,10 @@ class DungeonProgressView(View):
             color=discord.Color.red()
         )
 
-        # Add player stats
+        # Add player stats - always show max HP from stats, current HP from entity
         embed.add_field(
             name=f"{interaction.user.display_name} (Level {self.player_data.class_level})",
-            value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
+            value=f"HP: {player_entity.current_hp}/{max_hp} ❤️\n"
                   f"Energy: {player_entity.current_energy}/{self.player_data.get_max_battle_energy()} ✨\n"
                   f"Power: {player_entity.stats['power']} ⚔️\n"
                   f"Defense: {player_entity.stats['defense']} 🛡️",
@@ -796,7 +812,7 @@ class DungeonProgressView(View):
         )
 
         # Create battle view
-        battle_view = BattleView(player_entity, enemy_entity, timeout=180)
+        battle_view = BattleView(player_entity, enemy_entity, interaction.user, timeout=180)
         battle_view.data_manager = self.data_manager
 
         battle_msg = await interaction.channel.send(embed=embed, view=battle_view)
@@ -834,7 +850,7 @@ class DungeonProgressView(View):
             # Show remaining HP
             win_embed.add_field(
                 name="Status",
-                value=f"HP: {self.player_current_hp}/{player_stats['hp']} ❤️\n"
+                value=f"HP: {self.player_current_hp}/{max_hp} ❤️\n"
                       f"Energy: {player_entity.current_energy} ✨",
                 inline=False
             )

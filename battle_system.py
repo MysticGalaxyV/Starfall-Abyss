@@ -1279,7 +1279,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         inline=True)
 
     # Create battle view
-    battle_view = BattleView(player_entity, target_entity, timeout=180)
+    battle_view = BattleView(player_entity, target_entity, ctx.author, timeout=180)
     battle_view.data_manager = data_manager
 
     battle_msg = await ctx.send(embed=embed, view=battle_view)
