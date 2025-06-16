@@ -748,8 +748,8 @@ class TrainingMinigameView(View):
             # Small pause to let player prepare
             await asyncio.sleep(1.0)
 
-            # Create a view for repeating the sequence
-            sequence_view = View(timeout=sequence_length * 2.0)  # Time based on sequence length
+            # Create a view for repeating the sequence - more generous timeout
+            sequence_view = View(timeout=max(15.0, sequence_length * 3.0))  # Minimum 15 seconds, scales with length
 
             # Add the buttons in a randomized order
             shuffled_indices = list(range(len(symbols)))
