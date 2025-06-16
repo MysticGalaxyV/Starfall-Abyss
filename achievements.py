@@ -731,6 +731,7 @@ class AchievementTracker:
 
         # Get available achievements
         available_achievements = self.get_player_available_achievements(player)
+        print(f"Debug: Found {len(available_achievements)} available achievements to check")
 
         for achievement in available_achievements:
             # Skip already earned - check both string IDs and Achievement objects
@@ -746,8 +747,10 @@ class AchievementTracker:
 
             # Check if achievement is completed
             completed = self.check_achievement_completion(player, achievement)
+            print(f"Debug: Checking achievement '{achievement['name']}': {completed}")
 
             if completed:
+                print(f"Debug: Achievement '{achievement['name']}' completed! Adding to newly earned.")
                 # Create Achievement object and add to player
                 achievement_obj = Achievement(
                     achievement_id=achievement["id"],
@@ -769,6 +772,7 @@ class AchievementTracker:
                     # Recheck achievements since we just earned one
                     return newly_earned + self.check_achievements(player)
 
+        print(f"Debug: Returning {len(newly_earned)} newly earned achievements")
         return newly_earned
 
     def check_achievement_completion(self, player: PlayerData, achievement: Dict[str, Any]) -> bool:
