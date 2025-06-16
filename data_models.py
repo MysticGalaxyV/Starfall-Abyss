@@ -570,7 +570,31 @@ class PlayerData:
             "last_pvp_battle":
             self.last_pvp_battle.isoformat() if self.last_pvp_battle else None,
             "equipped_gathering_tools":
-            self.equipped_gathering_tools
+            self.equipped_gathering_tools,
+            "earned_roles":
+            self.earned_roles,
+            "level":
+            self.level,
+            "current_hp":
+            self.current_hp,
+            "dungeon_damage":
+            self.dungeon_damage,
+            "dungeons_completed":
+            self.dungeons_completed,
+            "bosses_defeated":
+            self.bosses_defeated,
+            "gold_earned":
+            self.gold_earned,
+            "gold_spent":
+            self.gold_spent,
+            "training_completed":
+            self.training_completed,
+            "advanced_training_completed":
+            self.advanced_training_completed,
+            "guild_contributions":
+            self.guild_contributions,
+            "energy_training":
+            self.energy_training
         }
 
     @classmethod
@@ -623,7 +647,19 @@ class PlayerData:
                 "pvp_wins",
                 "pvp_losses",
                 "energy_training",
-                "equipped_gathering_tools"  # Make sure we load equipped tools
+                "equipped_gathering_tools",  # Make sure we load equipped tools
+                "earned_roles",
+                "level",
+                "current_hp", 
+                "dungeon_damage",
+                "dungeons_completed",
+                "bosses_defeated",
+                "gold_earned",
+                "gold_spent",
+                "training_completed",
+                "advanced_training_completed",
+                "guild_contributions",
+                "energy_training"
         ]:
             if attr in data:
                 setattr(player, attr, data[attr])
@@ -660,6 +696,12 @@ class PlayerData:
                         skill_id] = datetime.datetime.fromisoformat(timestamp)
                 except (ValueError, TypeError):
                     continue
+
+        # Convert training cooldowns 
+        if "training_cooldowns" in data:
+            player.training_cooldowns = data["training_cooldowns"]
+        else:
+            player.training_cooldowns = {}
 
         return player
 

@@ -535,10 +535,10 @@ class QuizButton(Button):
 # PRECISION MINIGAME - Track and click moving targets
 class MovingTargetButton(Button):
     def __init__(self, is_active: bool, position: Tuple[int, int], parent_view):
-        # Set button appearance
+        # Set button appearance with proper labels
         super().__init__(
-            label="◯" if is_active else " ",
-            style=discord.ButtonStyle.green if is_active else discord.ButtonStyle.secondary,
+            label="🔴" if is_active else "⬜",
+            style=discord.ButtonStyle.danger if is_active else discord.ButtonStyle.secondary,
             row=position[0]  # Use row as Y coordinate
         )
 
@@ -622,9 +622,16 @@ class TrainingMinigameView(View):
 
         # Add callback for difficulty selection
         async def difficulty_callback(interaction: discord.Interaction):
-            # Get selected difficulty
-            selected_idx = int(interaction.data["values"][0])
-            self.current_difficulty = self.difficulty_levels[selected_idx]
+            # Get selected difficulty with error handling
+            try:
+                if not interaction.data or "values" not in interaction.data:
+                    await interaction.response.send_message("Error: No difficulty selected.", ephemeral=True)
+                    return
+                selected_idx = int(interaction.data["values"][0])
+                self.current_difficulty = self.difficulty_levels[selected_idx]
+            except (KeyError, IndexError, ValueError) as e:
+                await interaction.response.send_message(f"Error selecting difficulty: {e}", ephemeral=True)
+                return
 
             # Remove the select menu
             self.clear_items()
@@ -1343,13 +1350,36 @@ class AdvancedTrainingView(View):
 
     async def training_select_callback(self, interaction: discord.Interaction):
         """Handle training selection"""
-        # Get selected training
+        # Get selected training with error handling
         try:
+            if not interaction.data or "values" not in interaction.data:
+                await interaction.response.send_message("Error: No training selected.", ephemeral=True)
+                return
             selected_training = interaction.data["values"][0]
             training_data = self.training_options[selected_training]
-        except Exception as e:
+        except (KeyError, IndexError) as e:
             await interaction.response.send_message(f"Error selecting training: {e}", ephemeral=True)
             return
+
+        # Check cooldown before allowing training
+        if hasattr(self.player_data, "training_cooldowns") and selected_training in self.player_data.training_cooldowns:
+            try:
+                cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[selected_training])
+                now = datetime.datetime.now()
+
+                if cooldown_time > now:
+                    # Still on cooldown
+                    time_left = cooldown_time - now
+                    hours = time_left.seconds // 3600
+                    minutes = (time_left.seconds % 3600) // 60
+                    await interaction.response.send_message(
+                        f"❌ {selected_training} is still on cooldown! Wait {hours}h {minutes}m before training again.",
+                        ephemeral=True
+                    )
+                    return
+            except (ValueError, TypeError):
+                # Invalid datetime format, allow training
+                pass
 
         # Create minigame view
         training_view = TrainingMinigameView(
