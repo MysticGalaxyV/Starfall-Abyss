@@ -664,8 +664,8 @@ SPECIAL_EVENTS = [
         "duration": 1  # days
     },
     {
-        "id": "gold_rush",
-        "name": "Gold Rush",
+        "id": "fortune_event",
+        "name": "Fortune Event",
         "description": "A mystical fortune event has occurred! Increased gold drops by 75%!",
         "effect": {"type": "gold_multiplier", "value": 1.75},
         "duration": 1  # days
