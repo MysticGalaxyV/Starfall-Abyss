@@ -152,6 +152,14 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Admin XP commands updated to show event multipliers when active
   - Enhanced visual feedback for all XP gains when events are running
   - Events can be managed via !event command (admin only)
+- June 16, 2025. Fixed tool equipping system:
+  - Removed duplicate equipped_gathering_tools definition in PlayerData class
+  - Enhanced tool detection to support both item_type='tool' and name pattern matching
+  - Added level requirement validation for tool equipping
+  - Improved efficiency calculation system with tier-based bonuses
+  - Fixed tool callback validation and error handling
+  - Added test tools to player inventory for validation
+  - Players can now equip one tool per gathering type (Mining, Foraging, Herbs, Hunting, Magical)
 
 ## User Preferences
 

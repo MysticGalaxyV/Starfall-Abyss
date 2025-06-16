@@ -1286,32 +1286,106 @@ class GatheringToolsView(View):
 
         for inv_item in self.player.inventory:
             # Skip if not an item
-            if not hasattr(inv_item, 'item') or not hasattr(
-                    inv_item.item, 'name'):
+            if not hasattr(inv_item, 'item') or not hasattr(inv_item.item, 'name'):
                 continue
 
-            # Check if this is a tool for the selected category
-            for tool_type in GATHERING_TOOLS.get(category,
-                                                 {}).get("Tool Types", []):
-                if tool_type in inv_item.item.name:
-                    # Extract the tier name (e.g., "Copper" from "Copper Pickaxe")
-                    tier_name = inv_item.item.name.replace(f" {tool_type}", "")
-
-                    # Find the efficiency for this tier
-                    for tier in GATHERING_TOOLS.get(category,
-                                                    {}).get("Tiers", []):
-                        if tier["name"] == tier_name:
-                            # Check level requirement
-                            if self.player.class_level >= tier.get("level_req", 1):
-                                tools.append(
-                                    (inv_item.item.name, tier["efficiency"]))
-                            break
+            tool_name = inv_item.item.name
+            item_type = getattr(inv_item.item, 'item_type', '')
+            
+            # Check if this is a tool by item_type or name patterns
+            is_tool = False
+            efficiency = 1.0
+            level_req = 1
+            
+            # Check if item_type indicates it's a tool
+            if item_type == 'tool':
+                is_tool = True
+                efficiency = self.get_tool_efficiency_simple(tool_name, category)
+                level_req = getattr(inv_item.item, 'level_req', 1)
+            else:
+                # Check name patterns for tools
+                tool_keywords = {
+                    "Mining": ["Pickaxe", "Drill", "Excavator", "Mining"],
+                    "Foraging": ["Axe", "Saw", "Harvester", "Logging"],
+                    "Herbs": ["Sickle", "Herb", "Botanist"],
+                    "Hunting": ["Bow", "Trap", "Snare", "Hunter"],
+                    "Magical": ["Wand", "Essence", "Arcane", "Staff"]
+                }
+                
+                keywords = tool_keywords.get(category, [])
+                if any(keyword in tool_name for keyword in keywords):
+                    is_tool = True
+                    efficiency = self.get_tool_efficiency_simple(tool_name, category)
+                    level_req = getattr(inv_item.item, 'level_req', 1)
+            
+            # Add tool if it's valid and player meets requirements
+            if is_tool and efficiency > 1.0 and self.player.class_level >= level_req:
+                tools.append((tool_name, efficiency))
 
         # Sort by efficiency (highest first)
         return sorted(tools, key=lambda x: x[1], reverse=True)
 
+    def get_tool_efficiency_simple(self, tool_name: str, category: str) -> float:
+        """Get efficiency for a tool using simplified logic"""
+        # Tier mapping based on common material names
+        tier_efficiency = {
+            "Copper": 1.2, "Iron": 1.5, "Steel": 1.8, "Mithril": 2.1,
+            "Adamantite": 2.5, "Runite": 3.0, "Dragon": 3.5, "Crystal": 4.0,
+            "Divine": 5.0, "Apprentice": 1.2, "Journeyman": 1.5, "Adept": 1.8,
+            "Master": 2.1, "Archmagus": 2.5, "Basic": 1.1, "Reinforced": 2.2,
+            "Enchanted": 2.5, "Titanium": 2.2, "Celestial": 4.0, "Ethereal": 5.0,
+            "Void": 7.0
+        }
+        
+        # Check for tier keywords in tool name
+        for tier, efficiency in tier_efficiency.items():
+            if tier in tool_name:
+                return efficiency
+        
+        # Default efficiency for any tool
+        return 1.2
+
+    def get_tool_efficiency(self, tool_name: str, category: str) -> float:
+        """Get the efficiency for a specific tool"""
+        # First check standard tool patterns (e.g., "Copper Pickaxe")
+        for tool_type in GATHERING_TOOLS.get(category, {}).get("Tool Types", []):
+            if tool_type in tool_name:
+                # Extract the tier name (e.g., "Copper" from "Copper Pickaxe")
+                tier_name = tool_name.replace(f" {tool_type}", "")
+                
+                # Find the efficiency for this tier
+                for tier in GATHERING_TOOLS.get(category, {}).get("Tiers", []):
+                    if tier["name"] == tier_name:
+                        return tier.get("efficiency", 1.0)
+        
+        # Check crafting system tool patterns (e.g., "Iron Mining Kit", "Steel Excavator")
+        from crafting_system import CRAFTING_CATEGORIES
+        if "Tools" in CRAFTING_CATEGORIES:
+            tools_category = CRAFTING_CATEGORIES["Tools"]["types"]
+            
+            # Map category to crafting tool type
+            category_mapping = {
+                "Mining": "Mining Tools",
+                "Foraging": "Foraging Tools", 
+                "Herbs": "Herb Tools",
+                "Hunting": "Hunting Tools",
+                "Magical": "Magical Tools"
+            }
+            
+            craft_type = category_mapping.get(category)
+            if craft_type and craft_type in tools_category:
+                products = tools_category[craft_type].get("products", [])
+                for i, product in enumerate(products):
+                    if product in tool_name:
+                        # Calculate efficiency based on tier (higher index = better tool)
+                        base_efficiency = 1.0 + (i * 0.3)  # Each tier adds 30% efficiency
+                        return base_efficiency
+        
+        return 1.0  # Default efficiency if not found
+
     def get_tool_level_requirement(self, tool_name: str, category: str) -> int:
         """Get the level requirement for a specific tool"""
+        # First check standard tool patterns
         for tool_type in GATHERING_TOOLS.get(category, {}).get("Tool Types", []):
             if tool_type in tool_name:
                 # Extract the tier name (e.g., "Copper" from "Copper Pickaxe")
@@ -1321,6 +1395,31 @@ class GatheringToolsView(View):
                 for tier in GATHERING_TOOLS.get(category, {}).get("Tiers", []):
                     if tier["name"] == tier_name:
                         return tier.get("level_req", 1)
+        
+        # Check crafting system tool patterns
+        from crafting_system import CRAFTING_CATEGORIES
+        if "Tools" in CRAFTING_CATEGORIES:
+            tools_category = CRAFTING_CATEGORIES["Tools"]["types"]
+            
+            # Map category to crafting tool type
+            category_mapping = {
+                "Mining": "Mining Tools",
+                "Foraging": "Foraging Tools",
+                "Herbs": "Herb Tools", 
+                "Hunting": "Hunting Tools",
+                "Magical": "Magical Tools"
+            }
+            
+            craft_type = category_mapping.get(category)
+            if craft_type and craft_type in tools_category:
+                products = tools_category[craft_type].get("products", [])
+                level_ranges = tools_category[craft_type].get("level_ranges", [])
+                
+                for i, product in enumerate(products):
+                    if product in tool_name:
+                        if i < len(level_ranges):
+                            return level_ranges[i][0]  # Return minimum level for this tier
+        
         return 1  # Default to level 1 if not found
 
     async def tool_callback(self, interaction: discord.Interaction):
