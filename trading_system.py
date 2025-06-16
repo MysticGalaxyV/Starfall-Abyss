@@ -15,15 +15,15 @@ class TradeOffer:
                  sender_id: int,
                  receiver_id: int,
                  offered_items: List[str] = None,
-                 offered_cursed_energy: int = 0,
+                 offered_gold: int = 0,
                  requested_items: List[str] = None,
-                 requested_cursed_energy: int = 0):
+                 requested_gold: int = 0):
         self.sender_id = sender_id
         self.receiver_id = receiver_id
         self.offered_items = offered_items or []  # List of item IDs
-        self.offered_cursed_energy = offered_cursed_energy
+        self.offered_gold = offered_gold
         self.requested_items = requested_items or []  # List of item IDs
-        self.requested_cursed_energy = requested_cursed_energy
+        self.requested_gold = requested_gold
         self.status = "pending"  # pending, accepted, declined, cancelled
 
     def to_dict(self) -> Dict[str, Any]:
@@ -31,9 +31,9 @@ class TradeOffer:
             "sender_id": self.sender_id,
             "receiver_id": self.receiver_id,
             "offered_items": self.offered_items,
-            "offered_cursed_energy": self.offered_cursed_energy,
+            "offered_gold": self.offered_gold,
             "requested_items": self.requested_items,
-            "requested_cursed_energy": self.requested_cursed_energy,
+            "requested_gold": self.requested_gold,
             "status": self.status
         }
 
@@ -43,13 +43,13 @@ class TradeOffer:
             sender_id=data["sender_id"],
             receiver_id=data["receiver_id"],
             offered_items=data.get("offered_items", []),
-            offered_cursed_energy=data.get("offered_cursed_energy",
-                                           data.get("offered_gold",
-                                                    0)),  # Support legacy data
+            offered_gold=data.get("offered_gold",
+                                 data.get("offered_cursed_energy",
+                                          0)),  # Support legacy data
             requested_items=data.get("requested_items", []),
-            requested_cursed_energy=data.get(
-                "requested_cursed_energy", data.get("requested_gold",
-                                                    0))  # Support legacy data
+            requested_gold=data.get("requested_gold",
+                                   data.get("requested_cursed_energy",
+                                           0))  # Support legacy data
         )
         trade.status = data.get("status", "pending")
         return trade
@@ -111,8 +111,8 @@ class TradeManager:
                     item_id].equipped:
                 return False
 
-        # Verify cursed energy amounts
-        if sender.cursed_energy < trade.offered_cursed_energy or receiver.cursed_energy < trade.requested_cursed_energy:
+        # Verify gold amounts
+        if sender.gold < trade.offered_gold or receiver.gold < trade.requested_gold:
             return False
 
         # All verifications passed, execute the trade
@@ -129,12 +129,12 @@ class TradeManager:
             receiver.inventory.remove(item)
             sender.inventory.append(item)
 
-        # Transfer cursed energy
-        sender.cursed_energy -= trade.offered_cursed_energy
-        receiver.cursed_energy += trade.offered_cursed_energy
+        # Transfer gold
+        sender.remove_gold(trade.offered_gold)
+        receiver.add_gold(trade.offered_gold)
 
-        receiver.cursed_energy -= trade.requested_cursed_energy
-        sender.cursed_energy += trade.requested_cursed_energy
+        receiver.remove_gold(trade.requested_gold)
+        sender.add_gold(trade.requested_gold)
 
         # Save data
         self.data_manager.save_data()

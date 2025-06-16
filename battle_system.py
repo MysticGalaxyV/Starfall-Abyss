@@ -1480,15 +1480,17 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
 
         # Add rewards
         leveled_up = player_data.add_exp(exp_reward)
-        player_data.add_cursed_energy(
-            cursed_energy_reward)  # Using new method that handles limits
+        player_data.add_gold(cursed_energy_reward)  # Using gold instead of cursed energy
+        
+        # Track gold earned for achievements
+        if not hasattr(player_data, "gold_earned"):
+            player_data.gold_earned = 0
+        player_data.gold_earned += cursed_energy_reward
 
-        # Deduct some cursed energy from loser (but not too much)
-        cursed_energy_penalty = min(cursed_energy_reward // 3,
-                                    target_data.cursed_energy //
-                                    10)  # Reduced to be less punishing
-        target_data.remove_cursed_energy(
-            cursed_energy_penalty)  # Using new method that handles validation
+        # Deduct some gold from loser (but not too much)
+        gold_penalty = min(cursed_energy_reward // 3,
+                          target_data.gold // 10)  # Reduced to be less punishing
+        target_data.remove_gold(gold_penalty)  # Using gold method that handles validation
 
         # Set cooldowns
         current_time = datetime.datetime.now()
@@ -1543,7 +1545,7 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
             "opponent_name": ctx.author.display_name,
             "result": "loss",
             "timestamp": current_time.isoformat(),
-            "gold_lost": cursed_energy_penalty,
+            "gold_lost": gold_penalty,
             "opponent_level": player_data.class_level
         }
         target_data.pvp_history.append(battle_record)

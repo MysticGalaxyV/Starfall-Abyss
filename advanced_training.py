@@ -1117,11 +1117,15 @@ class TrainingMinigameView(View):
         if success_percent == 100 and "special_rewards" in self.training_data and "perfect_score" in self.training_data["special_rewards"]:
             special_rewards = self.training_data["special_rewards"]["perfect_score"]
 
-            # Apply gold reward if present (previously cursed_energy)
+            # Apply gold reward if present (convert old cursed_energy rewards to gold)
             if "cursed_energy" in special_rewards:
                 # Convert cursed_energy rewards to gold
                 gold_reward = special_rewards["cursed_energy"]
-                self.player_data.gold += gold_reward
+                self.player_data.add_gold(gold_reward)
+                # Track gold earned for achievements
+                if not hasattr(self.player_data, "gold_earned"):
+                    self.player_data.gold_earned = 0
+                self.player_data.gold_earned += gold_reward
 
             # Apply effect if present
             if "effect" in special_rewards:
