@@ -162,13 +162,13 @@ class ItemSelectView(View):
         self.player_data = player_data
         self.is_offering = is_offering
         self.selected_items = []
-        self.cursed_energy_amount = 0
+        self.gold_amount = 0
 
         # Add item selection dropdown
         self.add_item_select()
 
-        # Add cursed energy input button
-        self.add_cursed_energy_button()
+        # Add gold input button
+        self.add_gold_button()
 
         # Add control buttons
         self.add_control_buttons()
