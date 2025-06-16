@@ -433,13 +433,14 @@ class PlayerData:
             return True
         return False
 
-    def add_exp(self, exp_amount: int, bypass_penalty: bool = False) -> bool:
+    def add_exp(self, exp_amount: int, bypass_penalty: bool = False, data_manager=None) -> bool:
         """
         Add experience points and handle level ups. Returns True if leveled up.
 
         Parameters:
         - exp_amount: The amount of XP to add
         - bypass_penalty: If True, bypass the level penalty (used for admin commands)
+        - data_manager: DataManager instance to check for active events
         """
         leveled_up = False
 
@@ -453,6 +454,14 @@ class PlayerData:
                 1.0 - (self.class_level *
                       0.002))  # 0.2% reduction per level, min 95% of original XP
             adjusted_exp = int(exp_amount * level_penalty)
+
+        # Apply event multipliers
+        if data_manager and hasattr(data_manager, 'active_events'):
+            for event_id, event_data in data_manager.active_events.items():
+                effect = event_data.get('effect', {})
+                if effect.get('type') == 'exp_multiplier':
+                    multiplier = effect.get('value', 1.0)
+                    adjusted_exp = int(adjusted_exp * multiplier)
 
         self.class_exp += adjusted_exp
 

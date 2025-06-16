@@ -783,6 +783,21 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         # Update battle stats
         player_data.wins += 1
 
+        # Update quest progress for battles
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        
+        # Update daily, weekly, and long-term quest progress
+        quest_manager.update_quest_progress(player_data, "daily_wins")
+        quest_manager.update_quest_progress(player_data, "weekly_wins") 
+        quest_manager.update_quest_progress(player_data, "total_wins")
+        quest_manager.update_quest_progress(player_data, "daily_gold", gold_reward)
+
+        # Check for achievements after battle victory
+        from achievements import AchievementTracker
+        achievement_tracker = AchievementTracker(data_manager)
+        new_achievements = achievement_tracker.check_achievements(player_data)
+
         # Regenerate health and energy after battle victory - full regeneration
         from utils import GAME_CLASSES
         player_data.regenerate_health_and_energy(GAME_CLASSES,

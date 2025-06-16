@@ -1728,7 +1728,7 @@ class EnhancedAmountInputModal(discord.ui.Modal):
                 old_exp = player.class_exp
 
                 # Apply XP with bypass_penalty=True to ensure exact amount is given
-                leveled_up = player.add_exp(amount, bypass_penalty=True)
+                leveled_up = player.add_exp(amount, bypass_penalty=True, data_manager=data_manager)
                 next_level_exp = player.xp_to_next_level()
 
                 # Admin command always gives exact amount specified
@@ -2022,7 +2022,7 @@ class AmountInputModal(discord.ui.Modal):
             elif self.resource_type == "xp":
                 # Use the proper add_exp method that handles level ups automatically
                 old_level = player.class_level
-                leveled_up = player.add_exp(amount)
+                leveled_up = player.add_exp(amount, data_manager=data_manager)
 
                 # Calculate XP needed for next level
                 if player.class_level < 1000:  # Max level cap
@@ -2125,7 +2125,7 @@ async def give_xp_cmd(ctx, member: discord.Member, amount: int):
         return
 
     player = data_manager.get_player(member.id)
-    leveled_up = player.add_exp(amount)
+    leveled_up = player.add_exp(amount, data_manager=data_manager)
     data_manager.save_data()
 
     # Create an embed for the XP award

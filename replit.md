@@ -134,6 +134,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Fixed timing bar interaction error and improved visual feedback
   - Enhanced sequence memorization with longer study times
   - Reduced animation delay for better responsiveness (0.05s frames)
+- June 16, 2025. Fixed core game bugs:
+  - Leaderboard: Removed duplicate level display when sorting by level
+  - Leaderboard: Improved player name display with cleaner fallback format
+  - XP Events: Fixed 2x XP boost multiplier system - now properly applies to all XP gains
+  - Achievements: Added automatic checking after battle victories and level ups
+  - Quests: Enhanced quest progress tracking for battle victories and gold rewards
 
 ## User Preferences
 
