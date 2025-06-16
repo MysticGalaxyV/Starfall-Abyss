@@ -967,7 +967,7 @@ ADVANCED_SHOP_ITEMS = {
 
     # Achievement Points Shop - exclusive items bought with achievement points
     "achievement": [
-        # Server Roles (160 points each for 5 roles = 800 points)
+        # Server Roles (124 points each for 5 roles = 620 points)
         {
             "name": "Elite Champion Role",
             "description": "Gain the Elite Champion role on the server. Shows your dedication to the game!",
@@ -976,7 +976,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 160,
+            "achievement_points": 124,
             "one_time_purchase": True
         },
         {
@@ -987,7 +987,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 160,
+            "achievement_points": 124,
             "one_time_purchase": True
         },
         {
@@ -998,7 +998,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 160,
+            "achievement_points": 124,
             "one_time_purchase": True
         },
         {
@@ -1009,7 +1009,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 160,
+            "achievement_points": 124,
             "one_time_purchase": True
         },
         {
@@ -1020,11 +1020,11 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 160,
+            "achievement_points": 124,
             "one_time_purchase": True
         },
 
-        # Profile Tags (44 points each for 10 tags = 440 points)
+        # Profile Tags (62 points each for 10 tags = 620 points)
         {
             "name": "🌀 Domain Master Tag",
             "description": "Display 'Domain Master' on your profile. Mastery of cursed technique domains!",
@@ -1033,7 +1033,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1044,7 +1044,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1055,7 +1055,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1066,7 +1066,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1077,7 +1077,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1088,7 +1088,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1099,7 +1099,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1110,7 +1110,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1121,7 +1121,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         },
         {
@@ -1132,7 +1132,7 @@ ADVANCED_SHOP_ITEMS = {
             "rarity": "special",
             "stats": {},
             "level_req": 1,
-            "achievement_points": 44,
+            "achievement_points": 62,
             "one_time_purchase": True
         }
     ]
