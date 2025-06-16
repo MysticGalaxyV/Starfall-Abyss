@@ -565,7 +565,6 @@ async def profile_command(ctx, member: discord.Member = None):
         f"**Level:** {player.class_level} ({player.class_exp}/{int(100 * (player.class_level ** 1.5))} EXP)\n"
         f"**Technique Grade:** {player.technique_grade}\n"
         f"**Gold:** {player.gold} 💰\n"
-        f"**Cursed Energy:** {player.cursed_energy} 🔮\n"
         f"**Battle Energy:** {player.get_battle_energy()}/{player.get_max_battle_energy()} ⚡",
         color=discord.Color.dark_purple())
 
