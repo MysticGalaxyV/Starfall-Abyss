@@ -239,6 +239,13 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Testing: Verified system correctly shows negative balances when players spend more than earned
   - Shop Integration: Confirmed existing validation properly prevents purchases with insufficient points
   - Result: Achievement shop now properly deducts points and accurately reflects player balances
+- June 16, 2025. Fixed guild shop leveling system:
+  - Root Issue: Guild shop purchases weren't awarding experience, preventing guild level progression
+  - Solution: Added 20% of item cost as experience reward to all guild shop purchase functions
+  - Experience Rewards: Guild Expansion (1000 XP), XP Boost (1500 XP), Material Crate (800 XP), etc.
+  - Level Up Notifications: Players now see "Guild leveled up!" messages when purchases trigger level ups
+  - Testing: Verified guild experience system properly accumulates and triggers level progression
+  - Result: Guilds can now level up through shop purchases and member contributions
 
 ## User Preferences
 
