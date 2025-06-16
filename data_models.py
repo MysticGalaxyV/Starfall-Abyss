@@ -256,6 +256,9 @@ class PlayerData:
         self.long_term_quests = []
         self.achievement_progress = {}
         self.last_pvp_battle = None  # Timestamp of last PvP battle
+        # Achievement shop tracking
+        self.purchased_achievement_items = []  # List of purchased achievement items
+        self.profile_tags = []  # List of earned profile tags
 
     def get_max_battle_energy(self) -> int:
         """

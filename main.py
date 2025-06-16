@@ -630,6 +630,15 @@ async def profile_command(ctx, member: discord.Member = None):
         f"**Last Claimed:** {player.last_daily.strftime('%Y-%m-%d %H:%M') if player.last_daily else 'Never'}",
         inline=True)
 
+    # Add profile tags if any purchased
+    if hasattr(player, 'profile_tags') and player.profile_tags:
+        tags_text = " | ".join(player.profile_tags)
+        embed.add_field(
+            name="🏷️ Profile Tags",
+            value=tags_text,
+            inline=False
+        )
+
     # Set thumbnail to class icon
     if player.class_name == "Spirit Striker":
         embed.set_thumbnail(
