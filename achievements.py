@@ -682,7 +682,15 @@ class AchievementTracker:
             player.achievements = []
 
         completed_achievements = []
-        for achievement_id in player.achievements:
+        for achievement in player.achievements:
+            # Handle both string IDs and Achievement objects
+            if isinstance(achievement, str):
+                achievement_id = achievement
+            elif hasattr(achievement, 'achievement_id'):
+                achievement_id = achievement.achievement_id
+            else:
+                continue
+                
             if achievement_id in ACHIEVEMENTS:
                 completed_achievements.append({
                     "id": achievement_id,
@@ -698,7 +706,15 @@ class AchievementTracker:
         if not hasattr(player, "achievements"):
             player.achievements = []
 
-        for achievement_id in player.achievements:
+        for achievement in player.achievements:
+            # Handle both string IDs and Achievement objects
+            if isinstance(achievement, str):
+                achievement_id = achievement
+            elif hasattr(achievement, 'achievement_id'):
+                achievement_id = achievement.achievement_id
+            else:
+                continue
+                
             if achievement_id in ACHIEVEMENTS:
                 total_points += ACHIEVEMENTS[achievement_id].get("points", 0)
 
@@ -709,9 +725,17 @@ class AchievementTracker:
         if not hasattr(player, "achievements"):
             player.achievements = []
 
+        # Get list of completed achievement IDs
+        completed_ids = []
+        for achievement in player.achievements:
+            if isinstance(achievement, str):
+                completed_ids.append(achievement)
+            elif hasattr(achievement, 'achievement_id'):
+                completed_ids.append(achievement.achievement_id)
+
         available_achievements = []
         for achievement_id, achievement in ACHIEVEMENTS.items():
-            if achievement_id not in player.achievements:
+            if achievement_id not in completed_ids:
                 available_achievements.append({
                     "id": achievement_id,
                     **achievement
