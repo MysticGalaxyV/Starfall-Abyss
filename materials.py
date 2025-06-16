@@ -1045,24 +1045,32 @@ class GatheringView(View):
         if equipped_tool_name:
             # Find the equipped tool in the player's inventory
             for inv_item in self.player.inventory:
-                if inv_item.item.name == equipped_tool_name:
-                    # Get the tool tier and type to determine efficiency
-                    for tool_type in GATHERING_TOOLS.get(category, {}).get(
-                            "Tool Types", []):
-                        if tool_type in inv_item.item.name:
-                            # Extract the tier name (e.g., "Copper" from "Copper Pickaxe")
-                            tier_name = inv_item.item.name.replace(
-                                f" {tool_type}", "")
-
-                            # Find the efficiency for this tier
-                            for tier in GATHERING_TOOLS.get(category, {}).get(
-                                    "Tiers", []):
-                                if tier["name"] == tier_name:
-                                    return (inv_item.item.name,
-                                            tier["efficiency"])
+                if hasattr(inv_item, 'item') and hasattr(inv_item.item, 'name') and inv_item.item.name == equipped_tool_name:
+                    # Use the simplified efficiency calculation from GatheringToolsView
+                    efficiency = self.get_tool_efficiency_simple(equipped_tool_name, category)
+                    if efficiency > 1.0:  # Only return if we found a valid efficiency
+                        return (inv_item.item.name, efficiency)
 
         # If no equipped tool found or if efficiency couldn't be determined, return None
         return None
+
+    def get_tool_efficiency_simple(self, tool_name: str, category: str) -> float:
+        """Get efficiency for a tool using simplified logic"""
+        # Check all gathering categories to find the tool
+        for cat_name, cat_data in GATHERING_TOOLS.items():
+            # Check if this tool matches any tool type in this category
+            for tool_type in cat_data.get("Tool Types", []):
+                if tool_type in tool_name:
+                    # Extract tier name by removing the tool type
+                    tier_name = tool_name.replace(f" {tool_type}", "").replace(f"{tool_type} ", "")
+                    
+                    # Find efficiency for this tier
+                    for tier in cat_data.get("Tiers", []):
+                        if tier["name"] == tier_name:
+                            return tier["efficiency"]
+        
+        # If no match found, return default efficiency
+        return 1.0
 
     async def gather_callback(self, interaction: discord.Interaction):
         """Handle gather button click"""

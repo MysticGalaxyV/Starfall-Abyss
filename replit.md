@@ -160,6 +160,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Fixed tool callback validation and error handling
   - Added test tools to player inventory for validation
   - Players can now equip one tool per gathering type (Mining, Foraging, Herbs, Hunting, Magical)
+- June 16, 2025. Fixed gathering system tool recognition:
+  - Fixed "No Tool" issue where equipped tools weren't being detected during gathering
+  - Improved get_best_tool function to properly match tools across different categories
+  - Enhanced tool detection logic to handle cross-category tool usage (e.g., Iron Axe for Mining)
+  - Added simplified efficiency calculation that works regardless of tool categorization
+  - Fixed duplicate option values error in tool selection dropdown menus
 
 ## User Preferences
 
