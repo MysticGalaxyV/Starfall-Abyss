@@ -185,12 +185,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Both battle command and dungeon encounters now use identical move sets from unified_moves.py
   - All player classes now have consistent abilities across all combat scenarios
 - June 16, 2025. Rebalanced battle XP rewards:
-  - Battle XP now gives exactly the same as defeating one enemy in a dungeon (10% of dungeon total)
-  - Level 1-4: 5 XP per battle (same as one Ancient Forest enemy)
-  - Level 20-24: 50 XP per battle (same as one Infernal Citadel enemy)
-  - Level 50+: 300+ XP per battle (same as one Astral Nexus enemy)
+  - Battle XP now gives exactly 25% (1/4) of total dungeon completion XP
+  - Level 1-4: 12-13 XP per battle (25% of 50 XP Ancient Forest completion)
+  - Level 20-24: 125 XP per battle (25% of 500 XP Infernal Citadel completion)
+  - Level 50+: 750+ XP per battle (25% of 3000+ XP Astral Nexus completion)
   - Maintains level difference modifiers for fighting stronger/weaker enemies
-  - Perfect parity between battle and dungeon enemy rewards
+  - Creates balanced progression where 4 battles equals one dungeon completion
 
 ## User Preferences
 

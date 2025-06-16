@@ -1398,10 +1398,10 @@ def get_dungeon_exp_for_level(level: int) -> int:
         return 50     # Ancient Forest
 
 def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
-    """Calculate experience reward based on enemy and player levels - same as one dungeon enemy defeat"""
-    # Get the dungeon XP for player's level and take 10% (same as dungeon enemy defeat)
+    """Calculate experience reward based on enemy and player levels - 25% of total dungeon completion XP"""
+    # Get the dungeon XP for player's level and take 25% (1/4 of dungeon completion)
     dungeon_exp = get_dungeon_exp_for_level(player_level)
-    base_battle_exp = int(dungeon_exp * 0.1)
+    base_battle_exp = int(dungeon_exp * 0.25)
 
     # Apply level difference modifier (smaller adjustments since base is already appropriate)
     level_diff = enemy_level - player_level
