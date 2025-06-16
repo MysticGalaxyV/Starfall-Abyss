@@ -180,6 +180,17 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Enhanced stats calculation to properly handle both weapons with appropriate penalties
   - Added comprehensive null safety checks for class validation
   - Simplified system by allowing all players to use dual weapons
+- June 16, 2025. Unified battle and dungeon move systems:
+  - Updated main.py to use battle_system.py instead of battle_system_new.py
+  - Both battle command and dungeon encounters now use identical move sets from unified_moves.py
+  - All player classes now have consistent abilities across all combat scenarios
+- June 16, 2025. Rebalanced battle XP rewards:
+  - Battle XP now gives exactly half of what an appropriate dungeon completion provides
+  - Level 1-4: 25 XP per battle (vs 50 XP dungeon)
+  - Level 20-24: 250 XP per battle (vs 500 XP dungeon)
+  - Level 50+: 1500+ XP per battle (vs 3000+ XP dungeon)
+  - Maintains level difference modifiers for fighting stronger/weaker enemies
+  - Creates balanced progression encouraging dungeon exploration for major XP gains
 
 ## User Preferences
 

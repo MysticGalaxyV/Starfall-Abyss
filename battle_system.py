@@ -1363,24 +1363,59 @@ def generate_enemy_moves(enemy_name: str) -> List[BattleMove]:
     return moves
 
 
-def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
-    """Calculate experience reward based on enemy and player levels"""
-    # Much lower base XP rewards
-    base_exp = 5 + (enemy_level * 2)
+def get_dungeon_exp_for_level(level: int) -> int:
+    """Get the XP reward that a dungeon appropriate for this level would give"""
+    # Map player levels to dungeon XP rewards based on level requirements
+    if level >= 95:
+        return 20000  # Realm of Eternity
+    elif level >= 90:
+        return 12000  # Void Citadel
+    elif level >= 80:
+        return 8000   # Celestial Spire
+    elif level >= 70:
+        return 6000   # Dragon's Lair
+    elif level >= 60:
+        return 4500   # Shadow Realm
+    elif level >= 50:
+        return 3000   # Astral Nexus
+    elif level >= 40:
+        return 2000   # Forbidden Library
+    elif level >= 35:
+        return 1500   # Sunken Temple
+    elif level >= 30:
+        return 1000   # Corrupted Sanctum
+    elif level >= 25:
+        return 750    # Crystal Caverns
+    elif level >= 20:
+        return 500    # Infernal Citadel
+    elif level >= 15:
+        return 350    # Abyssal Depths
+    elif level >= 10:
+        return 200    # Cursed Shrine
+    elif level >= 5:
+        return 120    # Forgotten Cave
+    else:
+        return 50     # Ancient Forest
 
-    # Adjust based on level difference
+def calculate_exp_reward(enemy_level: int, player_level: int) -> int:
+    """Calculate experience reward based on enemy and player levels - exactly half of dungeon XP"""
+    # Get the dungeon XP for player's level and halve it
+    dungeon_exp = get_dungeon_exp_for_level(player_level)
+    base_battle_exp = dungeon_exp // 2
+
+    # Apply level difference modifier (smaller adjustments since base is already appropriate)
     level_diff = enemy_level - player_level
     if level_diff > 0:
-        # More exp for defeating higher level enemies
-        exp_modifier = 1.0 + (level_diff * 0.15)
+        # Slight bonus for defeating higher level enemies
+        exp_modifier = 1.0 + (level_diff * 0.1)
     elif level_diff < 0:
-        # Less exp for defeating lower level enemies
-        exp_modifier = max(0.2, 1.0 + (level_diff * 0.1))
+        # Reduced XP for defeating lower level enemies
+        exp_modifier = max(0.3, 1.0 + (level_diff * 0.15))
     else:
         # Same level
         exp_modifier = 1.0
 
-    return int(base_exp * exp_modifier)
+    return int(base_battle_exp * exp_modifier)
 
 
 def calculate_gold_reward(enemy_level: int) -> int:
