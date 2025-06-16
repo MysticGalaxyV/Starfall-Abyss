@@ -571,6 +571,7 @@ class TrainingMinigameView(View):
         self.training_type = training_type
         self.training_data = training_data
         self.data_manager = data_manager
+        self.training_in_progress = False  # Prevent multiple training sessions
 
         # Get difficulty settings
         self.difficulty_levels = training_data["difficulty_levels"]

@@ -531,7 +531,7 @@ class PlayerData:
             "equipped_items":
             self.equipped_items,
             "achievements":
-            [achievement.to_dict() for achievement in self.achievements],
+            [achievement.to_dict() if hasattr(achievement, 'to_dict') else achievement for achievement in self.achievements if achievement],
             "skill_points":
             self.skill_points,
             "allocated_stats":
