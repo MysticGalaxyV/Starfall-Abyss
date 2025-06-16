@@ -1148,8 +1148,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                 special_drop_msg = f"\n🌟 Rare drop! You found: **{special_item.name}**!"
 
         # Handle consumable duration reduction
+        expired_effects = []
         if hasattr(player_data, "active_effects"):
-            expired_effects = []
             for effect_name, effect_data in player_data.active_effects.items():
                 # Reduce duration by 1 battle
                 effect_data["duration"] -= 1
@@ -1192,8 +1192,31 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             quest_text = "\n".join(quest_messages)
             result_embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
 
+        # Show achievement completions if any
+        if new_achievements:
+            achievement_text = ""
+            for achievement in new_achievements:
+                badge = achievement.get("badge", "🏆")
+                points = achievement.get("points", 0)
+                achievement_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
+                achievement_text += f"*{achievement['description']}*\n"
+                
+                # Add rewards info
+                if achievement.get("reward"):
+                    rewards = []
+                    reward_data = achievement["reward"]
+                    if "exp" in reward_data:
+                        rewards.append(f"EXP: +{reward_data['exp']}")
+                    if "gold" in reward_data:
+                        rewards.append(f"Gold: +{reward_data['gold']}")
+                    if rewards:
+                        achievement_text += f"Rewards: {', '.join(rewards)}\n"
+                achievement_text += "\n"
+            
+            result_embed.add_field(name="🏆 New Achievements!", value=achievement_text.strip(), inline=False)
+
         # Show info about expired effects if any
-        if locals().get('expired_effects') and expired_effects:
+        if expired_effects:
             expired_text = "\n".join(
                 [f"• {effect_name}" for effect_name in expired_effects])
             result_embed.add_field(name="⏱️ Effects Expired",
@@ -1201,10 +1224,43 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                                    inline=False)
 
         if leveled_up:
+            # Check for additional achievements after leveling up
+            level_achievements = data_manager.check_player_achievements(player_data)
+            
+            # Add level achievements to the existing ones and update display
+            if level_achievements:
+                all_new_achievements = new_achievements + level_achievements
+                achievement_text = ""
+                for achievement in all_new_achievements:
+                    badge = achievement.get("badge", "🏆")
+                    points = achievement.get("points", 0)
+                    achievement_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
+                    achievement_text += f"*{achievement['description']}*\n"
+                    
+                    # Add rewards info
+                    if achievement.get("reward"):
+                        rewards = []
+                        reward_data = achievement["reward"]
+                        if "exp" in reward_data:
+                            rewards.append(f"EXP: +{reward_data['exp']}")
+                        if "gold" in reward_data:
+                            rewards.append(f"Gold: +{reward_data['gold']}")
+                        if rewards:
+                            achievement_text += f"Rewards: {', '.join(rewards)}\n"
+                    achievement_text += "\n"
+                
+                # Update achievement display
+                for i, field in enumerate(result_embed.fields):
+                    if field.name == "🏆 New Achievements!":
+                        result_embed.set_field_at(i, name="🏆 New Achievements!", value=achievement_text.strip(), inline=False)
+                        break
+                else:
+                    result_embed.add_field(name="🏆 New Achievements!", value=achievement_text.strip(), inline=False)
+            
             result_embed.add_field(
                 name="Level Up!",
                 value=f"🆙 You reached Level {player_data.class_level}!\n"
-                f"You gained 2 skill points! Use !skills to allocate them.",
+                f"You gained 3 skill points! Use !skills to allocate them.",
                 inline=False)
 
         await ctx.send(embed=result_embed)
