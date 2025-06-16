@@ -393,11 +393,11 @@ class BattleView(RestrictedView):
             color=0x2F3136  # Dark gray color to match image
         )
         
-        # Action log section (show last few actions)
+        # Action log section (show last 8 actions for better visibility)
         if self.battle_log:
-            action_text = "\n".join(self.battle_log[-6:])  # Show last 6 actions
+            action_text = "\n".join(self.battle_log[-8:])  # Show last 8 actions
         else:
-            action_text = "Battle begins!"
+            action_text = "⚔️ Battle begins!"
         
         embed.description = action_text
         
@@ -561,11 +561,16 @@ class BattleView(RestrictedView):
             # Normal turn, apply player move
             damage, effect_msg = self.player.apply_move(move, self.enemy)
             
-            # Add to battle log
+            # Add to battle log with detailed information
             move_log = f"⚔️ **{self.player.name}** executes **{move.name}** dealing {damage} damage!"
             if effect_msg:
-                move_log += f"{effect_msg}"
+                move_log += f" {effect_msg}"
             self.battle_log.append(move_log)
+            
+            # Add HP status if significant damage
+            if damage > 0:
+                hp_status = f"💔 **{self.enemy.name}** HP: {self.enemy.current_hp}/{self.enemy.stats['hp']}"
+                self.battle_log.append(hp_status)
             
             # Update with new embed format
             embed = self.create_battle_embed()
@@ -609,11 +614,16 @@ class BattleView(RestrictedView):
             enemy_damage, enemy_effect_msg = self.enemy.apply_move(
                 enemy_move, self.player)
 
-            # Add enemy action to battle log
+            # Add enemy action to battle log with detailed information
             enemy_log = f"⚔️ **{self.enemy.name}** unleashes **{enemy_move.name}** dealing {enemy_damage} damage!"
             if enemy_effect_msg:
-                enemy_log += f"{enemy_effect_msg}"
+                enemy_log += f" {enemy_effect_msg}"
             self.battle_log.append(enemy_log)
+            
+            # Add HP status if significant damage
+            if enemy_damage > 0:
+                hp_status = f"💔 **{self.player.name}** HP: {self.player.current_hp}/{self.player.stats['hp']}"
+                self.battle_log.append(hp_status)
 
             # Update with new embed format
             embed = self.create_battle_embed()
@@ -746,8 +756,18 @@ class BattleView(RestrictedView):
                                          self.player.current_hp + heal_amount)
             effect_msg = f"🧪 You used {item_name} and gained a minor effect (+{heal_amount} HP)!"
 
-        await interaction.response.edit_message(
-            content=f"{effect_msg}\nWaiting for enemy move...", view=self)
+        # Add item usage to battle log
+        self.battle_log.append(f"🧪 **{self.player.name}** uses **{item_name}**!")
+        if "heal" in effect_msg.lower() or "hp" in effect_msg.lower():
+            hp_status = f"💚 **{self.player.name}** HP: {self.player.current_hp}/{self.player.stats['hp']}"
+            self.battle_log.append(hp_status)
+        if "energy" in effect_msg.lower():
+            energy_status = f"⚡ **{self.player.name}** Energy: {self.player.current_energy}"
+            self.battle_log.append(energy_status)
+        
+        # Update embed with item usage
+        embed = self.create_battle_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
         # Save player data
         if player_data and hasattr(
@@ -767,30 +787,47 @@ class BattleView(RestrictedView):
             self.enemy.current_energy = min(
                 self.enemy.stats.get("energy", 100),
                 self.enemy.current_energy + 30)
-            await interaction.edit_original_response(
-                content=f"{effect_msg}\n"
-                f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
-                view=self)
+            
+            # Add enemy energy recovery to battle log
+            energy_log = f"🔄 **{self.enemy.name}** is exhausted and regains 30 energy!"
+            self.battle_log.append(energy_log)
+            
+            # Update embed
+            embed = self.create_battle_embed()
+            await interaction.edit_original_response(embed=embed, view=self)
         else:
             enemy_move = random.choice(available_moves)
             enemy_damage, enemy_effect_msg = self.enemy.apply_move(
                 enemy_move, self.player)
 
-            await interaction.edit_original_response(
-                content=f"{effect_msg}\n"
-                f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
-                view=self)
+            # Add enemy action to battle log
+            enemy_log = f"⚔️ **{self.enemy.name}** unleashes **{enemy_move.name}** dealing {enemy_damage} damage!"
+            if enemy_effect_msg:
+                enemy_log += f" {enemy_effect_msg}"
+            self.battle_log.append(enemy_log)
+            
+            # Add HP status if significant damage
+            if enemy_damage > 0:
+                hp_status = f"💔 **{self.player.name}** HP: {self.player.current_hp}/{self.player.stats['hp']}"
+                self.battle_log.append(hp_status)
+            
+            # Update embed
+            embed = self.create_battle_embed()
+            await interaction.edit_original_response(embed=embed, view=self)
 
             # Check if player is defeated
             if not self.player.is_alive():
-                # Battle lost
+                # Add defeat message to battle log
+                self.battle_log.append(f"💀 **DEFEAT!** {self.player.name} was defeated by {self.enemy.name}!")
+                
+                # Create final battle embed
+                embed = self.create_battle_embed()
+                embed.color = 0xff0000  # Red for defeat
+                embed.title = "💀 Battle Result: Defeat"
+                
                 self.stop()
                 await asyncio.sleep(1)
-                await interaction.edit_original_response(
-                    content=f"{effect_msg}\n"
-                    f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}\n"
-                    f"💀 Defeat! You were defeated by {self.enemy.name}!",
-                    view=None)
+                await interaction.edit_original_response(embed=embed, view=None)
                 return
 
         # Update status effects
@@ -940,6 +977,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
     
     # Add enemy level to enemy entity for display purposes
     enemy_entity.level = enemy_level
+    
+    # Add battle start message to log
+    battle_view.battle_log.append(f"⚔️ **Battle begins!** {ctx.author.display_name} vs {enemy_name}")
     
     # Use new embed format
     embed = battle_view.create_battle_embed()
