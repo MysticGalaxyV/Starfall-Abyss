@@ -49,7 +49,7 @@ class BattleEntity:
         self.moves = moves or []
         self.is_player = is_player
         self.player_data = player_data
-        self.level = None  # Will be set for display purposes
+        self.level = None  # Will be set for display purposes (int or None)
         self.status_effects = {
         }  # Effect name -> (turns remaining, effect strength)
 
