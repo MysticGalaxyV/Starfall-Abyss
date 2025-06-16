@@ -723,7 +723,7 @@ class AchievementTracker:
             player.spent_achievement_points = 0
 
         # Return available points (earned minus spent)
-        return max(0, total_earned - player.spent_achievement_points)
+        return total_earned - player.spent_achievement_points
 
     def get_player_available_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get a list of player's available (not yet completed) achievements"""
