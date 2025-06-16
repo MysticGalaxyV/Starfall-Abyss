@@ -900,18 +900,16 @@ class GuildInfoView(RestrictedView):
                             row=row % 3
                         )
 
-                        # Store the upgrade_id and cost for this button
-                        upgrade_btn.upgrade_id = upgrade_id
-                        upgrade_btn.cost = next_cost
+                        # Create and assign callback properly
                         upgrade_btn.callback = self.make_upgrade_callback(upgrade_id, next_cost)
                         self.add_item(upgrade_btn)
                         row += 1
 
             def make_upgrade_callback(self, upgrade_id, cost):
-                async def upgrade_callback(btn_interaction):
+                async def upgrade_callback(interaction):
                     # Check if guild has enough gold
                     if self.guild.bank < cost:
-                        await btn_interaction.response.send_message(
+                        await interaction.response.send_message(
                             f"❌ Not enough gold! This upgrade costs {cost} 💰, but the guild bank only has {self.guild.bank} 💰.",
                             ephemeral=True
                         )
@@ -969,7 +967,7 @@ class GuildInfoView(RestrictedView):
 
                     # Create a new upgrade view with updated buttons
                     new_view = GuildUpgradeView(self.parent_view)
-                    await btn_interaction.response.edit_message(embed=upgrades_embed, view=new_view)
+                    await interaction.response.edit_message(embed=upgrades_embed, view=new_view)
 
                 return upgrade_callback
 
