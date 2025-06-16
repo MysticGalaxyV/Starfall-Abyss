@@ -770,6 +770,10 @@ class PlayerData:
             if attr in data:
                 setattr(player, attr, data[attr])
 
+        # Data migration: Ensure weapon2 key exists in equipped_items
+        if "weapon2" not in player.equipped_items:
+            player.equipped_items["weapon2"] = None
+
         # Convert inventory
         if "inventory" in data:
             player.inventory = [

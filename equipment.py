@@ -581,6 +581,10 @@ class ItemActionView(View):
                 
                 if self.player_data.class_name and can_dual_wield(self.player_data.class_name):
                     # For dual wielding classes, check both weapon slots
+                    # Ensure weapon2 key exists in equipped_items
+                    if "weapon2" not in self.player_data.equipped_items:
+                        self.player_data.equipped_items["weapon2"] = None
+                    
                     if not self.player_data.equipped_items["weapon"]:
                         slot = "weapon"
                     elif not self.player_data.equipped_items["weapon2"]:
@@ -936,13 +940,17 @@ class InventoryView(RestrictedView):
         if main_weapon_id:
             for item in self.player_data.inventory:
                 if hasattr(item.item, "item_id") and item.item.item_id == main_weapon_id:
-                    equipped_text_lines.append(f"**Main Hand**: {item.item.name}")
+                    # Clean up tool names by removing "Cursed Tool:" prefix
+                    clean_name = item.item.name.replace("Cursed Tool: ", "")
+                    equipped_text_lines.append(f"**Main Hand**: {clean_name}")
                     break
         
         if self.player_data.class_name and can_dual_wield(self.player_data.class_name) and off_weapon_id:
             for item in self.player_data.inventory:
                 if hasattr(item.item, "item_id") and item.item.item_id == off_weapon_id:
-                    equipped_text_lines.append(f"**Off Hand**: {item.item.name}")
+                    # Clean up tool names by removing "Cursed Tool:" prefix
+                    clean_name = item.item.name.replace("Cursed Tool: ", "")
+                    equipped_text_lines.append(f"**Off Hand**: {clean_name}")
                     break
         
         # Display other equipment
