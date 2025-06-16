@@ -1258,16 +1258,19 @@ class GatheringToolsView(View):
         # Create tool options with unique values
         tool_options = []
         seen_tools = set()
+        currently_equipped = self.player.equipped_gathering_tools.get(self.selected_category)
         
         # Add unique tools to options
         for tool_name, efficiency in tools:
             if tool_name not in seen_tools:
                 seen_tools.add(tool_name)
+                # Create safe value for dropdown (replace spaces and special chars)
+                safe_value = tool_name.replace(" ", "_").replace("(", "").replace(")", "")
                 tool_options.append(discord.SelectOption(
                     label=tool_name,
-                    description=f"Efficiency: {efficiency:.1f}x",
-                    value=tool_name,
-                    default=tool_name == self.player.equipped_gathering_tools.get(self.selected_category)
+                    description=f"Efficiency: {efficiency:.1f}x, Level: {self.get_tool_level_requirement(tool_name, self.selected_category)}",
+                    value=safe_value,
+                    default=tool_name == currently_equipped
                 ))
         
         # Add "None" option to unequip
@@ -1275,7 +1278,7 @@ class GatheringToolsView(View):
             label="None (Unequip)",
             description="Gather without a tool",
             value="none",
-            default=self.player.equipped_gathering_tools.get(self.selected_category) is None
+            default=currently_equipped is None
         ))
 
         # Create the dropdown with unique options
@@ -1456,10 +1459,11 @@ class GatheringToolsView(View):
             await interaction.response.send_message("❌ Invalid selection.", ephemeral=True)
             return
             
-        selected_tool = interaction.data["values"][0]
+        selected_safe_value = interaction.data["values"][0]
+        embed = None  # Initialize embed variable
 
         # Handle unequip option
-        if selected_tool == "none":
+        if selected_safe_value == "none":
             if self.selected_category:
                 self.player.equipped_gathering_tools[self.selected_category] = None
 
@@ -1469,7 +1473,26 @@ class GatheringToolsView(View):
                     description=
                     f"You have unequipped your {self.selected_category.lower()} tool.",
                     color=discord.Color.green())
+            else:
+                embed = discord.Embed(
+                    title="❌ Error",
+                    description="No category selected.",
+                    color=discord.Color.red())
         else:
+            # Map safe value back to actual tool name
+            selected_tool = None
+            if self.selected_category:
+                tools = self.get_player_tools(self.selected_category)
+                for tool_name, efficiency in tools:
+                    safe_value = tool_name.replace(" ", "_").replace("(", "").replace(")", "")
+                    if safe_value == selected_safe_value:
+                        selected_tool = tool_name
+                        break
+            
+            if not selected_tool:
+                await interaction.response.send_message("❌ Tool not found.", ephemeral=True)
+                return
+
             # Check if player meets level requirement for this tool
             level_req = self.get_tool_level_requirement(selected_tool, self.selected_category or "")
             if level_req > self.player.class_level:
@@ -1505,8 +1528,11 @@ class GatheringToolsView(View):
         # Save player data
         self.data_manager.save_data()
 
-        # Update UI
-        await interaction.response.edit_message(embed=embed, view=self)
+        # Update UI - ensure embed is not None
+        if embed:
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("❌ An error occurred.", ephemeral=True)
 
     async def back_callback(self, interaction: discord.Interaction):
         """Handle back button"""

@@ -166,6 +166,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Enhanced tool detection logic to handle cross-category tool usage (e.g., Iron Axe for Mining)
   - Added simplified efficiency calculation that works regardless of tool categorization
   - Fixed duplicate option values error in tool selection dropdown menus
+- June 16, 2025. Enhanced tool equipping system display and functionality:
+  - Added clear tool usage display during gathering operations
+  - Enhanced gathering results to show equipped tool and efficiency bonus
+  - Improved tool selection interface with level requirements and efficiency ratings
+  - Added better error handling and safe value mapping for dropdown selections
+  - Enhanced visual feedback with emojis and clear status indicators
 
 ## User Preferences
 
