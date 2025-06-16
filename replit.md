@@ -145,6 +145,13 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Data Corruption: Fixed achievements saving errors by adding defensive programming for corrupted data
   - Achievement Display: Added achievement summary messages to both basic and advanced training completion
   - User Experience: Training now shows clear feedback when spam clicking is attempted
+- June 16, 2025. Fully implemented Double XP event system:
+  - Fixed add_exp method to properly handle event multipliers across all systems
+  - Battle rewards now display event bonuses (e.g., "50 XP → 100 XP (🎉 Double XP Weekend 2x!)")
+  - Advanced training system now uses proper event-aware XP method
+  - Admin XP commands updated to show event multipliers when active
+  - Enhanced visual feedback for all XP gains when events are running
+  - Events can be managed via !event command (admin only)
 
 ## User Preferences
 

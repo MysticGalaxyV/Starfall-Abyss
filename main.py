@@ -2045,7 +2045,7 @@ class AmountInputModal(discord.ui.Modal):
                         f"Current XP: **{player.class_exp}/{next_level_exp}**")
                 else:
                     success_message = (
-                        f"Added **{amount}** XP to {self.target_member.mention}.\n"
+                        f"{exp_text}\n"
                         f"Current level: **{player.class_level}**\n"
                         f"XP: **{player.class_exp}/{next_level_exp}**")
                 color = discord.Color.purple()
