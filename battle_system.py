@@ -995,7 +995,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             enemy_level)  # Calculate gold reward
 
         # Add rewards
-        leveled_up = player_data.add_exp(exp_reward, data_manager=data_manager)
+        exp_result = player_data.add_exp(exp_reward, data_manager=data_manager)
+        leveled_up = exp_result["leveled_up"]
         player_data.add_gold(
             gold_reward)  # Using new gold method instead of cursed energy
 
@@ -1133,7 +1134,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         # Small consolation reward
         pity_exp = calculate_exp_reward(enemy_level,
                                         player_data.class_level) // 3
-        player_data.add_exp(pity_exp, data_manager=data_manager)
+        exp_result = player_data.add_exp(pity_exp, data_manager=data_manager)
 
         # Save data
         data_manager.save_data()

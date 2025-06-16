@@ -1088,7 +1088,8 @@ class TrainingMinigameView(View):
         old_level = self.player_data.class_level
 
         # Update XP using proper method that handles Double XP events
-        leveled_up = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
+        exp_result = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
+        leveled_up = exp_result["leveled_up"]
 
         # Apply attribute gains if applicable
         if attribute_gain > 0:
@@ -1241,10 +1242,15 @@ class TrainingMinigameView(View):
                 inline=False
             )
 
-        # Add experience
+        # Add experience with Double XP event display
+        exp_text = f"**EXP Gained:** {exp_gain}"
+        if exp_result["event_multiplier"] > 1.0:
+            base_exp = int(exp_gain / exp_result["event_multiplier"])
+            exp_text = f"**EXP Gained:** {base_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        
         embed.add_field(
             name="Experience",
-            value=f"**EXP Gained:** {exp_gain}",
+            value=exp_text,
             inline=True
         )
 

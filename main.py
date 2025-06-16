@@ -2022,7 +2022,8 @@ class AmountInputModal(discord.ui.Modal):
             elif self.resource_type == "xp":
                 # Use the proper add_exp method that handles level ups automatically
                 old_level = player.class_level
-                leveled_up = player.add_exp(amount, data_manager=data_manager)
+                exp_result = player.add_exp(amount, bypass_penalty=True, data_manager=data_manager)
+                leveled_up = exp_result["leveled_up"]
 
                 # Calculate XP needed for next level
                 if player.class_level < 1000:  # Max level cap
@@ -2031,10 +2032,15 @@ class AmountInputModal(discord.ui.Modal):
                 else:
                     next_level_exp = 0
 
+                # Format success message with Double XP event display
+                exp_text = f"Added **{amount}** XP to {self.target_member.mention}."
+                if exp_result["event_multiplier"] > 1.0:
+                    exp_text = f"Added **{amount}** XP → **{exp_result['adjusted_exp']}** XP to {self.target_member.mention} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+                
                 # Format success message differently if player leveled up
                 if player.class_level > old_level:
                     success_message = (
-                        f"Added **{amount}** XP to {self.target_member.mention}.\n"
+                        f"{exp_text}\n"
                         f"They leveled up from **{old_level}** to **{player.class_level}**! 🎉\n"
                         f"Current XP: **{player.class_exp}/{next_level_exp}**")
                 else:
@@ -2125,14 +2131,18 @@ async def give_xp_cmd(ctx, member: discord.Member, amount: int):
         return
 
     player = data_manager.get_player(member.id)
-    leveled_up = player.add_exp(amount, data_manager=data_manager)
+    exp_result = player.add_exp(amount, bypass_penalty=True, data_manager=data_manager)
+    leveled_up = exp_result["leveled_up"]
     data_manager.save_data()
 
-    # Create an embed for the XP award
+    # Create an embed for the XP award with Double XP event display
+    exp_text = f"Added **{amount}** XP to {member.mention}."
+    if exp_result["event_multiplier"] > 1.0:
+        exp_text = f"Added **{amount}** XP → **{exp_result['adjusted_exp']}** XP to {member.mention} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+    
     embed = discord.Embed(
         title="📊 XP Added",
-        description=
-        f"Added **{amount}** XP to {member.mention}.\nCurrent level: **{player.class_level}** | XP: **{player.class_exp}**/{player.xp_to_next_level()}",
+        description=f"{exp_text}\nCurrent level: **{player.class_level}** | XP: **{player.class_exp}**/{player.xp_to_next_level()}",
         color=discord.Color.green())
 
     # If player leveled up, add that info to the embed

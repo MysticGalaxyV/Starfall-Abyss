@@ -775,7 +775,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
 
         # Award rewards
         # Add rewards - ensure we're adding all rewards properly
-        leveled_up = player_data.add_exp(exp_reward, data_manager=data_manager)
+        exp_result = player_data.add_exp(exp_reward, data_manager=data_manager)
+        leveled_up = exp_result["leveled_up"]
         player_data.add_gold(gold_reward)
 
         # No need to manually track gold_earned since add_gold already does this
@@ -815,9 +816,15 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             description=f"You defeated {enemy_name} (Level {enemy_level})!",
             color=discord.Color.green())
 
+        # Create rewards text with Double XP event display
+        rewards_text = f"Experience: {exp_reward} XP"
+        if exp_result["event_multiplier"] > 1.0:
+            base_exp = int(exp_reward / exp_result["event_multiplier"])
+            rewards_text = f"Experience: {base_exp} XP → {exp_result['adjusted_exp']} XP (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        rewards_text += f" 📊\nGold: {gold_reward} 💰"
+        
         rewards_embed.add_field(name="Rewards",
-                                value=f"Experience: {exp_reward} XP 📊\n"
-                                f"Gold: {gold_reward} 💰",
+                                value=rewards_text,
                                 inline=False)
 
         # Check for level up
@@ -857,7 +864,8 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         # Give some consolation rewards
         consolation_exp = int(
             calculate_exp_reward(enemy_level, player_data.class_level) * 0.25)
-        leveled_up = player_data.add_exp(consolation_exp, data_manager=data_manager)
+        exp_result = player_data.add_exp(consolation_exp, data_manager=data_manager)
+        leveled_up = exp_result["leveled_up"]
 
         # Regenerate health and energy after battle defeat - partial recovery
         from utils import GAME_CLASSES
@@ -874,8 +882,15 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             f"You were defeated by {enemy_name} (Level {enemy_level})!",
             color=discord.Color.red())
 
+        # Create consolation rewards text with Double XP event display
+        consolation_text = f"Experience: {consolation_exp} XP"
+        if exp_result["event_multiplier"] > 1.0:
+            base_exp = int(consolation_exp / exp_result["event_multiplier"])
+            consolation_text = f"Experience: {base_exp} XP → {exp_result['adjusted_exp']} XP (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        consolation_text += " 📊"
+        
         defeat_embed.add_field(name="Consolation Reward",
-                               value=f"Experience: {consolation_exp} XP 📊",
+                               value=consolation_text,
                                inline=False)
 
         defeat_embed.add_field(
