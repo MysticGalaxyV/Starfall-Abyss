@@ -611,6 +611,16 @@ class GuildManager:
         contribution_points = contribution_amount // 10
         guild.daily_contributions[today][str(player_id)] += contribution_points
 
+        # Update quest progress for guild contribution
+        try:
+            from achievements import QuestManager
+            player_data = self.data_manager.get_player_data(player_id)
+            if player_data:
+                quest_manager = QuestManager(self.data_manager)
+                quest_manager.update_quest_progress(player_data, "weekly_guild_contribution", contribution_amount)
+        except ImportError:
+            pass  # QuestManager not available, skip quest tracking
+
         # Save data
         self.save_guilds()
 

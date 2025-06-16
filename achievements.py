@@ -431,6 +431,15 @@ DAILY_QUESTS = [
         "min_value": 1,
         "max_value": 5,
         "reward": {"exp": lambda v: v * 80, "gold": lambda v: v * 40}
+    },
+    {
+        "id": "daily_pvp",
+        "name": "PVP Daily",
+        "description": "Win {value} PVP battles today",
+        "type": "daily_pvp",
+        "min_value": 1,
+        "max_value": 3,
+        "reward": {"exp": lambda v: v * 100, "gold": lambda v: v * 100}
     }
 ]
 
@@ -471,6 +480,24 @@ WEEKLY_QUESTS = [
         "min_value": 2,
         "max_value": 7,
         "reward": {"exp": lambda v: v * 120, "gold": lambda v: v * 120}
+    },
+    {
+        "id": "weekly_dungeons",
+        "name": "Weekly Explorer",
+        "description": "Complete {value} dungeons this week",
+        "type": "weekly_dungeons",
+        "min_value": 3,
+        "max_value": 10,
+        "reward": {"exp": lambda v: v * 150, "gold": lambda v: v * 150}
+    },
+    {
+        "id": "weekly_wins",
+        "name": "Weekly Warrior",
+        "description": "Win {value} battles this week",
+        "type": "weekly_wins",
+        "min_value": 10,
+        "max_value": 25,
+        "reward": {"exp": lambda v: v * 100, "gold": lambda v: v * 100}
     }
 ]
 
@@ -515,6 +542,22 @@ LONG_TERM_QUESTS = [
         "type": "guild_level",
         "value": 10,
         "reward": {"exp": 5000, "gold": 5000, "special_item": "Guild Banner"}
+    },
+    {
+        "id": "training_master",
+        "name": "Training Master",
+        "description": "Complete 100 training sessions",
+        "type": "total_training",
+        "value": 100,
+        "reward": {"exp": 3000, "gold": 3000, "special_item": "Master Trainer's Certificate"}
+    },
+    {
+        "id": "level_milestone_50",
+        "name": "Elite Adventurer",
+        "description": "Reach level 50",
+        "type": "reach_level",
+        "value": 50,
+        "reward": {"exp": 5000, "gold": 5000, "special_item": "Elite Adventurer's Crown"}
     }
 ]
 
