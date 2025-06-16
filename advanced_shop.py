@@ -1090,6 +1090,50 @@ ADVANCED_SHOP_ITEMS = {
             "level_req": 1,
             "achievement_points": 40,
             "one_time_purchase": True
+        },
+        {
+            "name": "🛡️ Guardian Tag",
+            "description": "Display '🛡️ Guardian' on your profile. Protector of the realm!",
+            "item_type": "profile_tag",
+            "tag_text": "🛡️ Guardian",
+            "rarity": "special",
+            "stats": {},
+            "level_req": 1,
+            "achievement_points": 40,
+            "one_time_purchase": True
+        },
+        {
+            "name": "⚡ Lightning Tag",
+            "description": "Display '⚡ Lightning' on your profile. Swift as lightning!",
+            "item_type": "profile_tag",
+            "tag_text": "⚡ Lightning",
+            "rarity": "special",
+            "stats": {},
+            "level_req": 1,
+            "achievement_points": 40,
+            "one_time_purchase": True
+        },
+        {
+            "name": "🔥 Inferno Tag",
+            "description": "Display '🔥 Inferno' on your profile. Burning with passion!",
+            "item_type": "profile_tag",
+            "tag_text": "🔥 Inferno",
+            "rarity": "special",
+            "stats": {},
+            "level_req": 1,
+            "achievement_points": 40,
+            "one_time_purchase": True
+        },
+        {
+            "name": "💎 Diamond Tag",
+            "description": "Display '💎 Diamond' on your profile. Unbreakable and precious!",
+            "item_type": "profile_tag",
+            "tag_text": "💎 Diamond",
+            "rarity": "special",
+            "stats": {},
+            "level_req": 1,
+            "achievement_points": 40,
+            "one_time_purchase": True
         }
     ]
 }
