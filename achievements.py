@@ -664,10 +664,10 @@ SPECIAL_EVENTS = [
         "duration": 1  # days
     },
     {
-        "id": "spirit_storm",
-        "name": "Spirit Storm",
-        "description": "A mystical storm of spirits has descended! Increased cursed energy drops by 75%!",
-        "effect": {"type": "cursed_energy_multiplier", "value": 1.75},
+        "id": "gold_rush",
+        "name": "Gold Rush",
+        "description": "A mystical fortune event has occurred! Increased gold drops by 75%!",
+        "effect": {"type": "gold_multiplier", "value": 1.75},
         "duration": 1  # days
     }
 ]
@@ -733,16 +733,30 @@ class AchievementTracker:
         available_achievements = self.get_player_available_achievements(player)
 
         for achievement in available_achievements:
-            # Skip already earned
-            if achievement["id"] in player.achievements:
+            # Skip already earned - check both string IDs and Achievement objects
+            earned_ids = []
+            for ach in player.achievements:
+                if hasattr(ach, 'achievement_id'):
+                    earned_ids.append(ach.achievement_id)
+                elif isinstance(ach, str):
+                    earned_ids.append(ach)
+            
+            if achievement["id"] in earned_ids:
                 continue
 
             # Check if achievement is completed
             completed = self.check_achievement_completion(player, achievement)
 
             if completed:
-                # Add achievement to player
-                player.achievements.append(achievement["id"])
+                # Create Achievement object and add to player
+                achievement_obj = Achievement(
+                    achievement_id=achievement["id"],
+                    name=achievement["name"],
+                    description=achievement["description"],
+                    reward=achievement.get("reward", {}),
+                    completed_at=datetime.datetime.now()
+                )
+                player.achievements.append(achievement_obj)
 
                 # Award rewards
                 self.award_achievement_rewards(player, achievement)

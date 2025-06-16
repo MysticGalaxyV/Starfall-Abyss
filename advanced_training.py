@@ -606,6 +606,14 @@ class TrainingMinigameView(View):
 
     async def start_callback(self, interaction: discord.Interaction):
         """Start the training minigame"""
+        # Prevent multiple training sessions
+        if self.training_in_progress:
+            await interaction.response.send_message(
+                "Training is already in progress!", ephemeral=True)
+            return
+
+        self.training_in_progress = True
+        
         # Remove the start and cancel buttons
         self.clear_items()
 
@@ -1172,7 +1180,9 @@ class TrainingMinigameView(View):
             quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         # Check for achievements
-        new_achievements = self.data_manager.check_player_achievements(self.player_data)
+        from achievements import AchievementTracker
+        achievement_tracker = AchievementTracker(self.data_manager)
+        new_achievements = achievement_tracker.check_achievements(self.player_data)
 
         # Save player data
         self.data_manager.save_data()
@@ -1257,6 +1267,11 @@ class TrainingMinigameView(View):
                       f"You gained 3 skill points! Use !skills to allocate them.",
                 inline=False
             )
+
+        # Add achievement notifications
+        if new_achievements:
+            achievement_text = "\n".join([f"🏆 **{ach['name']}** - {ach['description']}" for ach in new_achievements])
+            embed.add_field(name="🎉 New Achievements!", value=achievement_text, inline=False)
 
         # Add cooldown info
         embed.add_field(
