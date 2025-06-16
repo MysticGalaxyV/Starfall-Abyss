@@ -386,7 +386,9 @@ class TimingBar(View):
         self.target_zone = target_zone  # Size of the target zone (0.0-1.0)
         self.position = 0.0  # 0.0 to 1.0 representing position on bar
         self.direction = 1  # 1 for right, -1 for left
-        self.speed = 0.04  # How fast the indicator moves per step
+        self.base_speed = 0.025  # Base movement speed
+        self.speed = self.base_speed  # Current speed (can vary)
+        self.acceleration = 0.0005  # Slight acceleration for smoothness
         self.task = None
         self.stopped = False
 
@@ -408,38 +410,50 @@ class TimingBar(View):
 
     def render_bar(self) -> str:
         """Render a text-based timing bar"""
-        bar_length = 25  # Increased length for better precision
+        bar_length = 30  # Even longer for smoother movement
         target_start = int((0.5 - self.target_zone/2) * bar_length)
         target_end = int((0.5 + self.target_zone/2) * bar_length)
 
         # Create the bar with target zone
-        bar = ["⬜"] * bar_length
+        bar = ["⬛"] * bar_length
         for i in range(target_start, target_end+1):
             if i < len(bar):
                 bar[i] = "🟩"
 
-        # Add the indicator
-        indicator_pos = min(bar_length-1, int(self.position * bar_length))
+        # Add the indicator with smooth positioning
+        indicator_pos = min(bar_length-1, max(0, int(self.position * bar_length)))
+        
+        # Add trailing effect for smoother visual
+        if indicator_pos > 0 and bar[indicator_pos-1] not in ["🟩"]:
+            bar[indicator_pos-1] = "🟡"  # Trail effect
+        
         bar[indicator_pos] = "🔴"
 
-        # Add visual guides
-        zone_info = f"Target zone: {int(self.target_zone * 100)}% width"
-        return f"⏱️ Stop the red indicator in the green zone!\n{zone_info}\n\n|{''.join(bar)}|"
+        # Progress indicator
+        progress = f"{int(self.position * 100):3d}%"
+        zone_info = f"Target: {int(self.target_zone * 100)}% | Position: {progress}"
+        
+        return f"🎯 Stop the red ball in the green zone!\n{zone_info}\n\n|{''.join(bar)}|"
 
     async def animate(self, interaction: discord.Interaction):
         """Animate the timing bar"""
         try:
             while not self.stopped:
+                # Slightly vary speed for more natural movement
+                self.speed = self.base_speed + (self.acceleration * abs(self.position - 0.5))
+                
                 # Update position
                 self.position += self.speed * self.direction
 
-                # Change direction if hitting edge
+                # Change direction if hitting edge with slight bounce effect
                 if self.position >= 1.0:
                     self.position = 1.0
                     self.direction = -1
+                    self.speed = self.base_speed  # Reset speed at edges
                 elif self.position <= 0.0:
                     self.position = 0.0
                     self.direction = 1
+                    self.speed = self.base_speed  # Reset speed at edges
 
                 # Update the message
                 try:
@@ -449,8 +463,8 @@ class TimingBar(View):
                     self.stopped = True
                     break
 
-                # Delay between frames - reduced for better responsiveness
-                await asyncio.sleep(0.05)
+                # Ultra-smooth animation with high frame rate
+                await asyncio.sleep(0.025)
         except asyncio.CancelledError:
             # Task was cancelled, clean up
             self.stopped = True
