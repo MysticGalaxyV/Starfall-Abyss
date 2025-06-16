@@ -1124,6 +1124,45 @@ class QuestManager:
 
         return completed_quests
 
+    def create_quest_completion_message(self, quest: Dict[str, Any]) -> str:
+        """Create a formatted message for quest completion"""
+        quest_type_emoji = {
+            "daily_wins": "⚔️",
+            "weekly_wins": "🏆", 
+            "daily_training": "🏋️",
+            "weekly_training": "💪",
+            "daily_dungeons": "🏴‍☠️",
+            "weekly_dungeons": "🗡️",
+            "daily_gold": "💰",
+            "daily_items": "🎁",
+            "weekly_bosses": "👹",
+            "weekly_pvp": "⚔️",
+            "weekly_guild_contribution": "🏰",
+            "total_wins": "🥇",
+            "total_training": "🎯",
+            "total_dungeons": "🗡️"
+        }
+        
+        emoji = quest_type_emoji.get(quest["type"], "✅")
+        
+        # Create reward text
+        reward_text = ""
+        if "reward" in quest:
+            reward = quest["reward"]
+            reward_parts = []
+            
+            if "exp" in reward:
+                reward_parts.append(f"+{reward['exp']} EXP")
+            if "gold" in reward:
+                reward_parts.append(f"+{reward['gold']} Gold")
+            if "special_item" in reward:
+                reward_parts.append(f"Special Item: {reward['special_item']}")
+                
+            if reward_parts:
+                reward_text = f"\n**Rewards:** {', '.join(reward_parts)}"
+        
+        return f"{emoji} **Quest Complete!** {quest['name']}{reward_text}"
+
     def award_quest_rewards(self, player: PlayerData, quest: Dict[str, Any]):
         """Award rewards for completing a quest"""
         if "reward" not in quest:
@@ -1143,23 +1182,18 @@ class QuestManager:
 
             player.add_exp(exp_amount)
 
-        # Award cursed energy with event multiplier
+        # Award gold with event multiplier
         if "gold" in reward:
-            energy_amount = reward["gold"]
+            gold_amount = reward["gold"]
 
             # Apply event multipliers if any
             if "active_events" in self.data_manager.__dict__:
                 for event_id, event_data in self.data_manager.active_events.items():
                     if event_data["effect"]["type"] == "gold_multiplier":
-                        energy_amount = int(energy_amount * event_data["effect"]["value"])
+                        gold_amount = int(gold_amount * event_data["effect"]["value"])
 
-            # Add to player's cursed energy (the main currency)
-            player.cursed_energy += energy_amount
-
-            # Track gold earned for achievements
-            if not hasattr(player, "gold_earned"):
-                player.gold_earned = 0
-            player.gold_earned += energy_amount
+            # Add to player's gold (the main currency)
+            player.add_gold(gold_amount)
 
         # Award special item if any
         if "special_item" in reward:

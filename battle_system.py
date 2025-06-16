@@ -1006,23 +1006,33 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         from achievements import QuestManager
         quest_manager = QuestManager(data_manager)
 
+        # Collect all quest completion messages
+        quest_messages = []
+
         # Update various quest types that would be triggered by a battle win
-        completed_daily_quests = quest_manager.update_quest_progress(
-            player_data, "daily_wins")
-        completed_weekly_quests = quest_manager.update_quest_progress(
-            player_data, "weekly_wins")
+        completed_quests = quest_manager.update_quest_progress(player_data, "daily_wins")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+
+        completed_quests = quest_manager.update_quest_progress(player_data, "weekly_wins")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
         
         # Update long-term battle tracking
-        completed_longterm_quests = quest_manager.update_quest_progress(
-            player_data, "total_wins")
+        completed_quests = quest_manager.update_quest_progress(player_data, "total_wins")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         # Update gold quest tracking
-        quest_manager.update_quest_progress(player_data, "daily_gold", gold_reward)
+        completed_quests = quest_manager.update_quest_progress(player_data, "daily_gold", gold_reward)
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         if "boss" in enemy_name.lower():
             # This is a boss battle
-            completed_boss_quests = quest_manager.update_quest_progress(
-                player_data, "weekly_bosses")
+            completed_quests = quest_manager.update_quest_progress(player_data, "weekly_bosses")
+            for quest in completed_quests:
+                quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
         # Check for item drops
         drop_msg = ""
@@ -1035,7 +1045,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             add_item_to_inventory(player_data, new_item)
 
             # Update item collection quest progress
-            quest_manager.update_quest_progress(player_data, "daily_items")
+            completed_quests = quest_manager.update_quest_progress(player_data, "daily_items")
+            for quest in completed_quests:
+                quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
             drop_msg = f"\n⚡ The {enemy_name} dropped: **{new_item.name}**!"
 
@@ -1052,7 +1064,9 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                 add_item_to_inventory(player_data, special_item)
 
                 # Update item collection quest progress for special items too
-                quest_manager.update_quest_progress(player_data, "daily_items")
+                completed_quests = quest_manager.update_quest_progress(player_data, "daily_items")
+                for quest in completed_quests:
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
                 special_drop_msg = f"\n🌟 Rare drop! You found: **{special_item.name}**!"
 
@@ -1088,6 +1102,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
             value=f"EXP: +{exp_reward} 📊\n"
             f"Gold: +{gold_reward} 💰{drop_msg}{special_drop_msg}",
             inline=False)
+
+        # Show quest completion messages if any
+        if quest_messages:
+            quest_text = "\n".join(quest_messages)
+            result_embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
 
         # Show info about expired effects if any
         if locals().get('expired_effects') and expired_effects:

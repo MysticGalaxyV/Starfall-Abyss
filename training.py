@@ -211,7 +211,7 @@ class TrainingOptionView(RestrictedView):
                 f"**{option_data['attribute'].title()}:** +{attribute_gain}\n"
                 f"**EXP Gained:** {exp_gain}\n"
                 f"**Battle Energy:** +{energy_added} ✨\n"
-                f"**Max Energy:** {self.player_data.max_energy} "
+                f"**Max Energy:** {self.player_data.max_battle_energy} "
                 f"{'(↑ +1)' if training_energy_boost else ''}"),
             inline=False)
 
