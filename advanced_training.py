@@ -19,9 +19,9 @@ TRAINING_MINIGAMES = {
         "emoji": "⚔️",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.5, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.5, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.8, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 4.5, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 3.5, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 2.8, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
@@ -53,9 +53,9 @@ TRAINING_MINIGAMES = {
         "emoji": "🏃",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.0, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.0, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.5, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 4.0, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 3.0, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 2.5, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
@@ -104,9 +104,9 @@ TRAINING_MINIGAMES = {
         "emoji": "⚡",
         "minigame_type": "precision",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 1, "energy_gain": 5},
-            {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 2, "energy_gain": 10},
-            {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 3, "energy_gain": 15}
+            {"name": "Basic", "exp_multiplier": 1.0, "targets": 4, "attribute_gain": 1, "energy_gain": 5},
+            {"name": "Advanced", "exp_multiplier": 1.5, "targets": 6, "attribute_gain": 2, "energy_gain": 10},
+            {"name": "Master", "exp_multiplier": 2.5, "targets": 8, "attribute_gain": 3, "energy_gain": 15}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
@@ -205,9 +205,9 @@ CLASS_TRAINING = {
             "emoji": "🗡️",
             "minigame_type": "precision",
             "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 4}
+                {"name": "Basic", "exp_multiplier": 1.0, "targets": 4, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 6, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "targets": 8, "attribute_gain": 4}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 150, "effect": {"name": "Assassination Focus", "duration": 2, "boost_type": "critical_damage", "boost_amount": 20}}
@@ -398,7 +398,7 @@ class TimingBar(View):
     async def start(self, interaction: discord.Interaction):
         # Initial render
         self.position = 0.0
-        await interaction.response.send_message(
+        await interaction.edit_original_response(
             content=self.render_bar(),
             view=self
         )
@@ -659,7 +659,14 @@ class TrainingMinigameView(View):
 
         for round_num in range(1, rounds + 1):
             # Create a grid of buttons (one target, rest are misses)
-            grid_size = 3  # 3x3 grid
+            # Grid size increases with difficulty
+            if time_window >= 4.0:  # Basic
+                grid_size = 3  # 3x3 grid
+            elif time_window >= 3.0:  # Advanced
+                grid_size = 4  # 4x4 grid
+            else:  # Master
+                grid_size = 4  # Keep at 4x4 for fairness
+            
             target_x = random.randint(0, grid_size - 1)
             target_y = random.randint(0, grid_size - 1)
 
@@ -957,9 +964,18 @@ class TrainingMinigameView(View):
     async def run_precision_minigame(self, interaction: discord.Interaction):
         """Run the precision targeting minigame"""
         # Set up minigame parameters
-        target_count = self.current_difficulty.get("targets", 3)
-        grid_size = 4  # 4x4 grid
-        time_per_target = 2.0  # seconds
+        target_count = self.current_difficulty.get("targets", 4)
+        
+        # Grid size and time scale with difficulty
+        if target_count <= 4:  # Basic
+            grid_size = 3  # 3x3 grid
+            time_per_target = 3.0  # +1 second for all difficulties
+        elif target_count <= 6:  # Advanced
+            grid_size = 4  # 4x4 grid
+            time_per_target = 3.0  # +1 second
+        else:  # Master
+            grid_size = 4  # Keep 4x4 for Master (more targets, same space = harder)
+            time_per_target = 3.0  # +1 second
 
         self.target_count = target_count
         self.hits = 0
@@ -982,7 +998,7 @@ class TrainingMinigameView(View):
             # Show the grid
             self.round_complete = False
             await interaction.edit_original_response(
-                content=f"Target {target_idx+1}/{target_count} - Hit the highlighted target!",
+                content=f"🎯 Target {target_idx+1}/{target_count} - Hit the red target!\nGrid: {grid_size}x{grid_size} | Time: {time_per_target}s",
                 view=target_view
             )
 
@@ -1002,7 +1018,7 @@ class TrainingMinigameView(View):
 
             # Short pause between targets
             if target_idx < target_count - 1 and self.round_complete:
-                await asyncio.sleep(0.8)
+                await asyncio.sleep(1.0)
 
         # Convert hits to score for consistency with other minigames
         self.score = self.hits

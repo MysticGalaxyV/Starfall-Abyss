@@ -126,6 +126,14 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
 ## Changelog
 
 - June 16, 2025. Initial setup
+- June 16, 2025. Fixed advanced training system difficulty scaling:
+  - Increased time windows by 1+ seconds for all difficulties (Basic: 4.5s, Advanced: 3.5s, Master: 2.8s)
+  - Expanded target zones for timing games (Master difficulty now 18% instead of 10%)
+  - Added extra targets for precision training (Basic: 4, Advanced: 6, Master: 8)
+  - Improved grid scaling for reaction training (3x3 Basic, 4x4 Advanced/Master)
+  - Fixed timing bar interaction error and improved visual feedback
+  - Enhanced sequence memorization with longer study times
+  - Reduced animation delay for better responsiveness (0.05s frames)
 
 ## User Preferences
 
