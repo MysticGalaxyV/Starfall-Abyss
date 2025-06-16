@@ -355,12 +355,26 @@ class PlayerData:
             if stat in base_stats:
                 base_stats[stat] += points
 
-        # Add stats from equipped items
+        # Add stats from equipped items including dual weapon support
+        from utils import can_dual_wield
+        
         for inv_item in self.inventory:
             if inv_item.equipped and hasattr(inv_item.item, 'stats'):
                 for stat, value in inv_item.item.stats.items():
                     if stat in base_stats:
-                        base_stats[stat] += value
+                        # For dual wielding classes, apply weapon damage bonus from both weapons
+                        if (inv_item.item.item_type == "weapon" and 
+                            stat == "power" and 
+                            self.class_name and can_dual_wield(self.class_name)):
+                            # Check if this is the off-hand weapon and apply reduced bonus
+                            weapon_id = getattr(inv_item.item, 'item_id', None)
+                            if weapon_id == self.equipped_items.get("weapon2"):
+                                # Off-hand weapon provides 75% of power bonus
+                                base_stats[stat] += int(value * 0.75)
+                            else:
+                                base_stats[stat] += value
+                        else:
+                            base_stats[stat] += value
 
         return base_stats
 

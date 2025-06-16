@@ -579,7 +579,7 @@ class ItemActionView(View):
                 # Check for dual wielding capability
                 from utils import can_dual_wield
                 
-                if can_dual_wield(self.player_data.class_name):
+                if self.player_data.class_name and can_dual_wield(self.player_data.class_name):
                     # For dual wielding classes, check both weapon slots
                     if not self.player_data.equipped_items["weapon"]:
                         slot = "weapon"
@@ -939,7 +939,7 @@ class InventoryView(RestrictedView):
                     equipped_text_lines.append(f"**Main Hand**: {item.item.name}")
                     break
         
-        if can_dual_wield(self.player_data.class_name) and off_weapon_id:
+        if self.player_data.class_name and can_dual_wield(self.player_data.class_name) and off_weapon_id:
             for item in self.player_data.inventory:
                 if hasattr(item.item, "item_id") and item.item.item_id == off_weapon_id:
                     equipped_text_lines.append(f"**Off Hand**: {item.item.name}")
@@ -964,7 +964,7 @@ class InventoryView(RestrictedView):
         equipped_text = "\n".join(equipped_text_lines) if equipped_text_lines else "None"
         
         # Add dual wield indicator for classes that support it
-        if can_dual_wield(self.player_data.class_name):
+        if self.player_data.class_name and can_dual_wield(self.player_data.class_name):
             dual_wield_status = "⚔️ Dual Wield Class"
             if equipped_text != "None":
                 equipped_text = f"{dual_wield_status}\n{equipped_text}"

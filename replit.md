@@ -172,6 +172,14 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Improved tool selection interface with level requirements and efficiency ratings
   - Added better error handling and safe value mapping for dropdown selections
   - Enhanced visual feedback with emojis and clear status indicators
+- June 16, 2025. Implemented dual weapon equipping system:
+  - Added dual wielding capability for Flash Rogue and Shadow Assassin classes
+  - Enhanced equipment system to support weapon2 slot for off-hand weapons
+  - Implemented 75% damage penalty for off-hand weapon power bonuses
+  - Updated equipment display to show "Main Hand" and "Off Hand" weapon slots
+  - Added dual wield class indicator in equipment interface
+  - Enhanced stats calculation to properly handle both weapons with appropriate penalties
+  - Added comprehensive null safety checks for class validation
 
 ## User Preferences
 
