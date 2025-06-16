@@ -49,6 +49,7 @@ class BattleEntity:
         self.moves = moves or []
         self.is_player = is_player
         self.player_data = player_data
+        self.level = None  # Will be set for display purposes
         self.status_effects = {
         }  # Effect name -> (turns remaining, effect strength)
 
@@ -369,6 +370,7 @@ class BattleView(RestrictedView):
         self.enemy = enemy
         self.data_manager: Optional[
             DataManager] = None  # Will be set by start_battle
+        self.battle_log = []  # Track battle actions
         self.update_buttons()
 
     def get_safe_message_content(self,
@@ -382,6 +384,90 @@ class BattleView(RestrictedView):
         except (AttributeError, TypeError):
             pass
         return ""
+
+    def create_battle_embed(self) -> discord.Embed:
+        """Create a formatted battle embed matching the desired layout"""
+        # Create embed with dark theme
+        embed = discord.Embed(
+            title=f"⚔️ {self.player.name} vs {self.enemy.name}",
+            color=0x2F3136  # Dark gray color to match image
+        )
+        
+        # Action log section (show last few actions)
+        if self.battle_log:
+            action_text = "\n".join(self.battle_log[-6:])  # Show last 6 actions
+        else:
+            action_text = "Battle begins!"
+        
+        embed.description = action_text
+        
+        # Player stats section
+        player_level = ""
+        if self.player.is_player and self.player.player_data:
+            player_level = f" (Level {self.player.player_data.class_level})"
+        
+        player_stats = (
+            f"HP: {self.player.current_hp}/{self.player.stats['hp']} ❤️\n"
+            f"Energy: {self.player.current_energy}/{self.player.max_energy} ⚡\n"
+            f"Power: {self.player.stats['power']} ⚔️\n"
+            f"Defense: {self.player.stats['defense']} 🛡️"
+        )
+        
+        embed.add_field(
+            name=f"{self.player.name}{player_level}",
+            value=player_stats,
+            inline=True
+        )
+        
+        # Enemy stats section
+        enemy_level = ""
+        if hasattr(self.enemy, 'level') and self.enemy.level:
+            enemy_level = f" (Level {self.enemy.level})"
+        
+        enemy_stats = (
+            f"HP: {self.enemy.current_hp}/{self.enemy.stats['hp']} ❤️\n"
+            f"Energy: {self.enemy.current_energy}/{getattr(self.enemy, 'max_energy', 100)} ⚡\n"
+            f"Power: {self.enemy.stats['power']} ⚔️\n"
+            f"Defense: {self.enemy.stats['defense']} 🛡️"
+        )
+        
+        embed.add_field(
+            name=f"{self.enemy.name}{enemy_level}",
+            value=enemy_stats,
+            inline=True
+        )
+        
+        # Status effects section
+        status_text = ""
+        
+        # Player status effects
+        if self.player.status_effects:
+            player_effects = []
+            for effect, (turns, strength) in self.player.status_effects.items():
+                effect_name = effect.replace("_", " ").title()
+                player_effects.append(f"**{self.player.name}:** {effect_name}")
+            if player_effects:
+                status_text += "\n".join(player_effects)
+        
+        # Enemy status effects
+        if self.enemy.status_effects:
+            enemy_effects = []
+            for effect, (turns, strength) in self.enemy.status_effects.items():
+                effect_name = effect.replace("_", " ").title()
+                enemy_effects.append(f"**{self.enemy.name}:** {effect_name}")
+            if enemy_effects:
+                if status_text:
+                    status_text += "\n"
+                status_text += "\n".join(enemy_effects)
+        
+        if status_text:
+            embed.add_field(
+                name="Status Effects",
+                value=status_text,
+                inline=False
+            )
+        
+        return embed
 
     def update_buttons(self):
         # Clear existing buttons
@@ -474,11 +560,16 @@ class BattleView(RestrictedView):
         else:
             # Normal turn, apply player move
             damage, effect_msg = self.player.apply_move(move, self.enemy)
-            await interaction.response.edit_message(
-                content=
-                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                f"Waiting for enemy move...",
-                view=self)
+            
+            # Add to battle log
+            move_log = f"⚔️ **{self.player.name}** executes **{move.name}** dealing {damage} damage!"
+            if effect_msg:
+                move_log += f"{effect_msg}"
+            self.battle_log.append(move_log)
+            
+            # Update with new embed format
+            embed = self.create_battle_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
 
         # Check if enemy is defeated
         if not self.enemy.is_alive():
@@ -505,21 +596,28 @@ class BattleView(RestrictedView):
             self.enemy.current_energy = min(
                 self.enemy.stats.get("energy", 100),
                 self.enemy.current_energy + 30)
-            await interaction.edit_original_response(
-                content=
-                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                f"🔄 {self.enemy.name} is exhausted and regains 30 energy!",
-                view=self)
+            
+            # Add to battle log
+            energy_log = f"🔄 **{self.enemy.name}** is exhausted and regains 30 energy!"
+            self.battle_log.append(energy_log)
+            
+            # Update with new embed format
+            embed = self.create_battle_embed()
+            await interaction.edit_original_response(embed=embed, view=self)
         else:
             enemy_move = random.choice(available_moves)
             enemy_damage, enemy_effect_msg = self.enemy.apply_move(
                 enemy_move, self.player)
 
-            await interaction.edit_original_response(
-                content=
-                f"⚔️ You used {move.name} for {damage} damage!{effect_msg}\n"
-                f"⚔️ {self.enemy.name} used {enemy_move.name} for {enemy_damage} damage!{enemy_effect_msg}",
-                view=self)
+            # Add enemy action to battle log
+            enemy_log = f"⚔️ **{self.enemy.name}** unleashes **{enemy_move.name}** dealing {enemy_damage} damage!"
+            if enemy_effect_msg:
+                enemy_log += f"{enemy_effect_msg}"
+            self.battle_log.append(enemy_log)
+
+            # Update with new embed format
+            embed = self.create_battle_embed()
+            await interaction.edit_original_response(embed=embed, view=self)
 
             # Check if player is defeated
             if not self.player.is_alive():
@@ -839,6 +937,12 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
     # Create battle view
     battle_view = BattleView(player_entity, enemy_entity, ctx.author, timeout=180)
     battle_view.data_manager = data_manager
+    
+    # Add enemy level to enemy entity for display purposes
+    enemy_entity.level = enemy_level
+    
+    # Use new embed format
+    embed = battle_view.create_battle_embed()
 
     battle_msg = await ctx.send(embed=embed, view=battle_view)
 

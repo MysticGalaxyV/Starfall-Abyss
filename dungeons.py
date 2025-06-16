@@ -784,36 +784,19 @@ class DungeonProgressView(View):
             enemy_moves
         )
 
-        # Create battle embed
-        embed = discord.Embed(
-            title=f"⚔️ Dungeon Battle: {interaction.user.display_name} vs {enemy_name}",
-            description=f"A {enemy_name} (Level {enemy_level}) appears!",
-            color=discord.Color.red()
-        )
-
-        # Add player stats - always show max HP from stats, current HP from entity
-        embed.add_field(
-            name=f"{interaction.user.display_name} (Level {self.player_data.class_level})",
-            value=f"HP: {player_entity.current_hp}/{max_hp} ❤️\n"
-                  f"Energy: {player_entity.current_energy}/{self.player_data.get_max_battle_energy()} ✨\n"
-                  f"Power: {player_entity.stats['power']} ⚔️\n"
-                  f"Defense: {player_entity.stats['defense']} 🛡️",
-            inline=True
-        )
-
-        # Add enemy stats
-        embed.add_field(
-            name=f"{enemy_name} (Level {enemy_level})",
-            value=f"HP: {enemy_entity.current_hp}/{enemy_entity.stats['hp']} ❤️\n"
-                  f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ✨\n"
-                  f"Power: {enemy_entity.stats['power']} ⚔️\n"
-                  f"Defense: {enemy_entity.stats['defense']} 🛡️",
-            inline=True
-        )
-
         # Create battle view
         battle_view = BattleView(player_entity, enemy_entity, interaction.user, timeout=180)
         battle_view.data_manager = self.data_manager
+        
+        # Add enemy level to enemy entity for display purposes
+        enemy_entity.level = enemy_level
+        
+        # Add dungeon context to battle log
+        battle_view.battle_log.append(f"🏰 **Dungeon Battle** - Floor {self.current_floor}")
+        battle_view.battle_log.append(f"A **{enemy_name}** (Level {enemy_level}) appears!")
+        
+        # Create formatted battle embed
+        embed = battle_view.create_battle_embed()
 
         battle_msg = await interaction.channel.send(embed=embed, view=battle_view)
         self.messages.append(battle_msg)
