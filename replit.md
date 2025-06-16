@@ -219,6 +219,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Data Models: Added legacy methods (add_cursed_energy/remove_cursed_energy) for backward compatibility that redirect to gold methods
   - Migration Support: Created conversion script to migrate any existing cursed energy balances to gold
   - System Simplification: Single currency system reduces complexity and improves user experience
+- June 16, 2025. Fixed critical bot runtime errors and ensured smooth operation:
+  - Backward Compatibility: Added cursed_energy property to PlayerData class for legacy code support
+  - Achievement System: Fixed advanced shop achievement checking to handle both Achievement objects and dictionary formats
+  - Error Resolution: Eliminated AttributeError exceptions in profile and shop commands
+  - Data Integrity: Verified all core systems (battles, shops, profiles) function without errors
+  - Import Validation: Confirmed all modules load correctly without initialization failures
 
 ## User Preferences
 

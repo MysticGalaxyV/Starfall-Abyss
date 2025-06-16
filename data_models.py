@@ -474,6 +474,11 @@ class PlayerData:
     def remove_cursed_energy(self, amount: int) -> bool:
         """Legacy method that calls remove_gold"""
         return self.remove_gold(amount)
+    
+    @property
+    def cursed_energy(self) -> int:
+        """Legacy property for backward compatibility - returns gold amount"""
+        return self.gold
 
     def add_battle_energy(self, amount: int) -> int:
         """Add battle energy up to maximum limit. Returns the actual amount added."""

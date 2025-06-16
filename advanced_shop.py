@@ -1001,7 +1001,10 @@ class AdvancedShopView(RestrictedView):
         ]
 
         # Only add secret items if player has the achievement
-        if hasattr(self.player_data, "achievements") and any(a.get("id") == "discover_secret" for a in self.player_data.achievements):
+        if hasattr(self.player_data, "achievements") and any(
+            (hasattr(a, 'achievement_id') and a.achievement_id == "discover_secret") or 
+            (isinstance(a, dict) and a.get("id") == "discover_secret") 
+            for a in self.player_data.achievements if a):
             categories.append(discord.SelectOption(label="Secret Items", value="secret", emoji="🔍"))
 
         # Only add divine items for max level players
