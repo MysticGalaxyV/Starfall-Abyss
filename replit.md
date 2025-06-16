@@ -259,6 +259,13 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Dungeon System: Enhanced dungeon completion achievement notifications to include points in rewards
   - Consistency: All achievement notifications now consistently display points both in titles and reward sections
   - User Experience: Players now see clear point rewards alongside XP and gold in all achievement contexts
+- June 16, 2025. Implemented comprehensive achievement progress tracking system:
+  - Progress Calculation: Added get_achievement_progress method that calculates current vs required values for all achievement types
+  - Visual Progress Bars: Created text-based progress bars using filled (█) and empty (░) characters for visual feedback
+  - Achievement Display: Enhanced available achievements section to show progress bars and percentage completion
+  - Progress Toggle: Added "Show Progress Details" button to toggle between compact and detailed progress views
+  - Coverage: Progress tracking supports all 20+ achievement requirement types including levels, combat, exploration, wealth, and guild metrics
+  - User Experience: Players can now see exactly how close they are to completing each achievement with clear visual indicators
 
 ## User Preferences
 

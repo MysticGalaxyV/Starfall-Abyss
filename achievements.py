@@ -901,6 +901,131 @@ class AchievementTracker:
 
         return False
 
+    def get_achievement_progress(self, player: PlayerData, achievement: Dict[str, Any]) -> Dict[str, Any]:
+        """Get current progress for an achievement"""
+        req_type = achievement["requirement"]["type"]
+        req_value = achievement["requirement"]["value"]
+        current_value = 0
+        
+        # Get current value based on requirement type
+        if req_type == "level":
+            current_value = player.class_level
+            
+        elif req_type == "wins":
+            current_value = getattr(player, "wins", 0)
+            
+        elif req_type == "pvp_wins":
+            current_value = getattr(player, "pvp_wins", 0)
+            
+        elif req_type == "dungeons_completed":
+            current_value = getattr(player, "dungeons_completed", 0)
+            
+        elif req_type == "bosses_defeated":
+            current_value = getattr(player, "bosses_defeated", 0)
+            
+        elif req_type == "gold_earned":
+            current_value = getattr(player, "gold_earned", 0)
+            
+        elif req_type == "gold_spent":
+            current_value = getattr(player, "gold_spent", 0)
+            
+        elif req_type == "unique_items":
+            current_value = len(self.get_unique_items(player)) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_weapons":
+            current_value = len(self.get_unique_items_by_type(player, "weapon")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_armor":
+            current_value = len(self.get_unique_items_by_type(player, "armor")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_accessories":
+            current_value = len(self.get_unique_items_by_type(player, "accessory")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "rare_items":
+            current_value = len(self.get_items_by_rarity(player, ["rare", "epic", "legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "epic_items":
+            current_value = len(self.get_items_by_rarity(player, ["epic", "legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "legendary_items":
+            current_value = len(self.get_items_by_rarity(player, ["legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "training_completed":
+            current_value = getattr(player, "training_completed", 0)
+            
+        elif req_type == "advanced_training_completed":
+            current_value = getattr(player, "advanced_training_completed", 0)
+            
+        elif req_type == "join_guild":
+            # Binary achievement - either in guild (1) or not (0)
+            if hasattr(self.data_manager, "member_guild_map"):
+                current_value = 1 if player.user_id in self.data_manager.member_guild_map else 0
+            req_value = 1
+            
+        elif req_type == "guild_contributions":
+            current_value = getattr(player, "guild_contributions", 0)
+            
+        elif req_type == "guild_dungeons":
+            current_value = getattr(player, "guild_dungeons", 0)
+            
+        elif req_type == "guild_officer":
+            # Binary achievement - either officer (1) or not (0)
+            current_value = 0
+            if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
+                guild_name = self.data_manager.member_guild_map[player.user_id]
+                if guild_name in self.data_manager.guild_data:
+                    guild_data = self.data_manager.guild_data[guild_name]
+                    current_value = 1 if player.user_id in guild_data.get("officers", []) else 0
+            req_value = 1
+            
+        elif req_type == "guild_leader":
+            # Binary achievement - either leader (1) or not (0)
+            current_value = 0
+            if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
+                guild_name = self.data_manager.member_guild_map[player.user_id]
+                if guild_name in self.data_manager.guild_data:
+                    guild_data = self.data_manager.guild_data[guild_name]
+                    current_value = 1 if player.user_id == guild_data.get("leader_id") else 0
+            req_value = 1
+            
+        elif req_type == "class_changes":
+            current_value = getattr(player, "class_changes", 0)
+            
+        elif req_type == "daily_claims":
+            current_value = getattr(player, "daily_claims", 0)
+            
+        elif req_type == "quests_completed":
+            current_value = getattr(player, "quests_completed", 0)
+            
+        elif req_type == "achievements_earned":
+            current_value = len(player.achievements) if hasattr(player, "achievements") else 0
+            
+        elif req_type == "achievement_points":
+            current_value = self.get_player_achievement_points(player)
+        
+        # Calculate percentage and create progress bar
+        percentage = min(100, (current_value / req_value) * 100) if req_value > 0 else 100
+        progress_bar = self.create_progress_bar(current_value, req_value)
+        
+        return {
+            "current": current_value,
+            "required": req_value,
+            "percentage": percentage,
+            "progress_bar": progress_bar,
+            "completed": current_value >= req_value
+        }
+
+    def create_progress_bar(self, current: int, maximum: int, length: int = 10) -> str:
+        """Create a text progress bar"""
+        if maximum <= 0:
+            return "█" * length
+            
+        filled = int((current / maximum) * length) if maximum > 0 else 0
+        filled = min(filled, length)
+        empty = length - filled
+        
+        return "█" * filled + "░" * empty
+
     def get_unique_items(self, player: PlayerData) -> List[str]:
         """Get list of unique item names in player inventory"""
         if not hasattr(player, "inventory"):
@@ -1374,9 +1499,11 @@ class AchievementsView(View):
         self.player_data = player_data
         self.achievement_tracker = achievement_tracker
         self.current_category = "all"
+        self.show_progress_details = False
 
         # Add category selection
         self.add_category_select()
+        self.add_progress_toggle_button()
 
     def add_category_select(self):
         """Add dropdown for achievement category filtering"""
@@ -1400,6 +1527,30 @@ class AchievementsView(View):
         )
         category_select.callback = self.category_callback
         self.add_item(category_select)
+
+    def add_progress_toggle_button(self):
+        """Add button to toggle detailed progress view"""
+        toggle_button = Button(
+            label="Show Progress Details" if not self.show_progress_details else "Hide Progress Details",
+            style=discord.ButtonStyle.secondary,
+            emoji="📊"
+        )
+        toggle_button.callback = self.progress_toggle_callback
+        self.add_item(toggle_button)
+
+    async def progress_toggle_callback(self, interaction: discord.Interaction):
+        """Handle progress toggle button"""
+        self.show_progress_details = not self.show_progress_details
+        
+        # Update button label
+        for item in self.children:
+            if isinstance(item, Button) and item.emoji and item.emoji.name == "📊":
+                item.label = "Show Progress Details" if not self.show_progress_details else "Hide Progress Details"
+                break
+        
+        # Create updated embed
+        embed = self.create_achievements_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
@@ -1455,14 +1606,21 @@ class AchievementsView(View):
                 inline=False
             )
 
-        # Add available achievements
+        # Add available achievements with progress tracking
         if available_achievements:
             available_text = ""
             for achievement in available_achievements[:5]:  # Limit to first 5
                 badge = achievement.get("badge", "🏆")
                 points = achievement.get("points", 0)
+                
+                # Get progress for this achievement
+                progress = self.achievement_tracker.get_achievement_progress(self.player_data, achievement)
+                
                 available_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
-                available_text += f"*{achievement['description']}*\n\n"
+                available_text += f"*{achievement['description']}*\n"
+                
+                # Add progress bar and current/required values
+                available_text += f"Progress: {progress['progress_bar']} {progress['current']}/{progress['required']} ({progress['percentage']:.0f}%)\n\n"
 
             if len(available_achievements) > 5:
                 available_text += f"*And {len(available_achievements) - 5} more...*"
