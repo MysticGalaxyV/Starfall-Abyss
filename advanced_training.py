@@ -19,9 +19,9 @@ TRAINING_MINIGAMES = {
         "emoji": "⚔️",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.0, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.0, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.0, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.5, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.5, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.8, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
@@ -53,9 +53,9 @@ TRAINING_MINIGAMES = {
         "emoji": "🏃",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 2.5, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 1.5, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 0.8, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.0, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.0, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.5, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
@@ -71,8 +71,8 @@ TRAINING_MINIGAMES = {
         "minigame_type": "timing",
         "difficulty_levels": [
             {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 3}
+            {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
@@ -227,8 +227,8 @@ CLASS_TRAINING = {
             "minigame_type": "timing",
             "difficulty_levels": [
                 {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 4}
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 4}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 180, "effect": {"name": "Healing Aura", "duration": 3, "boost_type": "hp_regen", "boost_amount": 10}}
@@ -247,8 +247,8 @@ CLASS_TRAINING = {
             "minigame_type": "timing",
             "difficulty_levels": [
                 {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 5}
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 5}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 180, "effect": {"name": "Domain Authority", "duration": 3, "boost_type": "all_stats", "boost_amount": 8}}
@@ -386,7 +386,7 @@ class TimingBar(View):
         self.target_zone = target_zone  # Size of the target zone (0.0-1.0)
         self.position = 0.0  # 0.0 to 1.0 representing position on bar
         self.direction = 1  # 1 for right, -1 for left
-        self.speed = 0.05  # How fast the indicator moves per step
+        self.speed = 0.04  # How fast the indicator moves per step
         self.task = None
         self.stopped = False
 
@@ -408,20 +408,23 @@ class TimingBar(View):
 
     def render_bar(self) -> str:
         """Render a text-based timing bar"""
-        bar_length = 20
+        bar_length = 25  # Increased length for better precision
         target_start = int((0.5 - self.target_zone/2) * bar_length)
         target_end = int((0.5 + self.target_zone/2) * bar_length)
 
         # Create the bar with target zone
-        bar = ["□"] * bar_length
+        bar = ["⬜"] * bar_length
         for i in range(target_start, target_end+1):
-            bar[i] = "■"
+            if i < len(bar):
+                bar[i] = "🟩"
 
         # Add the indicator
         indicator_pos = min(bar_length-1, int(self.position * bar_length))
         bar[indicator_pos] = "🔴"
 
-        return f"⏱️ Stop the indicator in the target zone!\n\n|{''.join(bar)}|"
+        # Add visual guides
+        zone_info = f"Target zone: {int(self.target_zone * 100)}% width"
+        return f"⏱️ Stop the red indicator in the green zone!\n{zone_info}\n\n|{''.join(bar)}|"
 
     async def animate(self, interaction: discord.Interaction):
         """Animate the timing bar"""
@@ -446,8 +449,8 @@ class TimingBar(View):
                     self.stopped = True
                     break
 
-                # Delay between frames
-                await asyncio.sleep(0.1)
+                # Delay between frames - reduced for better responsiveness
+                await asyncio.sleep(0.05)
         except asyncio.CancelledError:
             # Task was cancelled, clean up
             self.stopped = True
@@ -733,8 +736,8 @@ class TrainingMinigameView(View):
                 view=display_view
             )
 
-            # Wait before hiding the sequence
-            await asyncio.sleep(sequence_length * 0.8)  # Longer sequences get more time
+            # Wait before hiding the sequence - increased time for better memorization
+            await asyncio.sleep(sequence_length * 1.2)  # More time for memorization
 
             # Hide the sequence and show a "Get ready" message
             await interaction.edit_original_response(
