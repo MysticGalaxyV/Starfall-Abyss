@@ -238,8 +238,6 @@ class PlayerData:
         self.level = 1  # Alias for user_level to fix compatibility issues
         self.current_hp = 100  # Current health points
         self.dungeon_damage = 0  # Accumulated damage in dungeons
-        self.equipped_gathering_tools = {
-        }  # Map of category to equipped tool name
         # Additional attributes for achievements
         self.dungeons_completed = 0
         self.bosses_defeated = 0
@@ -290,7 +288,7 @@ class PlayerData:
         """
         return max(0, self.battle_energy)
 
-    def get_max_hp(self, class_data: Dict[str, Any] = None) -> int:
+    def get_max_hp(self, class_data: Optional[Dict[str, Any]] = None) -> int:
         """
         Get the player's maximum HP based on their stats
         If class_data is not provided, will return a default max HP of 100

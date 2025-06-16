@@ -1301,46 +1301,79 @@ class GatheringToolsView(View):
                     for tier in GATHERING_TOOLS.get(category,
                                                     {}).get("Tiers", []):
                         if tier["name"] == tier_name:
-                            tools.append(
-                                (inv_item.item.name, tier["efficiency"]))
+                            # Check level requirement
+                            if self.player.class_level >= tier.get("level_req", 1):
+                                tools.append(
+                                    (inv_item.item.name, tier["efficiency"]))
                             break
 
         # Sort by efficiency (highest first)
         return sorted(tools, key=lambda x: x[1], reverse=True)
 
+    def get_tool_level_requirement(self, tool_name: str, category: str) -> int:
+        """Get the level requirement for a specific tool"""
+        for tool_type in GATHERING_TOOLS.get(category, {}).get("Tool Types", []):
+            if tool_type in tool_name:
+                # Extract the tier name (e.g., "Copper" from "Copper Pickaxe")
+                tier_name = tool_name.replace(f" {tool_type}", "")
+                
+                # Find the level requirement for this tier
+                for tier in GATHERING_TOOLS.get(category, {}).get("Tiers", []):
+                    if tier["name"] == tier_name:
+                        return tier.get("level_req", 1)
+        return 1  # Default to level 1 if not found
+
     async def tool_callback(self, interaction: discord.Interaction):
         """Handle tool selection"""
+        if not interaction.data or "values" not in interaction.data:
+            await interaction.response.send_message("❌ Invalid selection.", ephemeral=True)
+            return
+            
         selected_tool = interaction.data["values"][0]
 
         # Handle unequip option
         if selected_tool == "none":
-            self.player.equipped_gathering_tools[self.selected_category] = None
+            if self.selected_category:
+                self.player.equipped_gathering_tools[self.selected_category] = None
 
-            embed = discord.Embed(
-                title=
-                f"{self.get_category_emoji(self.selected_category)} Tool Unequipped",
-                description=
-                f"You have unequipped your {self.selected_category.lower()} tool.",
-                color=discord.Color.green())
+                embed = discord.Embed(
+                    title=
+                    f"{self.get_category_emoji(self.selected_category)} Tool Unequipped",
+                    description=
+                    f"You have unequipped your {self.selected_category.lower()} tool.",
+                    color=discord.Color.green())
         else:
+            # Check if player meets level requirement for this tool
+            level_req = self.get_tool_level_requirement(selected_tool, self.selected_category or "")
+            if level_req > self.player.class_level:
+                await interaction.response.send_message(
+                    f"❌ You need to be level {level_req} to equip {selected_tool}. "
+                    f"You are currently level {self.player.class_level}.", 
+                    ephemeral=True)
+                return
+
             # Equip the selected tool
-            self.player.equipped_gathering_tools[
-                self.selected_category] = selected_tool
+            if self.selected_category:
+                self.player.equipped_gathering_tools[self.selected_category] = selected_tool
 
-            # Get tool efficiency for display
-            efficiency = 1.0
-            for tool_name, eff in self.get_player_tools(
-                    self.selected_category):
-                if tool_name == selected_tool:
-                    efficiency = eff
-                    break
+                # Get tool efficiency for display
+                efficiency = 1.0
+                for tool_name, eff in self.get_player_tools(self.selected_category):
+                    if tool_name == selected_tool:
+                        efficiency = eff
+                        break
 
-            embed = discord.Embed(
-                title=
-                f"{self.get_category_emoji(self.selected_category)} Tool Equipped",
-                description=
-                f"You have equipped **{selected_tool}** (Efficiency: {efficiency:.1f}x)",
-                color=discord.Color.green())
+                embed = discord.Embed(
+                    title=
+                    f"{self.get_category_emoji(self.selected_category)} Tool Equipped",
+                    description=
+                    f"You have equipped **{selected_tool}** (Efficiency: {efficiency:.1f}x)",
+                    color=discord.Color.green())
+            else:
+                embed = discord.Embed(
+                    title="❌ Error",
+                    description="No category selected.",
+                    color=discord.Color.red())
 
         # Save player data
         self.data_manager.save_data()
