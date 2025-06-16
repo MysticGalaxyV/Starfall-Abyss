@@ -1233,30 +1233,36 @@ class GatheringToolsView(View):
             await interaction.response.edit_message(embed=embed, view=self)
             return
 
-        # Create a new tool selection dropdown
-        self.tool_select = Select(
-            placeholder=f"Select a {self.selected_category} Tool to Equip",
-            options=[
-                discord.SelectOption(
+        # Create tool options with unique values
+        tool_options = []
+        seen_tools = set()
+        
+        # Add unique tools to options
+        for tool_name, efficiency in tools:
+            if tool_name not in seen_tools:
+                seen_tools.add(tool_name)
+                tool_options.append(discord.SelectOption(
                     label=tool_name,
                     description=f"Efficiency: {efficiency:.1f}x",
                     value=tool_name,
-                    default=tool_name ==
-                    self.player.equipped_gathering_tools.get(
-                        self.selected_category))
-                for tool_name, efficiency in tools
-            ])
-        self.tool_select.callback = self.tool_callback
-        self.add_item(self.tool_select)
-
-        # Create a "None" option to unequip
-        unequip_option = discord.SelectOption(
+                    default=tool_name == self.player.equipped_gathering_tools.get(self.selected_category)
+                ))
+        
+        # Add "None" option to unequip
+        tool_options.append(discord.SelectOption(
             label="None (Unequip)",
             description="Gather without a tool",
             value="none",
-            default=self.player.equipped_gathering_tools.get(
-                self.selected_category) is None)
-        self.tool_select.options.append(unequip_option)
+            default=self.player.equipped_gathering_tools.get(self.selected_category) is None
+        ))
+
+        # Create the dropdown with unique options
+        self.tool_select = Select(
+            placeholder=f"Select a {self.selected_category} Tool to Equip",
+            options=tool_options
+        )
+        self.tool_select.callback = self.tool_callback
+        self.add_item(self.tool_select)
 
         # Show current equipment status
         embed = discord.Embed(
