@@ -1214,6 +1214,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                         rewards.append(f"EXP: +{reward_data['exp']}")
                     if "gold" in reward_data:
                         rewards.append(f"Gold: +{reward_data['gold']}")
+                    
+                    # Add achievement points to rewards
+                    if "points" in achievement:
+                        rewards.append(f"Achievement Points: +{achievement['points']}")
+                    
                     if rewards:
                         achievement_text += f"Rewards: {', '.join(rewards)}\n"
                 achievement_text += "\n"
@@ -1250,6 +1255,11 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
                             rewards.append(f"EXP: +{reward_data['exp']}")
                         if "gold" in reward_data:
                             rewards.append(f"Gold: +{reward_data['gold']}")
+                        
+                        # Add achievement points to rewards
+                        if "points" in achievement:
+                            rewards.append(f"Achievement Points: +{achievement['points']}")
+                        
                         if rewards:
                             achievement_text += f"Rewards: {', '.join(rewards)}\n"
                     achievement_text += "\n"

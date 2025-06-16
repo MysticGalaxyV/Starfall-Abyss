@@ -1745,6 +1745,10 @@ async def achievements_command(ctx, data_manager: DataManager):
             elif reward_type == "server_role":
                 rewards_text += f"Server Role: {amount}\n"
 
+        # Add achievement points to rewards
+        if "points" in achievement:
+            rewards_text += f"Achievement Points: +{achievement['points']}\n"
+
         if rewards_text:
             new_achievement_embed.add_field(
                 name="Rewards",

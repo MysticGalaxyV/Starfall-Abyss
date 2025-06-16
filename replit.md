@@ -253,6 +253,12 @@ Starfall Abyss is a comprehensive Discord RPG bot featuring a class-based progre
   - Secondary Issue: Upgrade buttons displayed but weren't responding when clicked
   - Callback Fix: Corrected callback function parameter naming from "btn_interaction" to "interaction"
   - Result: Guild upgrade buttons now display and function properly for leaders and officers
+- June 16, 2025. Enhanced achievement point display across all reward notifications:
+  - Main Achievement Command: Added "Achievement Points: +{points}" to reward sections in achievement notifications
+  - Battle System: Updated both regular and level-up achievement displays to show points in rewards
+  - Dungeon System: Enhanced dungeon completion achievement notifications to include points in rewards
+  - Consistency: All achievement notifications now consistently display points both in titles and reward sections
+  - User Experience: Players now see clear point rewards alongside XP and gold in all achievement contexts
 
 ## User Preferences
 
