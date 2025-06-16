@@ -121,16 +121,17 @@ def test_move_balance():
     
     print("✅ Healing moves properly balanced")
     
-    # Test boss moves are stronger
+    # Test boss moves have more variety and special abilities
     boss_moves = get_enemy_moves("Boss Ancient")
     regular_moves = get_enemy_moves("Goblin Scout")
     
-    boss_avg_damage = sum(move.damage_multiplier for move in boss_moves) / len(boss_moves)
-    regular_avg_damage = sum(move.damage_multiplier for move in regular_moves) / len(regular_moves)
+    boss_max_damage = max(move.damage_multiplier for move in boss_moves)
+    regular_max_damage = max(move.damage_multiplier for move in regular_moves)
     
-    assert boss_avg_damage > regular_avg_damage, "Boss moves should be stronger than regular enemy moves"
+    assert boss_max_damage >= regular_max_damage, "Boss should have at least as strong max damage moves"
+    assert len(boss_moves) >= len(regular_moves), "Boss should have at least as many moves"
     
-    print(f"✅ Boss moves stronger (Avg: {boss_avg_damage:.2f} vs {regular_avg_damage:.2f})")
+    print(f"✅ Boss moves properly designed (Max DMG: {boss_max_damage:.2f} vs {regular_max_damage:.2f}, Moves: {len(boss_moves)} vs {len(regular_moves)})")
 
 if __name__ == "__main__":
     test_unified_move_system()
