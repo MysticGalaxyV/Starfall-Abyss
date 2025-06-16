@@ -614,11 +614,11 @@ class GuildManager:
         # Update quest progress for guild contribution
         try:
             from achievements import QuestManager
-            player_data = self.data_manager.get_player_data(player_id)
+            player_data = self.data_manager.get_player(player_id)
             if player_data:
                 quest_manager = QuestManager(self.data_manager)
                 quest_manager.update_quest_progress(player_data, "weekly_guild_contribution", contribution_amount)
-        except ImportError:
+        except (ImportError, AttributeError):
             pass  # QuestManager not available, skip quest tracking
 
         # Save data
