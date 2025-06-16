@@ -74,15 +74,15 @@ class LeaderboardView(View):
                 self.category = values[0]
                 self.page = 0  # Reset to first page on category change
 
-        await interaction.response.edit_message(
-            embed=self.create_leaderboard_embed(), view=self)
+        embed = await self.create_leaderboard_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def prev_page_callback(self, interaction: discord.Interaction):
         """Handle previous page button"""
         if self.page > 0:
             self.page -= 1
-        await interaction.response.edit_message(
-            embed=self.create_leaderboard_embed(), view=self)
+        embed = await self.create_leaderboard_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def next_page_callback(self, interaction: discord.Interaction):
         """Handle next page button"""
@@ -91,8 +91,8 @@ class LeaderboardView(View):
 
         if self.page < max_pages - 1:
             self.page += 1
-        await interaction.response.edit_message(
-            embed=self.create_leaderboard_embed(), view=self)
+        embed = await self.create_leaderboard_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     def get_sorted_players(self) -> List[tuple]:
         """Get players sorted by the selected category"""
@@ -118,7 +118,7 @@ class LeaderboardView(View):
         # Sort in descending order by the value
         return sorted(players, key=operator.itemgetter(2), reverse=True)
 
-    def create_leaderboard_embed(self) -> discord.Embed:
+    async def create_leaderboard_embed(self) -> discord.Embed:
         """Create the leaderboard embed"""
         category_display = {
             "level": "Level",
@@ -169,18 +169,26 @@ class LeaderboardView(View):
                 value_display = str(value)
 
             # Try to get username from discord, or fall back to player ID
-            username = f"User {user_id}"
+            username = f"Player {user_id}"
             try:
                 if self.bot:
-                    user = self.bot.get_user(int(user_id))
+                    # Convert user_id to int if it's a string
+                    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+                    user = self.bot.get_user(user_id_int)
                     if user:
-                        username = user.display_name
+                        username = user.display_name or user.name
                     else:
-                        # If user not in cache, use their ID but in a cleaner format
-                        username = f"Player {user_id}"
+                        # Try to fetch user if not in cache
+                        try:
+                            user = await self.bot.fetch_user(user_id_int)
+                            if user:
+                                username = user.display_name or user.name
+                        except:
+                            # If fetch fails, keep the fallback name
+                            pass
             except (ValueError, TypeError, AttributeError):
-                # If there's any error converting user_id or finding the user, just use the ID
-                username = f"Player {user_id}"
+                # If there's any error converting user_id or finding the user, keep fallback
+                pass
 
             # Build the value string conditionally
             value_parts = [f"**{category_display.get(self.category, 'Level')}:** {value_display}"]
@@ -219,6 +227,6 @@ async def leaderboard_command(ctx,
 
     # Pass the bot instance to the view so it can look up usernames
     view = LeaderboardView(data_manager, category=category.lower(), bot=ctx.bot)
-    embed = view.create_leaderboard_embed()
+    embed = await view.create_leaderboard_embed()
 
     await ctx.send(embed=embed, view=view)
