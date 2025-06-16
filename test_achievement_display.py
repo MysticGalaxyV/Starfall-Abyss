@@ -14,22 +14,22 @@ def main():
     # Load and check player data
     data_manager.load_data()
     
-    if not data_manager.player_data:
+    if not data_manager.players:
         print("No player data found!")
         return
     
-    print(f"Found {len(data_manager.player_data)} players")
-    print(f"Player IDs: {list(data_manager.player_data.keys())}")
+    print(f"Found {len(data_manager.players)} players")
+    print(f"Player IDs: {list(data_manager.players.keys())}")
     
     # Get the player from the screenshot (user ID: 759434349069860945)
-    target_player_id = "759434349069860945"
-    if target_player_id in data_manager.player_data:
-        player = data_manager.player_data[target_player_id]
+    target_player_id = 759434349069860945
+    if target_player_id in data_manager.players:
+        player = data_manager.players[target_player_id]
         player_id = target_player_id
     else:
         # Get first player as fallback
-        player_id = list(data_manager.player_data.keys())[0]
-        player = data_manager.player_data[player_id]
+        player_id = list(data_manager.players.keys())[0]
+        player = data_manager.players[player_id]
     
     print(f"Testing achievements for player: {player_id}")
     print(f"Player level: {player.class_level}")
