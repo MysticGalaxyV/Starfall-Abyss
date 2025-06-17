@@ -1198,7 +1198,7 @@ class DungeonSelectView(View):
         available_dungeons = []
         locked_dungeons = []
 
-        for name, data in data_manager.dungeons.items():
+        for name, data in DUNGEONS.items():
             dungeon_data = data.copy()
             dungeon_data["name"] = name
 
