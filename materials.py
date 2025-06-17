@@ -1029,10 +1029,26 @@ class GatheringView(View):
                 value=f"**{tool_name}**\nEfficiency Bonus: {efficiency:.1f}x\n✅ Ready to gather!",
                 inline=False)
         else:
-            embed.add_field(
-                name="⚠️ No Tool Equipped",
-                value="You don't have any tools equipped for this gathering type.\nUse `!tools` to equip tools for better results!",
-                inline=False)
+            # Debug: Show what tools we found in inventory for this category
+            debug_tools = []
+            for inv_item in self.player.inventory:
+                if hasattr(inv_item, 'item') and hasattr(inv_item.item, 'name'):
+                    tool_name = inv_item.item.name
+                    item_type = getattr(inv_item.item, 'item_type', '')
+                    if self.is_tool_for_category(tool_name, item_type, self.selected_category):
+                        efficiency = self.get_tool_efficiency_enhanced(tool_name, self.selected_category)
+                        debug_tools.append(f"{tool_name} ({efficiency:.1f}x)")
+            
+            if debug_tools:
+                embed.add_field(
+                    name="⚠️ Tools Found But Not Equipped",
+                    value=f"Available tools: {', '.join(debug_tools[:3])}\nUse `!tools` to equip one for better results!",
+                    inline=False)
+            else:
+                embed.add_field(
+                    name="⚠️ No Tools Available",
+                    value="You don't have any tools for this gathering type.\nVisit the shop or craft some tools first!",
+                    inline=False)
 
         await interaction.response.edit_message(embed=embed, view=self)
 
@@ -1045,17 +1061,40 @@ class GatheringView(View):
             # Find the equipped tool in the player's inventory
             for inv_item in self.player.inventory:
                 if hasattr(inv_item, 'item') and hasattr(inv_item.item, 'name') and inv_item.item.name == equipped_tool_name:
-                    # Use the simplified efficiency calculation from GatheringToolsView
-                    efficiency = self.get_tool_efficiency_simple(equipped_tool_name, category)
+                    # Use the enhanced efficiency calculation
+                    efficiency = self.get_tool_efficiency_enhanced(equipped_tool_name, category)
                     if efficiency > 1.0:  # Only return if we found a valid efficiency
                         return (inv_item.item.name, efficiency)
 
-        # If no equipped tool found or if efficiency couldn't be determined, return None
-        return None
+        # If no equipped tool, scan inventory for any tools that could work for this category
+        best_tool = None
+        best_efficiency = 1.0
+        
+        for inv_item in self.player.inventory:
+            if not hasattr(inv_item, 'item') or not hasattr(inv_item.item, 'name'):
+                continue
+                
+            tool_name = inv_item.item.name
+            item_type = getattr(inv_item.item, 'item_type', '')
+            
+            # Check if this is a tool for this category
+            if self.is_tool_for_category(tool_name, item_type, category):
+                efficiency = self.get_tool_efficiency_enhanced(tool_name, category)
+                if efficiency > best_efficiency:
+                    best_efficiency = efficiency
+                    best_tool = (tool_name, efficiency)
 
-    def get_tool_efficiency_simple(self, tool_name: str, category: str) -> float:
-        """Get efficiency for a tool using simplified logic"""
-        # Check all gathering categories to find the tool
+        return best_tool
+
+    def get_tool_efficiency_enhanced(self, tool_name: str, category: str) -> float:
+        """Enhanced tool efficiency calculation that checks multiple systems"""
+        # First try the detailed crafting system
+        if hasattr(self, '_check_crafting_tool_efficiency'):
+            efficiency = self._check_crafting_tool_efficiency(tool_name, category)
+            if efficiency > 1.0:
+                return efficiency
+        
+        # Try the simple GATHERING_TOOLS system
         for cat_name, cat_data in GATHERING_TOOLS.items():
             # Check if this tool matches any tool type in this category
             for tool_type in cat_data.get("Tool Types", []):
@@ -1068,8 +1107,47 @@ class GatheringView(View):
                         if tier["name"] == tier_name:
                             return tier["efficiency"]
         
-        # If no match found, return default efficiency
+        # Try tier-based efficiency mapping
+        tier_efficiency = {
+            "Copper": 1.2, "Iron": 1.5, "Steel": 1.8, "Mithril": 2.1,
+            "Adamantite": 2.5, "Runite": 3.0, "Dragon": 3.5, "Crystal": 4.0,
+            "Divine": 5.0, "Apprentice": 1.2, "Journeyman": 1.5, "Adept": 1.8,
+            "Master": 2.1, "Archmagus": 2.5, "Basic": 1.1, "Reinforced": 2.2,
+            "Enchanted": 2.5, "Titanium": 2.2, "Celestial": 4.0, "Ethereal": 5.0,
+            "Void": 7.0
+        }
+        
+        for tier, efficiency in tier_efficiency.items():
+            if tier in tool_name:
+                return efficiency
+        
+        # If it contains tool keywords, give it a small bonus
+        if self.is_tool_for_category(tool_name, "", category):
+            return 1.2
+        
         return 1.0
+
+    def is_tool_for_category(self, tool_name: str, item_type: str, category: str) -> bool:
+        """Check if a tool belongs to a specific gathering category"""
+        # Check item type first
+        if item_type == 'tool':
+            return True
+            
+        # Check name patterns for each category
+        tool_keywords = {
+            "Mining": ["Pickaxe", "Drill", "Excavator", "Mining", "Mine", "Ore"],
+            "Foraging": ["Axe", "Saw", "Harvester", "Logging", "Wood", "Log", "Chainsaw"],
+            "Herbs": ["Sickle", "Herb", "Botanist", "Plant", "Garden", "Botanical"],
+            "Hunting": ["Bow", "Trap", "Snare", "Hunter", "Hunt", "Beast", "Animal"],
+            "Magical": ["Wand", "Essence", "Arcane", "Staff", "Magic", "Mystic", "Crystal"]
+        }
+        
+        keywords = tool_keywords.get(category, [])
+        return any(keyword.lower() in tool_name.lower() for keyword in keywords)
+
+    def get_tool_efficiency_simple(self, tool_name: str, category: str) -> float:
+        """Get efficiency for a tool using simplified logic - kept for compatibility"""
+        return self.get_tool_efficiency_enhanced(tool_name, category)
 
     async def gather_callback(self, interaction: discord.Interaction):
         """Handle gather button click"""
@@ -1322,39 +1400,71 @@ class GatheringToolsView(View):
 
             tool_name = inv_item.item.name
             item_type = getattr(inv_item.item, 'item_type', '')
+            level_req = getattr(inv_item.item, 'level_req', 1)
             
-            # Check if this is a tool by item_type or name patterns
-            is_tool = False
-            efficiency = 1.0
-            level_req = 1
-            
-            # Check if item_type indicates it's a tool
-            if item_type == 'tool':
-                is_tool = True
-                efficiency = self.get_tool_efficiency_simple(tool_name, category)
-                level_req = getattr(inv_item.item, 'level_req', 1)
-            else:
-                # Check name patterns for tools
-                tool_keywords = {
-                    "Mining": ["Pickaxe", "Drill", "Excavator", "Mining"],
-                    "Foraging": ["Axe", "Saw", "Harvester", "Logging"],
-                    "Herbs": ["Sickle", "Herb", "Botanist"],
-                    "Hunting": ["Bow", "Trap", "Snare", "Hunter"],
-                    "Magical": ["Wand", "Essence", "Arcane", "Staff"]
-                }
+            # Check if this is a tool for this category
+            if self.is_tool_for_category(tool_name, item_type, category):
+                efficiency = self.get_tool_efficiency_enhanced(tool_name, category)
                 
-                keywords = tool_keywords.get(category, [])
-                if any(keyword in tool_name for keyword in keywords):
-                    is_tool = True
-                    efficiency = self.get_tool_efficiency_simple(tool_name, category)
-                    level_req = getattr(inv_item.item, 'level_req', 1)
-            
-            # Add tool if it's valid and player meets requirements
-            if is_tool and efficiency > 1.0 and self.player.class_level >= level_req:
-                tools.append((tool_name, efficiency))
+                # Add tool if it's valid and player meets requirements
+                if efficiency > 1.0 and self.player.class_level >= level_req:
+                    tools.append((tool_name, efficiency))
 
         # Sort by efficiency (highest first)
         return sorted(tools, key=lambda x: x[1], reverse=True)
+
+    def is_tool_for_category(self, tool_name: str, item_type: str, category: str) -> bool:
+        """Check if a tool belongs to a specific gathering category"""
+        # Check item type first
+        if item_type == 'tool':
+            return True
+            
+        # Check name patterns for each category
+        tool_keywords = {
+            "Mining": ["Pickaxe", "Drill", "Excavator", "Mining", "Mine", "Ore"],
+            "Foraging": ["Axe", "Saw", "Harvester", "Logging", "Wood", "Log", "Chainsaw"],
+            "Herbs": ["Sickle", "Herb", "Botanist", "Plant", "Garden", "Botanical"],
+            "Hunting": ["Bow", "Trap", "Snare", "Hunter", "Hunt", "Beast", "Animal"],
+            "Magical": ["Wand", "Essence", "Arcane", "Staff", "Magic", "Mystic", "Crystal"]
+        }
+        
+        keywords = tool_keywords.get(category, [])
+        return any(keyword.lower() in tool_name.lower() for keyword in keywords)
+
+    def get_tool_efficiency_enhanced(self, tool_name: str, category: str) -> float:
+        """Enhanced tool efficiency calculation that checks multiple systems"""
+        # Try the simple GATHERING_TOOLS system first
+        for cat_name, cat_data in GATHERING_TOOLS.items():
+            # Check if this tool matches any tool type in this category
+            for tool_type in cat_data.get("Tool Types", []):
+                if tool_type in tool_name:
+                    # Extract tier name by removing the tool type
+                    tier_name = tool_name.replace(f" {tool_type}", "").replace(f"{tool_type} ", "")
+                    
+                    # Find efficiency for this tier
+                    for tier in cat_data.get("Tiers", []):
+                        if tier["name"] == tier_name:
+                            return tier["efficiency"]
+        
+        # Try tier-based efficiency mapping
+        tier_efficiency = {
+            "Copper": 1.2, "Iron": 1.5, "Steel": 1.8, "Mithril": 2.1,
+            "Adamantite": 2.5, "Runite": 3.0, "Dragon": 3.5, "Crystal": 4.0,
+            "Divine": 5.0, "Apprentice": 1.2, "Journeyman": 1.5, "Adept": 1.8,
+            "Master": 2.1, "Archmagus": 2.5, "Basic": 1.1, "Reinforced": 2.2,
+            "Enchanted": 2.5, "Titanium": 2.2, "Celestial": 4.0, "Ethereal": 5.0,
+            "Void": 7.0
+        }
+        
+        for tier, efficiency in tier_efficiency.items():
+            if tier in tool_name:
+                return efficiency
+        
+        # If it contains tool keywords, give it a small bonus
+        if self.is_tool_for_category(tool_name, "", category):
+            return 1.2
+        
+        return 1.0
 
     def get_tool_efficiency_simple(self, tool_name: str, category: str) -> float:
         """Get efficiency for a tool using simplified logic"""
