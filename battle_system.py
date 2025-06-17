@@ -1120,7 +1120,7 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         for quest in completed_quests:
             quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
-        # Update gold quest tracking
+        # Update gold quest tracking  
         completed_quests = quest_manager.update_quest_progress(player_data, "daily_gold", gold_reward)
         for quest in completed_quests:
             quest_messages.append(quest_manager.create_quest_completion_message(quest))
