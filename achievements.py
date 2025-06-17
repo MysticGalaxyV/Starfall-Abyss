@@ -1353,13 +1353,11 @@ class QuestManager:
 
         # Award gold with event multiplier
         if "gold" in reward:
-            gold_amount = reward["gold"]
+            base_gold_amount = reward["gold"]
 
-            # Apply event multipliers if any
-            if "active_events" in self.data_manager.__dict__:
-                for event_id, event_data in self.data_manager.active_events.items():
-                    if event_data["effect"]["type"] == "gold_multiplier":
-                        gold_amount = int(gold_amount * event_data["effect"]["value"])
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            gold_amount = apply_gold_multiplier(base_gold_amount, self.data_manager)
 
             # Add to player's gold (the main currency)
             player.add_gold(gold_amount)
