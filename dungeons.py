@@ -248,8 +248,58 @@ class DungeonProgressView(View):
         self.player_current_hp = self.team_current_hp.get(self.player_data.user_id, 0)
         self.player_current_energy = self.team_current_energy.get(self.player_data.user_id, 0)
 
-        # Don't add buttons during initialization to prevent conflicts
-        # Buttons will be added dynamically during floor encounters
+        # Add initial entrance buttons
+        self.add_entrance_buttons()
+
+    def add_entrance_buttons(self):
+        """Add buttons for the dungeon entrance"""
+        # Clear any existing items
+        self.clear_items()
+        
+        # Add Proceed button
+        proceed_btn = Button(
+            label="⚔️ Enter Dungeon",
+            style=discord.ButtonStyle.green,
+            emoji="⚔️"
+        )
+        proceed_btn.callback = self.proceed_callback
+        self.add_item(proceed_btn)
+        
+        # Add Retreat button
+        retreat_btn = Button(
+            label="🚪 Retreat",
+            style=discord.ButtonStyle.red,
+            emoji="🚪"
+        )
+        retreat_btn.callback = self.retreat_callback
+        self.add_item(retreat_btn)
+
+    async def proceed_callback(self, interaction: discord.Interaction):
+        """Handle proceeding into the dungeon (start floor 1)"""
+        try:
+            # Move to first floor
+            self.current_floor = 1
+            await interaction.response.defer()
+            
+            # Start the first floor encounter
+            await self.floor_encounter(interaction)
+            
+        except Exception as e:
+            await interaction.followup.send(
+                f"⚠️ An error occurred while entering the dungeon. Please try again.\nError: {str(e)}",
+                ephemeral=True
+            )
+
+    async def retreat_callback(self, interaction: discord.Interaction):
+        """Handle retreating from the dungeon"""
+        retreat_embed = discord.Embed(
+            title="🚪 Retreated from Dungeon",
+            description="You decided to retreat from the dungeon. You can try again later.",
+            color=discord.Color.orange()
+        )
+        
+        await interaction.response.edit_message(embed=retreat_embed, view=None)
+        self.stop()
 
     async def next_floor_callback(self, interaction: discord.Interaction):
         """Handle moving to the next floor"""
