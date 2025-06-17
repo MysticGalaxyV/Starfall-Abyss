@@ -896,8 +896,12 @@ class DungeonProgressView(View):
 
             # Calculate partial rewards (higher for making it to boss)
             progress_percent = 0.6  # 60% of rewards for reaching but losing to boss
-            gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+            base_gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
             exp_reward = int(self.dungeon_data["exp"] * progress_percent)
+
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
 
             # Award partial rewards
             self.player_data.add_gold(gold_reward)
@@ -932,16 +936,20 @@ class DungeonProgressView(View):
             # Player defeated boss - complete the dungeon!
 
             # Calculate full rewards
-            gold_reward = self.dungeon_data["max_rewards"]
+            base_gold_reward = self.dungeon_data["max_rewards"]
             exp_reward = self.dungeon_data["exp"]
 
             # Add bonus based on enemies defeated
             bonus_percent = min(0.3, self.enemies_defeated * 0.05)  # Max 30% bonus
-            bonus_gold = int(gold_reward * bonus_percent)
+            bonus_gold = int(base_gold_reward * bonus_percent)
             bonus_exp = int(exp_reward * bonus_percent)
 
-            total_gold = gold_reward + bonus_gold
+            base_total_gold = base_gold_reward + bonus_gold
             total_exp = exp_reward + bonus_exp
+
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            total_gold = apply_gold_multiplier(base_total_gold, self.data_manager)
 
             # Award rewards
             self.player_data.add_gold(total_gold)
@@ -990,7 +998,7 @@ class DungeonProgressView(View):
             
             victory_embed.add_field(
                 name="Rewards",
-                value=f"Base Gold: {gold_reward} 💰\n"
+                value=f"Base Gold: {base_gold_reward} 💰\n"
                       f"Bonus Gold: +{bonus_gold} 💰\n"
                       f"Base EXP: {exp_reward} 📊\n"
                       f"Bonus EXP: +{bonus_exp} 📊\n"

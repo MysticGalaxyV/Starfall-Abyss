@@ -669,6 +669,13 @@ SPECIAL_EVENTS = [
         "description": "A mystical fortune event has occurred! Increased gold drops by 75%!",
         "effect": {"type": "gold_multiplier", "value": 1.75},
         "duration": 1  # days
+    },
+    {
+        "id": "gold_rush",
+        "name": "Gold Rush Event",
+        "description": "The legendary Gold Rush is here! All gold rewards are doubled!",
+        "effect": {"type": "gold_multiplier", "value": 2.0},
+        "duration": 1  # days
     }
 ]
 

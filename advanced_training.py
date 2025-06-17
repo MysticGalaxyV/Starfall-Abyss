@@ -1110,7 +1110,11 @@ class TrainingMinigameView(View):
 
             # Apply gold reward if present
             if "gold" in special_rewards:
-                gold_reward = special_rewards["gold"]
+                base_gold_reward = special_rewards["gold"]
+                # Apply gold multiplier from active events
+                from utils import apply_gold_multiplier
+                gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
+                
                 self.player_data.add_gold(gold_reward)
                 # Track gold earned for achievements
                 if not hasattr(self.player_data, "gold_earned"):
@@ -1118,7 +1122,11 @@ class TrainingMinigameView(View):
                 self.player_data.gold_earned += gold_reward
             # Legacy support for old cursed_energy rewards (redirect to gold)
             elif "cursed_energy" in special_rewards:
-                gold_reward = special_rewards["cursed_energy"]
+                base_gold_reward = special_rewards["cursed_energy"]
+                # Apply gold multiplier from active events
+                from utils import apply_gold_multiplier
+                gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
+                
                 self.player_data.add_gold(gold_reward)
                 # Track gold earned for achievements
                 if not hasattr(self.player_data, "gold_earned"):

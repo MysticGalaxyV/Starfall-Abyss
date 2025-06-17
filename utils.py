@@ -1,6 +1,7 @@
 import discord
 import random
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+import time
 
 # Game constants
 STARTER_CLASSES = {
@@ -451,3 +452,31 @@ def create_embed(title: str, description: str, color: discord.Color = discord.Co
     )
     embed.set_footer(text="Cursed RPG • Type !help for commands")
     return embed
+
+def get_active_gold_multiplier(data_manager) -> float:
+    """Get the current gold multiplier from active events"""
+    try:
+        from achievements import QuestManager
+        quest_manager = QuestManager(data_manager)
+        
+        # Check for active events with gold multipliers
+        active_events = quest_manager.get_active_events()
+        multiplier = 1.0
+        
+        for event in active_events:
+            effect = event.get("effect", {})
+            if effect.get("type") == "gold_multiplier":
+                event_multiplier = effect.get("value", 1.0)
+                # Apply the highest multiplier (don't stack)
+                if event_multiplier > multiplier:
+                    multiplier = event_multiplier
+        
+        return multiplier
+    except:
+        # Return default multiplier if there's any error
+        return 1.0
+
+def apply_gold_multiplier(base_gold: int, data_manager) -> int:
+    """Apply active gold multiplier events to base gold amount"""
+    multiplier = get_active_gold_multiplier(data_manager)
+    return int(base_gold * multiplier)

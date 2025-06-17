@@ -1080,14 +1080,16 @@ async def start_battle(ctx, player_data: PlayerData, enemy_name: str,
         # Player won
         # Calculate rewards
         exp_reward = calculate_exp_reward(enemy_level, player_data.class_level)
-        gold_reward = calculate_gold_reward(
-            enemy_level)  # Calculate gold reward
+        base_gold_reward = calculate_gold_reward(enemy_level)
+        
+        # Apply gold multiplier from active events
+        from utils import apply_gold_multiplier
+        gold_reward = apply_gold_multiplier(base_gold_reward, data_manager)
 
         # Add rewards
         exp_result = player_data.add_exp(exp_reward, data_manager=data_manager)
         leveled_up = exp_result["leveled_up"]
-        player_data.add_gold(
-            gold_reward)  # Using new gold method instead of cursed energy
+        player_data.add_gold(gold_reward)
 
         # Update stats
         player_data.wins += 1
@@ -1805,8 +1807,12 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
 
         exp_reward = int(base_exp * player_data.class_level *
                          level_multiplier * challenge_bonus)
-        gold_reward = int(base_gold * player_data.class_level *
+        base_gold_reward = int(base_gold * player_data.class_level *
                           level_multiplier * challenge_bonus)
+        
+        # Apply gold multiplier from active events
+        from utils import apply_gold_multiplier
+        gold_reward = apply_gold_multiplier(base_gold_reward, data_manager)
 
         # Add rewards
         leveled_up = target_data.add_exp(exp_reward)
