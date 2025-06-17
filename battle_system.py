@@ -584,33 +584,50 @@ class TurnBasedPvPView(View):
         current_player = self.get_current_player()
         target_player = self.get_other_player()
         
+        # Check if player has enough energy
+        if current_player.current_energy < move.energy_cost:
+            await interaction.response.send_message(
+                f"Not enough energy! You need {move.energy_cost} energy but only have {current_player.current_energy}.",
+                ephemeral=True
+            )
+            return
+        
         # Apply the move
         damage, effect_msg = current_player.apply_move(move, target_player)
         
-        # Add to battle log
-        self.battle_log.append(f"{current_player.name} used **{move.name}**!")
+        # Add to battle log with turn indicator
+        turn_indicator = "🔥" if self.current_turn == 1 else "⚔️"
+        self.battle_log.append(f"{turn_indicator} **{current_player.name}** used {move.name}!")
         if damage > 0:
             self.battle_log.append(f"💥 Dealt {damage} damage to {target_player.name}!")
         if effect_msg and "❌" not in effect_msg:
             self.battle_log.append(f"✨ {effect_msg}")
         
-        # Apply damage
-        target_player.current_hp -= damage
+        # Apply damage (already handled in apply_move, but ensure consistency)
+        if damage > 0:
+            target_player.current_hp = max(0, target_player.current_hp - damage)
         
         # Update status effects for both players
         for player in [current_player, target_player]:
             status_msg = player.update_status_effects()
             if status_msg:
-                self.battle_log.append(status_msg)
+                self.battle_log.append(f"🔄 {status_msg}")
         
         # Check for battle end
         if not target_player.is_alive():
             await self.end_battle(interaction, current_player, target_player)
             return
+        elif not current_player.is_alive():
+            await self.end_battle(interaction, target_player, current_player)
+            return
         
         # Switch turns
         self.current_turn = 2 if self.current_turn == 1 else 1
         self.turn_count += 1
+        
+        # Regenerate energy for both players at turn end
+        current_player.current_energy = min(current_player.max_energy, current_player.current_energy + 2)
+        target_player.current_energy = min(target_player.max_energy, target_player.current_energy + 2)
         
         # Update buttons for new turn
         self.update_buttons()

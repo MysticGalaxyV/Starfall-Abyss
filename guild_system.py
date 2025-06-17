@@ -36,15 +36,21 @@ class Guild:
         # Perks based on guild level
         self.perks = {
             # Level 1
-            1: {"name": "United We Stand", "description": "Guild members gain +1% XP when adventuring together"},
+            1: {"name": "United We Stand", "description": "Guild members gain +2% XP when adventuring together"},
             # Level 2
-            2: {"name": "Shared Resources", "description": "10% chance for extra item drops when in guild parties"},
+            2: {"name": "Shared Resources", "description": "15% chance for extra item drops when in guild parties"},
             # Level 3
-            3: {"name": "Guild Tactics", "description": "Guild members deal +2% damage in dungeons"},
+            3: {"name": "Guild Tactics", "description": "Guild members deal +3% damage in dungeons"},
             # Level 5
-            5: {"name": "Brotherhood", "description": "Guild members gain +5% cursed energy when adventuring together"},
+            5: {"name": "Brotherhood", "description": "Guild members gain +8% gold when adventuring together"},
+            # Level 7
+            7: {"name": "Combat Synergy", "description": "Guild members restore +2 energy per turn in PvP battles"},
             # Level 10
-            10: {"name": "Elite Force", "description": "Guild members gain +5% to all stats in guild raids"}
+            10: {"name": "Elite Force", "description": "Guild members gain +10% to all stats in guild raids"},
+            # Level 15
+            15: {"name": "Legendary Status", "description": "Guild members have 5% chance to avoid death in dungeons"},
+            # Level 20
+            20: {"name": "Master Guild", "description": "All guild perks are doubled in effectiveness"}
         }
 
         # Guild weekly challenges

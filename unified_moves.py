@@ -16,10 +16,11 @@ def get_player_moves(class_name: str) -> List[BattleMove]:
     # Class-specific special moves
     if class_name == "Spirit Striker":
         moves.extend([
-            BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"),
-            BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"),
-            BattleMove("Phantom Rush", 1.8, 30, "strength", "Deal damage and gain increased damage"),
-            BattleMove("Spirit Drain", 0.9, 15, None, "Drain enemy energy while dealing damage")
+            BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy's defense"),
+            BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore 15 energy"),
+            BattleMove("Phantom Rush", 1.8, 30, "strength", "Deal damage and gain 20% damage boost"),
+            BattleMove("Spirit Drain", 0.9, 15, "energy_drain", "Drain 10 energy from enemy"),
+            BattleMove("Spectral Fury", 2.2, 45, "berserker", "Massive damage but lose defense for 2 turns")
         ])
     elif class_name == "Domain Tactician":
         moves.extend([

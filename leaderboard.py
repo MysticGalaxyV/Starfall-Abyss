@@ -45,7 +45,23 @@ class LeaderboardView(View):
             discord.SelectOption(label="Bosses Defeated",
                                  value="bosses_defeated",
                                  description="Sort by bosses defeated",
-                                 default=self.category == "bosses_defeated")
+                                 default=self.category == "bosses_defeated"),
+            discord.SelectOption(label="Combat Rating",
+                                 value="combat_rating",
+                                 description="Sort by overall combat performance",
+                                 default=self.category == "combat_rating"),
+            discord.SelectOption(label="Guild Contribution",
+                                 value="guild_contribution",
+                                 description="Sort by guild activity points",
+                                 default=self.category == "guild_contribution"),
+            discord.SelectOption(label="Achievement Points",
+                                 value="achievement_points",
+                                 description="Sort by total achievement points",
+                                 default=self.category == "achievement_points"),
+            discord.SelectOption(label="Weekly Active",
+                                 value="weekly_active",
+                                 description="Most active players this week",
+                                 default=self.category == "weekly_active")
         ]
 
         category_select = Select(placeholder="Select category",
