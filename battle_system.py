@@ -632,8 +632,23 @@ class BattleView(RestrictedView):
 
     async def on_move_selected(self, interaction: discord.Interaction,
                                move: BattleMove):
-        # Check if player is in energy recovery mode (lost turns)
-        if "energy_recovery" in self.player.status_effects:
+        # Check if player has enough energy for the move
+        if self.player.current_energy < move.energy_cost:
+            # Player doesn't have enough energy, they lose their turn and regenerate
+            self.player.current_energy = self.player.max_energy  # Full energy regeneration
+            
+            # Add to battle log
+            energy_log = f"🔄 **{self.player.name}** is exhausted and cannot attack! Energy fully restored!"
+            self.battle_log.append(energy_log)
+            
+            # Update with new embed format
+            embed = self.create_battle_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+            
+            # Skip to enemy turn
+            damage, effect_msg = 0, ""
+        elif "energy_recovery" in self.player.status_effects:
+            # Check if player is in energy recovery mode (lost turns)
             turns_left, _ = self.player.status_effects["energy_recovery"]
 
             # Update turns left
@@ -700,13 +715,11 @@ class BattleView(RestrictedView):
             if self.enemy.current_energy >= m.energy_cost
         ]
         if not available_moves:
-            # If no moves available, enemy skips turn to regain energy
-            self.enemy.current_energy = min(
-                self.enemy.stats.get("energy", 100),
-                self.enemy.current_energy + 30)
+            # If no moves available, enemy skips turn to regain full energy
+            self.enemy.current_energy = self.enemy.max_energy  # Full energy regeneration
             
             # Add to battle log
-            energy_log = f"🔄 **{self.enemy.name}** is exhausted and regains 30 energy!"
+            energy_log = f"🔄 **{self.enemy.name}** is exhausted and cannot attack! Energy fully restored!"
             self.battle_log.append(energy_log)
             
             # Update with new embed format

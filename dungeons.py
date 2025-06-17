@@ -248,54 +248,48 @@ class DungeonProgressView(View):
         self.player_current_hp = self.team_current_hp.get(self.player_data.user_id, 0)
         self.player_current_energy = self.team_current_energy.get(self.player_data.user_id, 0)
 
-        # Add continue button
-        self.continue_btn = Button(
-            label="Proceed to Next Floor", 
-            style=discord.ButtonStyle.green,
-            emoji="➡️"
-        )
-        self.continue_btn.callback = self.next_floor_callback
-        self.add_item(self.continue_btn)
-
-        # Add use item button
-        self.item_btn = Button(
-            label="Use Item",
-            style=discord.ButtonStyle.blurple,
-            emoji="🧪"
-        )
-        self.item_btn.callback = self.use_item_callback
-        self.add_item(self.item_btn)
-
-        # Add retreat button
-        self.retreat_btn = Button(
-            label="Retreat",
-            style=discord.ButtonStyle.red,
-            emoji="🏃"
-        )
-        self.retreat_btn.callback = self.retreat_callback
-        self.add_item(self.retreat_btn)
+        # Don't add buttons during initialization to prevent conflicts
+        # Buttons will be added dynamically during floor encounters
 
     async def next_floor_callback(self, interaction: discord.Interaction):
         """Handle moving to the next floor"""
-        # Increment floor
-        self.current_floor += 1
+        try:
+            # Increment floor
+            self.current_floor += 1
 
-        await interaction.response.defer()
+            await interaction.response.defer()
 
-        # Clear previous message content
-        if hasattr(interaction, 'message'):
-            try:
-                await interaction.message.edit(content=f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...", view=None)
-            except:
-                pass
+            # Clear previous message content and buttons
+            if hasattr(interaction, 'message') and interaction.message:
+                try:
+                    await interaction.message.edit(
+                        content=f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...", 
+                        view=None
+                    )
+                except Exception:
+                    # If editing fails, send a new message
+                    await interaction.followup.send(
+                        f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...",
+                        ephemeral=True
+                    )
 
-        # Check if we've reached the boss floor
-        if self.current_floor == self.max_floors:
-            # Boss encounter
-            await self.boss_encounter(interaction)
-        else:
-            # Regular floor encounter
-            await self.floor_encounter(interaction)
+            # Small delay for immersion
+            await asyncio.sleep(1)
+
+            # Check if we've reached the boss floor
+            if self.current_floor == self.max_floors:
+                # Boss encounter
+                await self.boss_encounter(interaction)
+            else:
+                # Regular floor encounter
+                await self.floor_encounter(interaction)
+                
+        except Exception as e:
+            # Handle any errors gracefully
+            await interaction.followup.send(
+                f"⚠️ An error occurred while progressing to the next floor. Please try again or retreat from the dungeon.\nError: {str(e)}",
+                ephemeral=True
+            )
 
     async def use_item_callback(self, interaction: discord.Interaction):
         """Handle using an item between dungeon floors"""
@@ -716,15 +710,41 @@ class DungeonProgressView(View):
             await channel.send(embed=embed)
             await asyncio.sleep(2)
 
-        # Show the continue/retreat buttons
-        continue_view = View()
-        continue_view.add_item(self.continue_btn)
-        continue_view.add_item(self.retreat_btn)
+        # Show the continue/retreat buttons using the main view
+        # Clear and recreate buttons to prevent stale interaction issues
+        self.clear_items()
+        
+        # Recreate continue button
+        continue_btn = Button(
+            label="Proceed to Next Floor", 
+            style=discord.ButtonStyle.green,
+            emoji="➡️"
+        )
+        continue_btn.callback = self.next_floor_callback
+        self.add_item(continue_btn)
+        
+        # Recreate use item button
+        item_btn = Button(
+            label="Use Item",
+            style=discord.ButtonStyle.blurple,
+            emoji="🧪"
+        )
+        item_btn.callback = self.use_item_callback
+        self.add_item(item_btn)
+        
+        # Recreate retreat button
+        retreat_btn = Button(
+            label="Retreat",
+            style=discord.ButtonStyle.red,
+            emoji="🏃"
+        )
+        retreat_btn.callback = self.retreat_callback
+        self.add_item(retreat_btn)
 
         status_msg = await channel.send(
             f"🗺️ You are on floor {self.current_floor}/{self.max_floors} of {self.dungeon_name}.\n"
             f"What would you like to do?",
-            view=continue_view
+            view=self
         )
 
         self.messages.append(status_msg)
@@ -766,6 +786,12 @@ class DungeonProgressView(View):
         
         # Set current HP to maintain battle continuity while preserving max HP
         player_entity.current_hp = current_hp
+        
+        # Set current energy for dungeon battles - use stored energy or max
+        if hasattr(self, 'player_current_energy') and self.player_current_energy > 0:
+            player_entity.current_energy = min(player_entity.max_energy, self.player_current_energy)
+        else:
+            player_entity.current_energy = player_entity.max_energy
 
         # Create enemy entity using unified move system
         enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
@@ -801,8 +827,9 @@ class DungeonProgressView(View):
         # Process battle results
         if not enemy_entity.is_alive():
             # Player won
-            # Store player's current HP for next fights
+            # Store player's current HP and energy for next fights
             self.player_current_hp = player_entity.current_hp
+            self.player_current_energy = player_entity.current_energy
 
             # Small reward for each enemy defeated
             minor_gold = int(self.dungeon_data["max_rewards"] * 0.1)
@@ -824,11 +851,11 @@ class DungeonProgressView(View):
                 inline=False
             )
 
-            # Show remaining HP
+            # Show remaining HP and energy
             win_embed.add_field(
                 name="Status",
                 value=f"HP: {self.player_current_hp}/{max_hp} ❤️\n"
-                      f"Energy: {player_entity.current_energy} ✨",
+                      f"Energy: {self.player_current_energy}/{player_entity.max_energy} ⚡",
                 inline=False
             )
 
