@@ -241,7 +241,7 @@ class DungeonProgressView(View):
             member_stats = team_member.get_stats(GAME_CLASSES)
             self.team_max_hp[member_id] = member_stats["hp"]
             self.team_current_hp[member_id] = member_stats["hp"]
-            self.team_current_energy[member_id] = team_member.cursed_energy
+            self.team_current_energy[member_id] = team_member.get_battle_energy()
 
         # For compatibility with existing code
         self.player_max_hp = self.team_max_hp.get(self.player_data.user_id, 0)
@@ -570,7 +570,7 @@ class DungeonProgressView(View):
         )
 
         # Award partial rewards
-        self.player_data.cursed_energy += gold_reward  # Changed from gold to cursed_energy
+        self.player_data.add_gold(gold_reward)  # Use proper method instead of direct assignment
         self.player_data.add_exp(exp_reward)
 
         # Save player data
@@ -714,7 +714,7 @@ class DungeonProgressView(View):
             bonus_exp = int(self.dungeon_data["exp"] * treasure["exp"])
 
             # Award bonuses
-            self.player_data.cursed_energy += bonus_cursed_energy
+            self.player_data.add_gold(bonus_cursed_energy)
             exp_result = self.player_data.add_exp(bonus_exp, data_manager=self.data_manager)
 
             # Create embed for treasure
