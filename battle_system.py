@@ -458,6 +458,291 @@ class ItemButton(Button):
                 ephemeral=True)
 
 
+class TurnBasedPvPView(View):
+    """Turn-based PvP battle view that alternates between players"""
+    
+    def __init__(self, player1: BattleEntity, player2: BattleEntity, 
+                 player1_user, player2_user, timeout: int = 300):
+        super().__init__(timeout=timeout)
+        self.player1 = player1
+        self.player2 = player2
+        self.player1_user = player1_user
+        self.player2_user = player2_user
+        self.current_turn = 1  # 1 for player1, 2 for player2
+        self.turn_count = 0
+        self.battle_log = []
+        self.data_manager = None
+        
+        # Add initial battle log
+        self.battle_log.append(f"⚔️ **PvP Battle Started!**")
+        self.battle_log.append(f"{player1.name} vs {player2.name}")
+        
+        # Set up initial buttons for current player
+        self.update_buttons()
+    
+    def get_current_player(self) -> BattleEntity:
+        """Get the player whose turn it is"""
+        return self.player1 if self.current_turn == 1 else self.player2
+    
+    def get_current_user(self):
+        """Get the Discord user whose turn it is"""
+        return self.player1_user if self.current_turn == 1 else self.player2_user
+    
+    def get_other_player(self) -> BattleEntity:
+        """Get the player who is not currently taking a turn"""
+        return self.player2 if self.current_turn == 1 else self.player1
+    
+    def update_buttons(self):
+        """Update buttons for the current player's turn"""
+        self.clear_items()
+        
+        current_player = self.get_current_player()
+        
+        # Add move buttons for current player
+        for i, move in enumerate(current_player.moves):
+            if i >= 20:  # Discord limit
+                break
+            
+            # Check if player has enough energy
+            can_use = current_player.current_energy >= move.energy_cost
+            
+            btn = BattleMoveButton(move, row=i//5)
+            btn.disabled = not can_use
+            
+            if not can_use:
+                btn.style = discord.ButtonStyle.gray
+                btn.label = f"{move.name} (Need {move.energy_cost}⚡)"
+            
+            self.add_item(btn)
+    
+    async def check_interaction_permission(self, interaction: discord.Interaction) -> bool:
+        """Check if the user can interact with this view"""
+        current_user = self.get_current_user()
+        if interaction.user.id != current_user.id:
+            await interaction.response.send_message(
+                f"❌ It's {current_user.display_name}'s turn!", ephemeral=True
+            )
+            return False
+        return True
+    
+    def create_battle_embed(self) -> discord.Embed:
+        """Create the battle status embed"""
+        current_player = self.get_current_player()
+        other_player = self.get_other_player()
+        
+        embed = discord.Embed(
+            title="⚔️ Turn-Based PvP Battle",
+            description=f"**Turn {self.turn_count + 1}** - {current_player.name}'s Turn",
+            color=discord.Color.gold()
+        )
+        
+        # Player 1 status
+        embed.add_field(
+            name=f"{self.player1.name} {'🎯' if self.current_turn == 1 else ''}",
+            value=f"❤️ HP: {self.player1.current_hp}/{self.player1.stats['hp']}\n"
+                  f"⚡ Energy: {self.player1.current_energy}/{self.player1.max_energy}\n"
+                  f"⚔️ Power: {self.player1.stats['power']}\n"
+                  f"🛡️ Defense: {self.player1.stats['defense']}",
+            inline=True
+        )
+        
+        # Player 2 status  
+        embed.add_field(
+            name=f"{self.player2.name} {'🎯' if self.current_turn == 2 else ''}",
+            value=f"❤️ HP: {self.player2.current_hp}/{self.player2.stats['hp']}\n"
+                  f"⚡ Energy: {self.player2.current_energy}/{self.player2.max_energy}\n"
+                  f"⚔️ Power: {self.player2.stats['power']}\n"
+                  f"🛡️ Defense: {self.player2.stats['defense']}",
+            inline=True
+        )
+        
+        # Status effects
+        status_text = ""
+        for player in [self.player1, self.player2]:
+            if player.status_effects:
+                effects = []
+                for effect, (turns, strength) in player.status_effects.items():
+                    effects.append(f"{effect} ({turns} turns)")
+                if effects:
+                    status_text += f"{player.name}: {', '.join(effects)}\n"
+        
+        if status_text:
+            embed.add_field(name="🔮 Status Effects", value=status_text, inline=False)
+        
+        # Battle log (last 5 entries)
+        if self.battle_log:
+            log_text = "\n".join(self.battle_log[-5:])
+            embed.add_field(name="📜 Battle Log", value=log_text, inline=False)
+        
+        return embed
+    
+    async def on_move_selected(self, interaction: discord.Interaction, move: BattleMove):
+        """Handle when a player selects a move"""
+        if not await self.check_interaction_permission(interaction):
+            return
+        
+        current_player = self.get_current_player()
+        target_player = self.get_other_player()
+        
+        # Apply the move
+        damage, effect_msg = current_player.apply_move(move, target_player)
+        
+        # Add to battle log
+        self.battle_log.append(f"{current_player.name} used **{move.name}**!")
+        if damage > 0:
+            self.battle_log.append(f"💥 Dealt {damage} damage to {target_player.name}!")
+        if effect_msg and "❌" not in effect_msg:
+            self.battle_log.append(f"✨ {effect_msg}")
+        
+        # Apply damage
+        target_player.current_hp -= damage
+        
+        # Update status effects for both players
+        for player in [current_player, target_player]:
+            status_msg = player.update_status_effects()
+            if status_msg:
+                self.battle_log.append(status_msg)
+        
+        # Check for battle end
+        if not target_player.is_alive():
+            await self.end_battle(interaction, current_player, target_player)
+            return
+        
+        # Switch turns
+        self.current_turn = 2 if self.current_turn == 1 else 1
+        self.turn_count += 1
+        
+        # Update buttons for new turn
+        self.update_buttons()
+        
+        # Update the message
+        embed = self.create_battle_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+    
+    async def end_battle(self, interaction: discord.Interaction, winner: BattleEntity, loser: BattleEntity):
+        """Handle battle end and process rewards"""
+        import datetime
+        from achievements import QuestManager
+        
+        self.battle_log.append(f"🏆 **{winner.name} wins the battle!**")
+        
+        # Determine which player data objects correspond to winner and loser
+        if winner == self.player1:
+            winner_data = self.player1.player_data
+            loser_data = self.player2.player_data
+        else:
+            winner_data = self.player2.player_data
+            loser_data = self.player1.player_data
+        
+        # Check if we have valid data and data manager
+        if not winner_data or not loser_data or not hasattr(self, 'data_manager') or not self.data_manager:
+            await interaction.response.edit_message(
+                embed=discord.Embed(
+                    title="🏆 Battle Concluded!",
+                    description=f"**{winner.name}** defeated **{loser.name}**!",
+                    color=discord.Color.green()
+                ),
+                view=None
+            )
+            self.stop()
+            return
+        
+        # Calculate rewards
+        base_exp = 20
+        base_gold = 15
+        level_multiplier = 1.0 + (loser_data.class_level / 50.0)
+        challenge_bonus = 1.0 + (max(0, loser_data.class_level - winner_data.class_level) * 0.1)
+        
+        exp_reward = int(base_exp * loser_data.class_level * level_multiplier * challenge_bonus)
+        base_gold_reward = int(base_gold * loser_data.class_level * level_multiplier * challenge_bonus)
+        
+        # Apply gold multiplier from active events
+        from utils import apply_gold_multiplier
+        gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
+        
+        # Add rewards to winner
+        exp_result = winner_data.add_exp(exp_reward, data_manager=self.data_manager)
+        winner_data.add_gold(gold_reward)
+        
+        # Deduct gold from loser (but not too much)
+        gold_penalty = min(gold_reward // 3, loser_data.gold // 10)
+        loser_data.remove_gold(gold_penalty)
+        
+        # Set cooldowns
+        current_time = datetime.datetime.now()
+        pvp_cooldown_key = "pvp_cooldown"
+        
+        winner_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=30)
+        loser_data.skill_cooldowns[pvp_cooldown_key] = current_time + datetime.timedelta(minutes=60)
+        
+        # Update win/loss stats
+        winner_data.wins += 1
+        loser_data.losses += 1
+        
+        # Update quest progress
+        quest_manager = QuestManager(self.data_manager)
+        quest_manager.update_quest_progress(winner_data, "daily_pvp")
+        quest_manager.update_quest_progress(winner_data, "weekly_pvp")
+        quest_manager.update_quest_progress(winner_data, "daily_gold", gold_reward)
+        
+        # Save data
+        self.data_manager.save_data()
+        
+        # Create final embed
+        embed = discord.Embed(
+            title="🏆 Battle Concluded!",
+            description=f"**{winner.name}** defeated **{loser.name}**!",
+            color=discord.Color.green()
+        )
+        
+        # Show final stats
+        embed.add_field(
+            name=f"🏆 {winner.name} (Winner)",
+            value=f"❤️ HP: {winner.current_hp}/{winner.stats['hp']}\n"
+                  f"⚡ Energy: {winner.current_energy}/{winner.max_energy}",
+            inline=True
+        )
+        
+        embed.add_field(
+            name=f"💀 {loser.name} (Defeated)",
+            value=f"❤️ HP: 0/{loser.stats['hp']}\n"
+                  f"⚡ Energy: {loser.current_energy}/{loser.max_energy}",
+            inline=True
+        )
+        
+        # Show rewards
+        xp_display = f"EXP: +{exp_reward} 📊"
+        if exp_result["event_multiplier"] > 1.0:
+            xp_display = f"EXP: {exp_reward} → {exp_result['adjusted_exp']} 📊 (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        
+        embed.add_field(
+            name="🎁 Rewards",
+            value=f"{xp_display}\nGold: +{gold_reward} 💰",
+            inline=False
+        )
+        
+        if exp_result["leveled_up"]:
+            embed.add_field(
+                name="🆙 Level Up!",
+                value=f"You reached Level {winner_data.class_level}!\nYou gained 2 skill points!",
+                inline=False
+            )
+        
+        # Battle summary
+        embed.add_field(
+            name="📊 Battle Summary", 
+            value=f"Total Turns: {self.turn_count + 1}",
+            inline=False
+        )
+        
+        # Final battle log
+        if self.battle_log:
+            log_text = "\n".join(self.battle_log[-6:])
+            embed.add_field(name="📜 Final Battle Log", value=log_text, inline=False)
+        
+        await interaction.response.edit_message(embed=embed, view=None)
+        self.stop()
+
 class BattleView(RestrictedView):
 
     def __init__(self,
@@ -1664,248 +1949,16 @@ async def start_pvp_battle(ctx, target_member, player_data, target_data,
         f"Defense: {target_entity.stats['defense']} 🛡️",
         inline=True)
 
-    # Create battle view
-    battle_view = BattleView(player_entity, target_entity, ctx.author, timeout=180)
+    # Create turn-based battle view
+    battle_view = TurnBasedPvPView(player_entity, target_entity, ctx.author, target_member, timeout=300)
     battle_view.data_manager = data_manager
 
-    battle_msg = await ctx.send(embed=embed, view=battle_view)
+    # Create initial battle embed
+    initial_embed = battle_view.create_battle_embed()
+    battle_msg = await ctx.send(embed=initial_embed, view=battle_view)
 
     # Wait for battle to end
     await battle_view.wait()
 
-    # Process battle results
-    if not target_entity.is_alive():
-        # Player won
-        # Calculate rewards - scaling with both player levels and making it more rewarding
-        base_exp = 20
-        base_gold = 15
-        level_multiplier = 1.0 + (
-            target_data.class_level / 50.0
-        )  # Higher level opponents give better rewards
-        challenge_bonus = 1.0 + (
-            max(0, target_data.class_level - player_data.class_level) * 0.1
-        )  # Bonus for defeating higher level players
-
-        exp_reward = int(base_exp * target_data.class_level *
-                         level_multiplier * challenge_bonus)
-        cursed_energy_reward = int(base_gold * target_data.class_level *
-                                   level_multiplier * challenge_bonus)
-
-        # Add rewards with event-aware XP method
-        exp_result = player_data.add_exp(exp_reward, data_manager=data_manager)
-        leveled_up = exp_result["leveled_up"]
-        player_data.add_gold(cursed_energy_reward)  # Using gold instead of cursed energy
-        
-        # Track gold earned for achievements
-        if not hasattr(player_data, "gold_earned"):
-            player_data.gold_earned = 0
-        player_data.gold_earned += cursed_energy_reward
-
-        # Deduct some gold from loser (but not too much)
-        gold_penalty = min(cursed_energy_reward // 3,
-                          target_data.gold // 10)  # Reduced to be less punishing
-        target_data.remove_gold(gold_penalty)  # Using gold method that handles validation
-
-        # Set cooldowns
-        current_time = datetime.datetime.now()
-        pvp_cooldown_key = "pvp_cooldown"
-
-        # Winner gets a shorter cooldown
-        winner_cooldown_minutes = 30
-        player_data.skill_cooldowns[
-            pvp_cooldown_key] = current_time + datetime.timedelta(
-                minutes=winner_cooldown_minutes)
-
-        # Loser gets a longer cooldown to avoid repeated targeting
-        loser_cooldown_minutes = 60
-        target_data.skill_cooldowns[
-            pvp_cooldown_key] = current_time + datetime.timedelta(
-                minutes=loser_cooldown_minutes)
-
-        # Update stats
-        player_data.wins += 1
-        target_data.losses += 1
-
-        # Update quest progress for PvP victory
-        from achievements import QuestManager
-        quest_manager = QuestManager(data_manager)
-        
-        # Update daily and weekly PvP quest progress for winner
-        quest_manager.update_quest_progress(player_data, "daily_pvp")
-        quest_manager.update_quest_progress(player_data, "weekly_pvp")
-        quest_manager.update_quest_progress(player_data, "daily_gold", cursed_energy_reward)
-
-        # Record this battle in pvp_history if it doesn't exist yet
-        if not hasattr(player_data, 'pvp_history'):
-            player_data.pvp_history = []
-        if not hasattr(target_data, 'pvp_history'):
-            target_data.pvp_history = []
-
-        # Add battle to history with timestamp
-        battle_record = {
-            "opponent_id": target_data.user_id,
-            "opponent_name": target_member.display_name,
-            "result": "win",
-            "timestamp": current_time.isoformat(),
-            "exp_gained": exp_reward,
-            "gold_gained": cursed_energy_reward,
-            "opponent_level": target_data.class_level
-        }
-        player_data.pvp_history.append(battle_record)
-
-        # Add battle to target's history
-        battle_record = {
-            "opponent_id": player_data.user_id,
-            "opponent_name": ctx.author.display_name,
-            "result": "loss",
-            "timestamp": current_time.isoformat(),
-            "gold_lost": gold_penalty,
-            "opponent_level": player_data.class_level
-        }
-        target_data.pvp_history.append(battle_record)
-
-        # Save data
-        data_manager.save_data()
-
-        # Send results
-        result_embed = discord.Embed(
-            title="🎉 Victory!",
-            description=
-            f"{ctx.author.display_name} defeated {target_member.display_name} in battle!",
-            color=discord.Color.green())
-
-        # Create XP display with event multipliers
-        xp_display = f"EXP: +{exp_reward} 📊"
-        if exp_result["event_multiplier"] > 1.0:
-            xp_display = f"EXP: {exp_reward} → {exp_result['adjusted_exp']} 📊 (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
-
-        result_embed.add_field(name="Rewards",
-                               value=f"{xp_display}\n"
-                               f"Gold: +{cursed_energy_reward} 💰",
-                               inline=False)
-
-        if leveled_up:
-            result_embed.add_field(
-                name="Level Up!",
-                value=f"🆙 You reached Level {player_data.class_level}!\n"
-                f"You gained 2 skill points! Use !skills to allocate them.",
-                inline=False)
-
-        await ctx.send(embed=result_embed)
-
-    elif not player_entity.is_alive():
-        # Target won
-        # Calculate rewards - scaling with both player levels and making it more rewarding
-        base_exp = 20
-        base_gold = 15
-        level_multiplier = 1.0 + (
-            player_data.class_level / 50.0
-        )  # Higher level opponents give better rewards
-        challenge_bonus = 1.0 + (
-            max(0, player_data.class_level - target_data.class_level) * 0.1
-        )  # Bonus for defeating higher level players
-
-        exp_reward = int(base_exp * player_data.class_level *
-                         level_multiplier * challenge_bonus)
-        base_gold_reward = int(base_gold * player_data.class_level *
-                          level_multiplier * challenge_bonus)
-        
-        # Apply gold multiplier from active events
-        from utils import apply_gold_multiplier
-        gold_reward = apply_gold_multiplier(base_gold_reward, data_manager)
-
-        # Add rewards
-        leveled_up = target_data.add_exp(exp_reward)
-        target_data.gold += gold_reward
-
-        # Deduct some gold from loser (but not too much)
-        gold_penalty = min(gold_reward // 3, player_data.gold //
-                           10)  # Reduced to be less punishing
-        player_data.gold = max(0, player_data.gold - gold_penalty)
-
-        # Set cooldowns
-        current_time = datetime.datetime.now()
-        pvp_cooldown_key = "pvp_cooldown"
-
-        # Winner gets a shorter cooldown
-        winner_cooldown_minutes = 30
-        target_data.skill_cooldowns[
-            pvp_cooldown_key] = current_time + datetime.timedelta(
-                minutes=winner_cooldown_minutes)
-
-        # Loser gets a longer cooldown to avoid repeated targeting
-        loser_cooldown_minutes = 60
-        player_data.skill_cooldowns[
-            pvp_cooldown_key] = current_time + datetime.timedelta(
-                minutes=loser_cooldown_minutes)
-
-        # Update stats
-        target_data.wins += 1
-        player_data.losses += 1
-
-        # Update quest progress for PvP victory
-        from achievements import QuestManager
-        quest_manager = QuestManager(data_manager)
-        
-        # Update daily and weekly PvP quest progress for winner
-        quest_manager.update_quest_progress(target_data, "daily_pvp")
-        quest_manager.update_quest_progress(target_data, "weekly_pvp")
-        quest_manager.update_quest_progress(target_data, "daily_gold", gold_reward)
-
-        # Record this battle in pvp_history if it doesn't exist yet
-        if not hasattr(player_data, 'pvp_history'):
-            player_data.pvp_history = []
-        if not hasattr(target_data, 'pvp_history'):
-            target_data.pvp_history = []
-
-        # Add battle to history with timestamp
-        battle_record = {
-            "opponent_id": player_data.user_id,
-            "opponent_name": ctx.author.display_name,
-            "result": "win",
-            "timestamp": current_time.isoformat(),
-            "exp_gained": exp_reward,
-            "gold_gained": gold_reward,
-            "opponent_level": player_data.class_level
-        }
-        target_data.pvp_history.append(battle_record)
-
-        # Add battle to target's history
-        battle_record = {
-            "opponent_id": target_data.user_id,
-            "opponent_name": target_member.display_name,
-            "result": "loss",
-            "timestamp": current_time.isoformat(),
-            "gold_lost": gold_penalty,
-            "opponent_level": target_data.class_level
-        }
-        player_data.pvp_history.append(battle_record)
-
-        # Save data
-        data_manager.save_data()
-
-        # Send results
-        result_embed = discord.Embed(
-            title="🏆 Victory!",
-            description=
-            f"{target_member.display_name} defeated {ctx.author.display_name} in battle!",
-            color=discord.Color.blue())
-
-        result_embed.add_field(
-            name=f"Rewards for {target_member.display_name}",
-            value=f"EXP: +{exp_reward} 📊\n"
-            f"Gold: +{gold_reward} 💰",
-            inline=False)
-
-        if leveled_up:
-            result_embed.add_field(
-                name="Level Up!",
-                value=
-                f"🆙 {target_member.display_name} reached Level {target_data.class_level}!\n"
-                f"They gained 3 skill points to allocate.",
-                inline=False)
-
-        await ctx.send(embed=result_embed)
-    else:
-        # Battle timed out
-        await ctx.send("⏱️ The battle timed out! Neither side wins.")
+    # Battle results are handled in the turn-based view's end_battle method
+    # No additional processing needed here
