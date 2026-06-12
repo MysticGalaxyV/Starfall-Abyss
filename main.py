@@ -3639,7 +3639,7 @@ async def players_cmd(ctx):
         return
 
     all_players = data_manager.players
-    
+
     if not all_players:
         await ctx.send("No player data found.")
         return
@@ -3682,12 +3682,18 @@ async def players_cmd(ctx):
             last_seen = None
             last_str = "never"
 
-        player_rows.append((
-            last_seen or datetime.datetime.min,
-            str(uid), name, class_name, level, wins, last_str
-        ))
+        player_rows.append(
+            (
+                last_seen or datetime.datetime.min,
+                str(uid),
+                name,
+                class_name,
+                level,
+                wins,
+                last_str,
+            )
+        )
 
-    
     # Sort by most recently active first
     player_rows.sort(key=lambda x: x[0], reverse=True)
 
