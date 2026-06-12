@@ -3687,6 +3687,7 @@ async def players_cmd(ctx):
             str(uid), name, class_name, level, wins, last_str
         ))
 
+    
     # Sort by most recently active first
     player_rows.sort(key=lambda x: x[0], reverse=True)
 
