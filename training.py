@@ -17,6 +17,7 @@ class TrainingOptionView(RestrictedView):
         self.player_data = player_data
         self.data_manager = data_manager
         self.selected_option = None
+        self.training_in_progress = False  # Prevent multiple training sessions
 
         # Get available training options based on class
         options = self.get_training_options()
@@ -118,29 +119,13 @@ class TrainingOptionView(RestrictedView):
 
     async def option_callback(self, interaction: discord.Interaction):
         """Handle training option selection"""
-        custom_id = interaction.data.get("custom_id", "")
-        self.selected_option = custom_id
-
-        # Get the option data
-        option_data = None
-        for item in self.children:
-            if isinstance(item, Button) and hasattr(
-                    item, 'custom_id') and item.custom_id == custom_id:
-                option_data = item.option_data
-                break
-
-        if not option_data:
+        # Prevent multiple training sessions
+        if self.training_in_progress:
             await interaction.response.send_message(
-                "❌ Error: Training option not found!", ephemeral=True)
+                "❌ Training is already in progress!", ephemeral=True)
             return
 
-        # Disable all other buttons to hide options once one is selected
-        for item in self.children:
-            if isinstance(item, Button) and hasattr(
-                    item, 'custom_id') and item.custom_id != custom_id:
-                item.disabled = True
-
-        # Check if player can train (cooldown)
+        # Check cooldown FIRST before setting training in progress
         now = datetime.datetime.now()
         cooldown_minutes = 10  # 10 minute cooldown
 
@@ -154,6 +139,31 @@ class TrainingOptionView(RestrictedView):
                 f"❌ You're still tired from your last training session! Rest for {minutes}m {seconds}s more.",
                 ephemeral=True)
             return
+
+        # Set training in progress to prevent spam
+        self.training_in_progress = True
+
+        custom_id = interaction.data.get("custom_id", "")
+        self.selected_option = custom_id
+
+        # Get the option data
+        option_data = None
+        for item in self.children:
+            if isinstance(item, Button) and hasattr(
+                    item, 'custom_id') and item.custom_id == custom_id:
+                option_data = item.option_data
+                break
+
+        if not option_data:
+            self.training_in_progress = False  # Reset on error
+            await interaction.response.send_message(
+                "❌ Error: Training option not found!", ephemeral=True)
+            return
+
+        # Disable ALL buttons to prevent spam clicking
+        for item in self.children:
+            if isinstance(item, Button):
+                item.disabled = True
 
         # Start training
         await interaction.response.send_message(
@@ -179,11 +189,18 @@ class TrainingOptionView(RestrictedView):
             option_data['attribute']] += attribute_gain
 
         # Add exp
-        leveled_up = self.player_data.add_exp(exp_gain)
+        exp_result = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
+        leveled_up = exp_result["leveled_up"]
 
         # Add some battle energy
         battle_energy_gain = random.randint(3, 8)
         energy_added = self.player_data.add_battle_energy(battle_energy_gain)
+
+        # Check for energy training boost and level energy boost
+        training_energy_boost = False  # Basic training doesn't boost max energy
+        level_energy_boost = 0
+        if leveled_up:
+            level_energy_boost = 5  # Energy boost per level
 
         # Update last train time
         self.player_data.last_train = now
@@ -193,8 +210,32 @@ class TrainingOptionView(RestrictedView):
             self.player_data.training_completed = 0
         self.player_data.training_completed += 1
 
+        # Update quest progress for training completion
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Collect quest completion messages
+        quest_messages = []
+        
+        # Update daily training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update weekly training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "weekly_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update long-term training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "total_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+
         # Check for achievements
-        new_achievements = self.data_manager.check_player_achievements(self.player_data)
+        from achievements import AchievementTracker
+        achievement_tracker = AchievementTracker(self.data_manager)
+        new_achievements = achievement_tracker.check_achievements(self.player_data)
 
         # Save player data
         self.data_manager.save_data()
@@ -205,15 +246,38 @@ class TrainingOptionView(RestrictedView):
             description=f"You've completed {option_data['name']} training!",
             color=discord.Color.green())
 
+        # Create proper EXP display with event information
+        exp_display = f"EXP Gained: {exp_gain}"
+        if exp_result["event_multiplier"] > 1.0:
+            exp_display = f"EXP Gained: {exp_gain} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        else:
+            exp_display = f"EXP Gained: {exp_result['adjusted_exp']}"
+        
         embed.add_field(
             name="Results",
             value=(
                 f"**{option_data['attribute'].title()}:** +{attribute_gain}\n"
-                f"**EXP Gained:** {exp_gain}\n"
+                f"**{exp_display}**\n"
                 f"**Battle Energy:** +{energy_added} ✨\n"
-                f"**Max Energy:** {self.player_data.max_energy} "
+                f"**Max Energy:** {self.player_data.max_battle_energy} "
                 f"{'(↑ +1)' if training_energy_boost else ''}"),
             inline=False)
+
+        # Add quest completion messages if any
+        if quest_messages:
+            quest_text = "\n".join(quest_messages)
+            embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
+
+        # Add achievement summary if any were completed
+        if new_achievements:
+            achievement_text = []
+            for achievement in new_achievements:
+                achievement_text.append(f"🏆 **{achievement['name']}** - {achievement['points']} points")
+            embed.add_field(
+                name="🎉 Achievements Unlocked!",
+                value="\n".join(achievement_text),
+                inline=False
+            )
 
         if leveled_up:
             embed.add_field(

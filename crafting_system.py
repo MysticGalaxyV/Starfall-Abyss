@@ -370,6 +370,39 @@ CRAFTING_CATEGORIES = {
                     (1, 20), (15, 40), (35, 60), (55, 80), (75, 100), (95, 150), 
                     (140, 300), (280, 500), (480, 700), (680, 900), (880, 1000)
                 ]
+            },
+            "Battle Consumables": {
+                "materials": {
+                    "Monster Parts": 2,  # Requires 2 monster parts
+                    "Magical": 2,        # Requires 2 magical materials
+                    "Herbs": 1           # Requires 1 herb
+                },
+                "stat_focus": ["combat_effects"],
+                "products": [
+                    "Energy Boost", "Combat Stimulant", "Battle Focus", "Warrior's Vigor", "Champion's Elixir",
+                    "Runic Combat Serum", "Dragon's Blood", "Crystal Battle Essence", "Void Combat Fluid", "Ethereal War Potion", "Divine Battle Elixir"
+                ],
+                "level_ranges": [
+                    (1, 20), (15, 40), (35, 60), (55, 80), (75, 100), (95, 150), 
+                    (140, 300), (280, 500), (480, 700), (680, 900), (880, 1000)
+                ]
+            },
+            "Tactical Items": {
+                "materials": {
+                    "Monster Parts": 1,  # Requires 1 monster part
+                    "Magical": 1,        # Requires 1 magical material
+                    "Mining": 1,         # Requires 1 mining material
+                    "Gems": 1            # Requires 1 gem
+                },
+                "stat_focus": ["battle_strategy"],
+                "products": [
+                    "Smoke Bomb", "Flash Grenade", "Caltrops", "Healing Orb", "Shield Generator",
+                    "Runic Trap", "Dragon Scale Shield", "Crystal Barrier", "Void Anchor", "Ethereal Decoy", "Divine Sanctuary"
+                ],
+                "level_ranges": [
+                    (1, 20), (15, 40), (35, 60), (55, 80), (75, 100), (95, 150), 
+                    (140, 300), (280, 500), (480, 700), (680, 900), (880, 1000)
+                ]
             }
         }
     },

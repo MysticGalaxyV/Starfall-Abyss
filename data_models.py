@@ -188,9 +188,8 @@ class PlayerData:
         self.class_exp = 0
         self.user_level = 1
         self.user_exp = 0
-        self.gold = 100  # Currency (changed from cursed_energy)
+        self.gold = 100  # Primary currency
         self.max_gold = 1000000  # Very high maximum as there's no cap on currency
-        self.cursed_energy = 0  # Legacy field - we now use gold consistently as currency
         self.battle_energy = 100  # Battle resource
         self.max_battle_energy = 100  # Base max battle resource
         self.energy_training = 0  # Additional energy from specialized training
@@ -198,6 +197,7 @@ class PlayerData:
         self.inventory = []  # List[InventoryItem]
         self.equipped_items = {
             "weapon": None,
+            "weapon2": None,  # Second weapon slot for dual wielding
             "armor": None,
             "accessory": None
         }
@@ -238,8 +238,6 @@ class PlayerData:
         self.level = 1  # Alias for user_level to fix compatibility issues
         self.current_hp = 100  # Current health points
         self.dungeon_damage = 0  # Accumulated damage in dungeons
-        self.equipped_gathering_tools = {
-        }  # Map of category to equipped tool name
         # Additional attributes for achievements
         self.dungeons_completed = 0
         self.bosses_defeated = 0
@@ -258,6 +256,10 @@ class PlayerData:
         self.long_term_quests = []
         self.achievement_progress = {}
         self.last_pvp_battle = None  # Timestamp of last PvP battle
+        # Achievement shop tracking
+        self.purchased_achievement_items = []  # List of purchased achievement items
+        self.profile_tags = []  # List of earned profile tags
+        self.spent_achievement_points = 0  # Total achievement points spent on shop items
 
     def get_max_battle_energy(self) -> int:
         """
@@ -290,7 +292,7 @@ class PlayerData:
         """
         return max(0, self.battle_energy)
 
-    def get_max_hp(self, class_data: Dict[str, Any] = None) -> int:
+    def get_max_hp(self, class_data: Optional[Dict[str, Any]] = None) -> int:
         """
         Get the player's maximum HP based on their stats
         If class_data is not provided, will return a default max HP of 100
@@ -356,14 +358,93 @@ class PlayerData:
             if stat in base_stats:
                 base_stats[stat] += points
 
-        # Add stats from equipped items
+        # Add stats from equipped items including dual weapon support
+        from utils import can_dual_wield
+        
         for inv_item in self.inventory:
             if inv_item.equipped and hasattr(inv_item.item, 'stats'):
                 for stat, value in inv_item.item.stats.items():
                     if stat in base_stats:
-                        base_stats[stat] += value
+                        # For dual wielding classes, apply weapon damage bonus from both weapons
+                        if (inv_item.item.item_type == "weapon" and 
+                            stat == "power" and 
+                            self.class_name and can_dual_wield(self.class_name)):
+                            # Check if this is the off-hand weapon and apply reduced bonus
+                            weapon_id = getattr(inv_item.item, 'item_id', None)
+                            if weapon_id == self.equipped_items.get("weapon2"):
+                                # Off-hand weapon provides 75% of power bonus
+                                base_stats[stat] += int(value * 0.75)
+                            else:
+                                base_stats[stat] += value
+                        else:
+                            base_stats[stat] += value
+
+        # Add skill tree bonuses
+        skill_bonuses = self.calculate_skill_tree_bonuses()
+        for stat, bonus in skill_bonuses.items():
+            if stat in base_stats:
+                base_stats[stat] += bonus
 
         return base_stats
+
+    def calculate_skill_tree_bonuses(self) -> Dict[str, int]:
+        """Calculate stat bonuses from all skill tree investments"""
+        bonuses = {"power": 0, "defense": 0, "speed": 0, "hp": 0}
+        
+        # Define skill tree effects - maps skill names to their stat bonuses
+        skill_effects = {
+            # Strength Tree
+            "Power Strike": {"power": 5},  # 5% per level, converted to flat bonus
+            "Brute Force": {"power": 3},   # Weapon damage increase
+            "Weapon Mastery": {"power": 4},
+            "Smashing Blow": {"power": 8},
+            "Titan's Grip": {"power": 15},
+            
+            # Dexterity Tree  
+            "Precise Shot": {"power": 3, "speed": 2},  # Accuracy translates to power/speed
+            "Quick Draw": {"speed": 5},
+            "Evasive Maneuvers": {"speed": 4, "defense": 2},
+            "Critical Eye": {"power": 6},
+            "Sniper's Focus": {"power": 12},
+            
+            # Intelligence Tree
+            "Arcane Mind": {"power": 5},   # Magical damage = power
+            "Spell Mastery": {"power": 3}, # More efficient spells = more damage
+            "Elemental Affinity": {"power": 4},
+            "Counterspell": {"defense": 5}, # Magic resistance
+            "Archmage's Presence": {"power": 10},
+            
+            # Wisdom Tree
+            "Healing Touch": {"hp": 15},
+            "Spirit Link": {"defense": 3, "hp": 10},
+            "Protective Aura": {"defense": 6},
+            "Divine Intervention": {"hp": 20, "defense": 3},
+            "Resurrection": {"hp": 25},
+            
+            # Vitality Tree
+            "Iron Skin": {"defense": 5},
+            "Endurance": {"hp": 20},
+            "Regeneration": {"hp": 15, "defense": 2},
+            "Unbreakable": {"defense": 8},
+            "Undying Will": {"hp": 30, "defense": 5},
+            
+            # Agility Tree
+            "Quick Reflexes": {"speed": 5},
+            "Dual Wielding": {"power": 4, "speed": 2},
+            "Shadow Step": {"speed": 6, "defense": 3},
+            "Exploit Weakness": {"power": 8},
+            "Assassination": {"power": 15}
+        }
+        
+        # Calculate bonuses from each skill tree
+        for tree_name, tree_skills in self.skill_tree.items():
+            for skill_name, skill_level in tree_skills.items():
+                if skill_name in skill_effects and skill_level > 0:
+                    # Apply bonuses per level invested
+                    for stat, bonus_per_level in skill_effects[skill_name].items():
+                        bonuses[stat] += bonus_per_level * skill_level
+        
+        return bonuses
 
     def add_gold(self, amount: int) -> int:
         """Add gold with no maximum limit. Returns the amount added."""
@@ -397,6 +478,11 @@ class PlayerData:
     def remove_cursed_energy(self, amount: int) -> bool:
         """Legacy method that calls remove_gold"""
         return self.remove_gold(amount)
+    
+    @property
+    def cursed_energy(self) -> int:
+        """Legacy property for backward compatibility - returns gold amount"""
+        return self.gold
 
     def add_battle_energy(self, amount: int) -> int:
         """Add battle energy up to maximum limit. Returns the actual amount added."""
@@ -433,26 +519,44 @@ class PlayerData:
             return True
         return False
 
-    def add_exp(self, exp_amount: int, bypass_penalty: bool = False) -> bool:
+    def add_exp(self, exp_amount: int, bypass_penalty: bool = False, data_manager=None) -> dict:
         """
-        Add experience points and handle level ups. Returns True if leveled up.
+        Add experience points and handle level ups. Returns dict with level info and event details.
 
         Parameters:
         - exp_amount: The amount of XP to add
         - bypass_penalty: If True, bypass the level penalty (used for admin commands)
+        - data_manager: DataManager instance to check for active events
+        
+        Returns:
+        - dict with keys: leveled_up (bool), event_multiplier (float), event_name (str), adjusted_exp (int)
         """
         leveled_up = False
+        event_multiplier = 1.0
+        event_name = None
 
+        # Apply level penalty to base amount first, then apply event multipliers
         if bypass_penalty:
-            # Admin command - no penalty applied
-            adjusted_exp = exp_amount
+            # Admin command - no penalty applied to base amount
+            base_adjusted_exp = exp_amount
         else:
-            # Normal XP gain - apply level penalty
+            # Normal XP gain - apply level penalty to base amount only
             level_penalty = max(
                 0.95,
                 1.0 - (self.class_level *
                       0.002))  # 0.2% reduction per level, min 95% of original XP
-            adjusted_exp = int(exp_amount * level_penalty)
+            base_adjusted_exp = int(exp_amount * level_penalty)
+
+        # Apply event multipliers to the penalty-adjusted base amount
+        adjusted_exp = base_adjusted_exp
+        if data_manager and hasattr(data_manager, 'active_events'):
+            for event_id, event_data in data_manager.active_events.items():
+                effect = event_data.get('effect', {})
+                if effect.get('type') == 'exp_multiplier':
+                    event_multiplier = effect.get('value', 1.0)
+                    event_name = event_data.get('name', 'XP Event')
+                    adjusted_exp = int(base_adjusted_exp * event_multiplier)
+                    break  # Only apply the first XP multiplier event
 
         self.class_exp += adjusted_exp
 
@@ -461,7 +565,12 @@ class PlayerData:
         leveled_up = False
 
         if self.class_level >= MAX_LEVEL:
-            return False
+            return {
+                "leveled_up": False,
+                "event_multiplier": event_multiplier,
+                "event_name": event_name,
+                "adjusted_exp": adjusted_exp
+            }
 
         # Calculate XP needed for next level using the standard formula
         xp_needed = self.calculate_xp_for_level(self.class_level)
@@ -494,7 +603,12 @@ class PlayerData:
         # Since the PlayerData instance doesn't have direct access to the DataManager,
         # achievement checking needs to happen in code that has access to both
 
-        return leveled_up
+        return {
+            "leveled_up": leveled_up,
+            "event_multiplier": event_multiplier,
+            "event_name": event_name,
+            "adjusted_exp": adjusted_exp
+        }
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -512,17 +626,13 @@ class PlayerData:
             self.gold,
             "max_gold":
             self.max_gold,
-            "cursed_energy":
-            self.cursed_energy,  # Store actual cursed energy
-            "max_cursed_energy":
-            self.max_gold,  # For backward compatibility
             "unlocked_classes":
             self.unlocked_classes,
             "inventory": [item.to_dict() for item in self.inventory],
             "equipped_items":
             self.equipped_items,
             "achievements":
-            [achievement.to_dict() for achievement in self.achievements],
+            [achievement.to_dict() if hasattr(achievement, 'to_dict') else achievement for achievement in self.achievements if achievement],
             "skill_points":
             self.skill_points,
             "allocated_stats":
@@ -570,7 +680,31 @@ class PlayerData:
             "last_pvp_battle":
             self.last_pvp_battle.isoformat() if self.last_pvp_battle else None,
             "equipped_gathering_tools":
-            self.equipped_gathering_tools
+            self.equipped_gathering_tools,
+            "earned_roles":
+            self.earned_roles,
+            "level":
+            self.level,
+            "current_hp":
+            self.current_hp,
+            "dungeon_damage":
+            self.dungeon_damage,
+            "dungeons_completed":
+            self.dungeons_completed,
+            "bosses_defeated":
+            self.bosses_defeated,
+            "gold_earned":
+            self.gold_earned,
+            "gold_spent":
+            self.gold_spent,
+            "training_completed":
+            self.training_completed,
+            "advanced_training_completed":
+            self.advanced_training_completed,
+            "guild_contributions":
+            self.guild_contributions,
+            "energy_training":
+            self.energy_training
         }
 
     @classmethod
@@ -581,12 +715,8 @@ class PlayerData:
         if "gold" in data:
             player.gold = data["gold"]
         elif "cursed_energy" in data:
-            # Convert old cursed_energy to gold
+            # Convert old cursed_energy to gold for backward compatibility
             player.gold = data["cursed_energy"]
-
-        # Load actual cursed energy (used for special abilities)
-        if "cursed_energy" in data:
-            player.cursed_energy = data["cursed_energy"]
 
         # Handle maximum currency
         if "max_gold" in data:
@@ -623,10 +753,39 @@ class PlayerData:
                 "pvp_wins",
                 "pvp_losses",
                 "energy_training",
-                "equipped_gathering_tools"  # Make sure we load equipped tools
+                "equipped_gathering_tools",  # Make sure we load equipped tools
+                "earned_roles",
+                "level",
+                "current_hp", 
+                "dungeon_damage",
+                "dungeons_completed",
+                "bosses_defeated",
+                "gold_earned",
+                "gold_spent",
+                "training_completed",
+                "advanced_training_completed",
+                "guild_contributions",
+                "energy_training"
         ]:
             if attr in data:
                 setattr(player, attr, data[attr])
+
+        # Data migration: Ensure weapon2 key exists in equipped_items
+        if "weapon2" not in player.equipped_items:
+            player.equipped_items["weapon2"] = None
+            
+        # Data validation: Clean up invalid dual weapon configurations
+        from utils import can_dual_wield
+        if player.class_name and not can_dual_wield(player.class_name):
+            # If class can't dual wield but has weapon2 equipped, unequip it
+            if player.equipped_items.get("weapon2"):
+                # Find and unequip the weapon2 item
+                for inv_item in player.inventory:
+                    if (hasattr(inv_item.item, "item_id") and 
+                        inv_item.item.item_id == player.equipped_items["weapon2"]):
+                        inv_item.equipped = False
+                        break
+                player.equipped_items["weapon2"] = None
 
         # Convert inventory
         if "inventory" in data:
@@ -660,6 +819,12 @@ class PlayerData:
                         skill_id] = datetime.datetime.fromisoformat(timestamp)
                 except (ValueError, TypeError):
                     continue
+
+        # Convert training cooldowns 
+        if "training_cooldowns" in data:
+            player.training_cooldowns = data["training_cooldowns"]
+        else:
+            player.training_cooldowns = {}
 
         return player
 

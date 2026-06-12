@@ -241,61 +241,105 @@ class DungeonProgressView(View):
             member_stats = team_member.get_stats(GAME_CLASSES)
             self.team_max_hp[member_id] = member_stats["hp"]
             self.team_current_hp[member_id] = member_stats["hp"]
-            self.team_current_energy[member_id] = team_member.cursed_energy
+            self.team_current_energy[member_id] = team_member.get_battle_energy()
 
         # For compatibility with existing code
         self.player_max_hp = self.team_max_hp.get(self.player_data.user_id, 0)
         self.player_current_hp = self.team_current_hp.get(self.player_data.user_id, 0)
         self.player_current_energy = self.team_current_energy.get(self.player_data.user_id, 0)
 
-        # Add continue button
-        self.continue_btn = Button(
-            label="Proceed to Next Floor", 
+        # Add initial entrance buttons
+        self.add_entrance_buttons()
+
+    def add_entrance_buttons(self):
+        """Add buttons for the dungeon entrance"""
+        # Clear any existing items
+        self.clear_items()
+        
+        # Add Proceed button
+        proceed_btn = Button(
+            label="⚔️ Enter Dungeon",
             style=discord.ButtonStyle.green,
-            emoji="➡️"
+            emoji="⚔️"
         )
-        self.continue_btn.callback = self.next_floor_callback
-        self.add_item(self.continue_btn)
-
-        # Add use item button
-        self.item_btn = Button(
-            label="Use Item",
-            style=discord.ButtonStyle.blurple,
-            emoji="🧪"
-        )
-        self.item_btn.callback = self.use_item_callback
-        self.add_item(self.item_btn)
-
-        # Add retreat button
-        self.retreat_btn = Button(
-            label="Retreat",
+        proceed_btn.callback = self.proceed_callback
+        self.add_item(proceed_btn)
+        
+        # Add Retreat button
+        retreat_btn = Button(
+            label="🚪 Retreat",
             style=discord.ButtonStyle.red,
-            emoji="🏃"
+            emoji="🚪"
         )
-        self.retreat_btn.callback = self.retreat_callback
-        self.add_item(self.retreat_btn)
+        retreat_btn.callback = self.retreat_callback
+        self.add_item(retreat_btn)
+
+    async def proceed_callback(self, interaction: discord.Interaction):
+        """Handle proceeding into the dungeon (start floor 1)"""
+        try:
+            # Move to first floor
+            self.current_floor = 1
+            await interaction.response.defer()
+            
+            # Start the first floor encounter
+            await self.floor_encounter(interaction)
+            
+        except Exception as e:
+            await interaction.followup.send(
+                f"⚠️ An error occurred while entering the dungeon. Please try again.\nError: {str(e)}",
+                ephemeral=True
+            )
+
+    async def retreat_callback(self, interaction: discord.Interaction):
+        """Handle retreating from the dungeon"""
+        retreat_embed = discord.Embed(
+            title="🚪 Retreated from Dungeon",
+            description="You decided to retreat from the dungeon. You can try again later.",
+            color=discord.Color.orange()
+        )
+        
+        await interaction.response.edit_message(embed=retreat_embed, view=None)
+        self.stop()
 
     async def next_floor_callback(self, interaction: discord.Interaction):
         """Handle moving to the next floor"""
-        # Increment floor
-        self.current_floor += 1
+        try:
+            # Increment floor
+            self.current_floor += 1
 
-        await interaction.response.defer()
+            await interaction.response.defer()
 
-        # Clear previous message content
-        if hasattr(interaction, 'message'):
-            try:
-                await interaction.message.edit(content=f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...", view=None)
-            except:
-                pass
+            # Clear previous message content and buttons
+            if hasattr(interaction, 'message') and interaction.message:
+                try:
+                    await interaction.message.edit(
+                        content=f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...", 
+                        view=None
+                    )
+                except Exception:
+                    # If editing fails, send a new message
+                    await interaction.followup.send(
+                        f"🗺️ Proceeding to floor {self.current_floor}/{self.max_floors}...",
+                        ephemeral=True
+                    )
 
-        # Check if we've reached the boss floor
-        if self.current_floor == self.max_floors:
-            # Boss encounter
-            await self.boss_encounter(interaction)
-        else:
-            # Regular floor encounter
-            await self.floor_encounter(interaction)
+            # Small delay for immersion
+            await asyncio.sleep(1)
+
+            # Check if we've reached the boss floor
+            if self.current_floor == self.max_floors:
+                # Boss encounter
+                await self.boss_encounter(interaction)
+            else:
+                # Regular floor encounter
+                await self.floor_encounter(interaction)
+                
+        except Exception as e:
+            # Handle any errors gracefully
+            await interaction.followup.send(
+                f"⚠️ An error occurred while progressing to the next floor. Please try again or retreat from the dungeon.\nError: {str(e)}",
+                ephemeral=True
+            )
 
     async def use_item_callback(self, interaction: discord.Interaction):
         """Handle using an item between dungeon floors"""
@@ -305,14 +349,24 @@ class DungeonProgressView(View):
         # Check if player has inventory and items
         if hasattr(self.player_data, 'inventory') and self.player_data.inventory:
             for i, inv_item in enumerate(self.player_data.inventory):
-                # Only show consumable items that can be used in dungeons
-                if (inv_item.get('item_type', '') == "consumable" or 
-                    inv_item.get('type', '') == "consumable" or 
-                    inv_item.get('category', '') == "potion") and inv_item.get('quantity', 0) > 0:
-
-                    # Add item info to usable items list
+                # Handle both InventoryItem objects and dictionary items
+                if hasattr(inv_item, 'item'):
+                    # InventoryItem object
+                    item_type = inv_item.item.item_type if hasattr(inv_item.item, 'item_type') else ''
+                    quantity = inv_item.quantity
+                    item_name = inv_item.item.name if hasattr(inv_item.item, 'name') else f"Item #{i+1}"
+                    item_desc = inv_item.item.description if hasattr(inv_item.item, 'description') else 'A usable item'
+                else:
+                    # Dictionary item (legacy support)
+                    item_type = inv_item.get('item_type', inv_item.get('type', ''))
+                    quantity = inv_item.get('quantity', 0)
                     item_name = inv_item.get('name', f"Item #{i+1}")
                     item_desc = inv_item.get('description', 'A usable item')
+
+                # Only show consumable items that can be used in dungeons
+                if (item_type == "consumable" or 
+                    item_type == "potion") and quantity > 0:
+
                     usable_items.append({
                         'name': item_name,
                         'description': item_desc,
@@ -516,7 +570,7 @@ class DungeonProgressView(View):
         )
 
         # Award partial rewards
-        self.player_data.cursed_energy += gold_reward  # Changed from gold to cursed_energy
+        self.player_data.add_gold(gold_reward)  # Use proper method instead of direct assignment
         self.player_data.add_exp(exp_reward)
 
         # Save player data
@@ -660,8 +714,8 @@ class DungeonProgressView(View):
             bonus_exp = int(self.dungeon_data["exp"] * treasure["exp"])
 
             # Award bonuses
-            self.player_data.cursed_energy += bonus_cursed_energy
-            self.player_data.add_exp(bonus_exp)
+            self.player_data.add_gold(bonus_cursed_energy)
+            exp_result = self.player_data.add_exp(bonus_exp, data_manager=self.data_manager)
 
             # Create embed for treasure
             embed = discord.Embed(
@@ -670,10 +724,17 @@ class DungeonProgressView(View):
                 color=treasure["color"]
             )
 
+            # Create proper EXP display with event information
+            exp_display = f"EXP: {bonus_exp}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"EXP: {bonus_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"EXP: {exp_result['adjusted_exp']}"
+            
             embed.add_field(
                 name="Rewards",
                 value=f"Cursed Energy: +{bonus_cursed_energy} 🔮\n"
-                      f"EXP: +{bonus_exp} 📊",
+                      f"{exp_display} 📊",
                 inline=False
             )
 
@@ -699,15 +760,41 @@ class DungeonProgressView(View):
             await channel.send(embed=embed)
             await asyncio.sleep(2)
 
-        # Show the continue/retreat buttons
-        continue_view = View()
-        continue_view.add_item(self.continue_btn)
-        continue_view.add_item(self.retreat_btn)
+        # Show the continue/retreat buttons using the main view
+        # Clear and recreate buttons to prevent stale interaction issues
+        self.clear_items()
+        
+        # Recreate continue button
+        continue_btn = Button(
+            label="Proceed to Next Floor", 
+            style=discord.ButtonStyle.green,
+            emoji="➡️"
+        )
+        continue_btn.callback = self.next_floor_callback
+        self.add_item(continue_btn)
+        
+        # Recreate use item button
+        item_btn = Button(
+            label="Use Item",
+            style=discord.ButtonStyle.blurple,
+            emoji="🧪"
+        )
+        item_btn.callback = self.use_item_callback
+        self.add_item(item_btn)
+        
+        # Recreate retreat button
+        retreat_btn = Button(
+            label="Retreat",
+            style=discord.ButtonStyle.red,
+            emoji="🏃"
+        )
+        retreat_btn.callback = self.retreat_callback
+        self.add_item(retreat_btn)
 
         status_msg = await channel.send(
             f"🗺️ You are on floor {self.current_floor}/{self.max_floors} of {self.dungeon_name}.\n"
             f"What would you like to do?",
-            view=continue_view
+            view=self
         )
 
         self.messages.append(status_msg)
@@ -727,27 +814,16 @@ class DungeonProgressView(View):
         # Calculate player stats including equipment and level
         player_stats = self.player_data.get_stats(GAME_CLASSES)
 
-        # Apply cumulative damage - use HP from previous battles
+        # Store max HP separately and use current HP for battle continuity
+        max_hp = player_stats["hp"]
         if hasattr(self, 'player_current_hp'):
-            player_stats["hp"] = min(player_stats["hp"], self.player_current_hp)
+            current_hp = min(max_hp, self.player_current_hp)
+        else:
+            current_hp = max_hp
 
-        # Get player moves based on class
-        player_moves = []
-
-        # Basic moves for everyone
-        player_moves.append(BattleMove("Basic Attack", 1.0, 10))
-        player_moves.append(BattleMove("Heavy Strike", 1.5, 25))
-
-        # Class-specific special moves
-        if self.player_data.class_name == "Spirit Striker":
-            player_moves.append(BattleMove("Cursed Combo", 2.0, 35, "weakness", "Deal damage and weaken enemy"))
-            player_moves.append(BattleMove("Soul Siphon", 1.2, 20, "energy_restore", "Deal damage and restore energy"))
-        elif self.player_data.class_name == "Domain Tactician":
-            player_moves.append(BattleMove("Barrier Pulse", 0.8, 30, "shield", "Deal damage and gain a shield"))
-            player_moves.append(BattleMove("Tactical Heal", 0.5, 25, "heal", "Deal damage and heal yourself"))
-        elif self.player_data.class_name == "Flash Rogue":
-            player_moves.append(BattleMove("Shadowstep", 1.7, 30, "strength", "Deal damage and gain increased damage"))
-            player_moves.append(BattleMove("Quick Strikes", 0.7, 15, None, "Deal multiple quick strikes"))
+        # Use unified move generation system
+        from unified_moves import get_player_moves
+        player_moves = get_player_moves(self.player_data.class_name or "Warrior")
 
         # Create player entity
         player_entity = BattleEntity(
@@ -757,10 +833,20 @@ class DungeonProgressView(View):
             is_player=True,
             player_data=self.player_data
         )
+        
+        # Set current HP to maintain battle continuity while preserving max HP
+        player_entity.current_hp = current_hp
+        
+        # Set current energy for dungeon battles - use stored energy or max
+        if hasattr(self, 'player_current_energy') and self.player_current_energy > 0:
+            player_entity.current_energy = min(player_entity.max_energy, self.player_current_energy)
+        else:
+            player_entity.current_energy = player_entity.max_energy
 
-        # Create enemy entity
+        # Create enemy entity using unified move system
         enemy_stats = generate_enemy_stats(enemy_name, enemy_level, self.player_data.class_level)
-        enemy_moves = generate_enemy_moves(enemy_name)
+        from unified_moves import get_enemy_moves
+        enemy_moves = get_enemy_moves(enemy_name)
 
         enemy_entity = BattleEntity(
             enemy_name,
@@ -768,36 +854,19 @@ class DungeonProgressView(View):
             enemy_moves
         )
 
-        # Create battle embed
-        embed = discord.Embed(
-            title=f"⚔️ Dungeon Battle: {interaction.user.display_name} vs {enemy_name}",
-            description=f"A {enemy_name} (Level {enemy_level}) appears!",
-            color=discord.Color.red()
-        )
-
-        # Add player stats
-        embed.add_field(
-            name=f"{interaction.user.display_name} (Level {self.player_data.class_level})",
-            value=f"HP: {player_entity.current_hp}/{player_entity.stats['hp']} ❤️\n"
-                  f"Energy: {player_entity.current_energy}/{self.player_data.get_max_battle_energy()} ✨\n"
-                  f"Power: {player_entity.stats['power']} ⚔️\n"
-                  f"Defense: {player_entity.stats['defense']} 🛡️",
-            inline=True
-        )
-
-        # Add enemy stats
-        embed.add_field(
-            name=f"{enemy_name} (Level {enemy_level})",
-            value=f"HP: {enemy_entity.current_hp}/{enemy_entity.stats['hp']} ❤️\n"
-                  f"Energy: {enemy_entity.current_energy}/{enemy_entity.stats.get('energy', 100)} ✨\n"
-                  f"Power: {enemy_entity.stats['power']} ⚔️\n"
-                  f"Defense: {enemy_entity.stats['defense']} 🛡️",
-            inline=True
-        )
-
         # Create battle view
-        battle_view = BattleView(player_entity, enemy_entity, timeout=180)
+        battle_view = BattleView(player_entity, enemy_entity, interaction.user, timeout=180)
         battle_view.data_manager = self.data_manager
+        
+        # Add enemy level to enemy entity for display purposes
+        enemy_entity.level = enemy_level
+        
+        # Add dungeon context to battle log
+        battle_view.battle_log.append(f"🏰 **Dungeon Battle** - Floor {self.current_floor}")
+        battle_view.battle_log.append(f"A **{enemy_name}** (Level {enemy_level}) appears!")
+        
+        # Create formatted battle embed
+        embed = battle_view.create_battle_embed()
 
         battle_msg = await interaction.channel.send(embed=embed, view=battle_view)
         self.messages.append(battle_msg)
@@ -808,8 +877,9 @@ class DungeonProgressView(View):
         # Process battle results
         if not enemy_entity.is_alive():
             # Player won
-            # Store player's current HP for next fights
+            # Store player's current HP and energy for next fights
             self.player_current_hp = player_entity.current_hp
+            self.player_current_energy = player_entity.current_energy
 
             # Small reward for each enemy defeated
             minor_gold = int(self.dungeon_data["max_rewards"] * 0.1)
@@ -831,11 +901,11 @@ class DungeonProgressView(View):
                 inline=False
             )
 
-            # Show remaining HP
+            # Show remaining HP and energy
             win_embed.add_field(
                 name="Status",
-                value=f"HP: {self.player_current_hp}/{player_stats['hp']} ❤️\n"
-                      f"Energy: {player_entity.current_energy} ✨",
+                value=f"HP: {self.player_current_hp}/{max_hp} ❤️\n"
+                      f"Energy: {self.player_current_energy}/{player_entity.max_energy} ⚡",
                 inline=False
             )
 
@@ -876,12 +946,16 @@ class DungeonProgressView(View):
 
             # Calculate partial rewards (higher for making it to boss)
             progress_percent = 0.6  # 60% of rewards for reaching but losing to boss
-            gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
+            base_gold_reward = int(self.dungeon_data["max_rewards"] * progress_percent)
             exp_reward = int(self.dungeon_data["exp"] * progress_percent)
+
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
 
             # Award partial rewards
             self.player_data.add_gold(gold_reward)
-            self.player_data.add_exp(exp_reward)
+            exp_result = self.player_data.add_exp(exp_reward, data_manager=self.data_manager)
 
             # Send defeat message
             defeat_embed = discord.Embed(
@@ -890,9 +964,16 @@ class DungeonProgressView(View):
                 color=discord.Color.red()
             )
 
+            # Create proper EXP display with event information for defeat case
+            exp_display = f"EXP: {exp_reward}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"EXP: {exp_reward} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"EXP: {exp_result['adjusted_exp']}"
+            
             defeat_embed.add_field(
                 name="Partial Rewards",
-                value=f"EXP: +{exp_reward} 📊\n"
+                value=f"{exp_display} 📊\n"
                       f"Gold: +{gold_reward} 💰",
                 inline=False
             )
@@ -905,26 +986,41 @@ class DungeonProgressView(View):
             # Player defeated boss - complete the dungeon!
 
             # Calculate full rewards
-            gold_reward = self.dungeon_data["max_rewards"]
+            base_gold_reward = self.dungeon_data["max_rewards"]
             exp_reward = self.dungeon_data["exp"]
 
             # Add bonus based on enemies defeated
             bonus_percent = min(0.3, self.enemies_defeated * 0.05)  # Max 30% bonus
-            bonus_gold = int(gold_reward * bonus_percent)
+            bonus_gold = int(base_gold_reward * bonus_percent)
             bonus_exp = int(exp_reward * bonus_percent)
 
-            total_gold = gold_reward + bonus_gold
+            base_total_gold = base_gold_reward + bonus_gold
             total_exp = exp_reward + bonus_exp
+
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            total_gold = apply_gold_multiplier(base_total_gold, self.data_manager)
 
             # Award rewards
             self.player_data.add_gold(total_gold)
-            leveled_up = self.player_data.add_exp(total_exp)
+            exp_result = self.player_data.add_exp(total_exp, data_manager=self.data_manager)
+            leveled_up = exp_result["leveled_up"]
 
             # Update dungeon clear count
             if self.dungeon_name not in self.player_data.dungeon_clears:
                 self.player_data.dungeon_clears[self.dungeon_name] = 1
             else:
                 self.player_data.dungeon_clears[self.dungeon_name] += 1
+                
+            # Update achievement stat - increment total dungeons completed
+            if not hasattr(self.player_data, 'dungeons_completed'):
+                self.player_data.dungeons_completed = 0
+            self.player_data.dungeons_completed += 1
+            
+            # Update boss defeat count for achievements
+            if not hasattr(self.player_data, 'bosses_defeated'):
+                self.player_data.bosses_defeated = 0
+            self.player_data.bosses_defeated += 1
 
             # Update quest progress for dungeons
             from achievements import QuestManager
@@ -943,13 +1039,21 @@ class DungeonProgressView(View):
                 color=discord.Color.gold()
             )
 
+            # Create proper EXP display with event information
+            exp_display = f"Total EXP: {total_exp}"
+            if exp_result["event_multiplier"] > 1.0:
+                exp_display = f"Total EXP: {total_exp} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+            else:
+                exp_display = f"Total EXP: {exp_result['adjusted_exp']}"
+            
             victory_embed.add_field(
                 name="Rewards",
-                value=f"Base Gold: {gold_reward} 💰\n"
+                value=f"Base Gold: {base_gold_reward} 💰\n"
                       f"Bonus Gold: +{bonus_gold} 💰\n"
                       f"Base EXP: {exp_reward} 📊\n"
                       f"Bonus EXP: +{bonus_exp} 📊\n"
-                      f"Total: {total_gold} 💰 and {total_exp} EXP",
+                      f"{exp_display}\n"
+                      f"Total Gold: {total_gold} 💰",
                 inline=False
             )
 
@@ -1038,32 +1142,90 @@ class DungeonProgressView(View):
 
             await channel.send(embed=victory_embed)
 
-            # Handle quest progression
-            # Update quest progress for all participants
+            # Handle quest progression and collect quest completion messages
             from achievements import QuestManager
             quest_manager = QuestManager(self.data_manager)
+            quest_messages = []
 
             if self.is_team_dungeon:
                 # Update for all team members
                 for player in self.team_player_data:
+                    # Daily dungeon quests
                     completed_quests = quest_manager.update_quest_progress(player, "daily_dungeons")
                     for quest in completed_quests:
-                        quest_manager.award_quest_rewards(player, quest)
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
-                    # Also update for weekly_dungeons if applicable
+                    # Weekly dungeon quests
                     completed_weekly = quest_manager.update_quest_progress(player, "weekly_dungeons")
                     for quest in completed_weekly:
-                        quest_manager.award_quest_rewards(player, quest)
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
+                        
+                    # Long-term dungeon quests
+                    completed_longterm = quest_manager.update_quest_progress(player, "total_dungeons")
+                    for quest in completed_longterm:
+                        quest_messages.append(quest_manager.create_quest_completion_message(quest))
             else:
                 # Solo player
+                # Daily dungeon quests
                 completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_dungeons")
                 for quest in completed_quests:
-                    quest_manager.award_quest_rewards(self.player_data, quest)
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
 
-                # Also update for weekly_dungeons if applicable
+                # Weekly dungeon quests
                 completed_weekly = quest_manager.update_quest_progress(self.player_data, "weekly_dungeons")
                 for quest in completed_weekly:
-                    quest_manager.award_quest_rewards(self.player_data, quest)
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
+                    
+                # Long-term dungeon quests
+                completed_longterm = quest_manager.update_quest_progress(self.player_data, "total_dungeons")
+                for quest in completed_longterm:
+                    quest_messages.append(quest_manager.create_quest_completion_message(quest))
+
+            # Show quest completion messages if any
+            if quest_messages:
+                quest_text = "\n".join(quest_messages)
+                quest_embed = discord.Embed(
+                    title="🎯 Quest Progress",
+                    description=quest_text,
+                    color=discord.Color.gold()
+                )
+                await channel.send(embed=quest_embed)
+
+            # Check for achievements after dungeon completion
+            new_achievements = self.data_manager.check_player_achievements(self.player_data)
+            
+            # Show achievement completions if any
+            if new_achievements:
+                achievement_text = ""
+                for achievement in new_achievements:
+                    badge = achievement.get("badge", "🏆")
+                    points = achievement.get("points", 0)
+                    achievement_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
+                    achievement_text += f"*{achievement['description']}*\n"
+                    
+                    # Add rewards info
+                    if achievement.get("reward"):
+                        rewards = []
+                        reward_data = achievement["reward"]
+                        if "exp" in reward_data:
+                            rewards.append(f"EXP: +{reward_data['exp']}")
+                        if "gold" in reward_data:
+                            rewards.append(f"Gold: +{reward_data['gold']}")
+                        
+                        # Add achievement points to rewards
+                        if "points" in achievement:
+                            rewards.append(f"Achievement Points: +{achievement['points']}")
+                        
+                        if rewards:
+                            achievement_text += f"Rewards: {', '.join(rewards)}\n"
+                    achievement_text += "\n"
+                
+                achievement_embed = discord.Embed(
+                    title="🏆 New Achievements!",
+                    description=achievement_text.strip(),
+                    color=discord.Color.gold()
+                )
+                await channel.send(embed=achievement_embed)
 
             # Reset accumulated dungeon damage and restore full health
             from utils import GAME_CLASSES
@@ -1086,7 +1248,7 @@ class DungeonSelectView(View):
         available_dungeons = []
         locked_dungeons = []
 
-        for name, data in data_manager.dungeons.items():
+        for name, data in DUNGEONS.items():
             dungeon_data = data.copy()
             dungeon_data["name"] = name
 

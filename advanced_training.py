@@ -19,9 +19,9 @@ TRAINING_MINIGAMES = {
         "emoji": "⚔️",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 3.0, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 2.0, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 1.0, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 4.5, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 3.5, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 2.8, "attribute_gain": 3}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 100, "effect": {"name": "Combat Focus", "duration": 3, "boost_type": "power", "boost_amount": 10}}
@@ -41,7 +41,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "sequence_length": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Iron Defense", "duration": 3, "boost_type": "defense", "boost_amount": 15}}
         }
     },
     "Agility Course": {
@@ -53,12 +53,12 @@ TRAINING_MINIGAMES = {
         "emoji": "🏃",
         "minigame_type": "reaction",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 2.5, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 1.5, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "time_window": 0.8, "attribute_gain": 3}
+            {"name": "Basic", "exp_multiplier": 1.0, "time_window": 4.0, "attribute_gain": 1},
+            {"name": "Advanced", "exp_multiplier": 1.5, "time_window": 3.0, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "time_window": 2.5, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Swift Movements", "duration": 3, "boost_type": "dodge_boost", "boost_amount": 20}}
         }
     },
     "Cursed Energy Control": {
@@ -71,11 +71,11 @@ TRAINING_MINIGAMES = {
         "minigame_type": "timing",
         "difficulty_levels": [
             {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 1},
-            {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 2},
-            {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 3}
+            {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 2},
+            {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
+            "perfect_score": {"gold": 100, "effect": {"name": "Energy Surge", "duration": 3, "boost_type": "energy_regen", "boost_amount": 5}}
         }
     },
     "Tactical Analysis": {
@@ -92,7 +92,7 @@ TRAINING_MINIGAMES = {
             {"name": "Master", "exp_multiplier": 2.5, "questions": 7, "attribute_gain": 3}
         ],
         "special_rewards": {
-            "perfect_score": {"cursed_energy": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
+            "perfect_score": {"gold": 125, "effect": {"name": "Tactical Insight", "duration": 3, "boost_type": "critical_chance", "boost_amount": 10}}
         }
     },
     "Energy Cultivation": {
@@ -104,9 +104,9 @@ TRAINING_MINIGAMES = {
         "emoji": "⚡",
         "minigame_type": "precision",
         "difficulty_levels": [
-            {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 1, "energy_gain": 5},
-            {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 2, "energy_gain": 10},
-            {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 3, "energy_gain": 15}
+            {"name": "Basic", "exp_multiplier": 1.0, "targets": 4, "attribute_gain": 1, "energy_gain": 5},
+            {"name": "Advanced", "exp_multiplier": 1.5, "targets": 6, "attribute_gain": 2, "energy_gain": 10},
+            {"name": "Master", "exp_multiplier": 2.5, "targets": 8, "attribute_gain": 3, "energy_gain": 15}
         ],
         "special_rewards": {
             "perfect_score": {"cursed_energy": 150, "effect": {"name": "Energy Overflow", "duration": 4, "boost_type": "max_energy", "boost_amount": 20}}
@@ -205,9 +205,9 @@ CLASS_TRAINING = {
             "emoji": "🗡️",
             "minigame_type": "precision",
             "difficulty_levels": [
-                {"name": "Basic", "exp_multiplier": 1.0, "targets": 3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 5, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "targets": 7, "attribute_gain": 4}
+                {"name": "Basic", "exp_multiplier": 1.0, "targets": 4, "attribute_gain": 2},
+                {"name": "Advanced", "exp_multiplier": 1.5, "targets": 6, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "targets": 8, "attribute_gain": 4}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 150, "effect": {"name": "Assassination Focus", "duration": 2, "boost_type": "critical_damage", "boost_amount": 20}}
@@ -227,8 +227,8 @@ CLASS_TRAINING = {
             "minigame_type": "timing",
             "difficulty_levels": [
                 {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 4}
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 4}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 180, "effect": {"name": "Healing Aura", "duration": 3, "boost_type": "hp_regen", "boost_amount": 10}}
@@ -247,8 +247,8 @@ CLASS_TRAINING = {
             "minigame_type": "timing",
             "difficulty_levels": [
                 {"name": "Basic", "exp_multiplier": 1.0, "target_zone": 0.3, "attribute_gain": 2},
-                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.2, "attribute_gain": 3},
-                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.1, "attribute_gain": 5}
+                {"name": "Advanced", "exp_multiplier": 1.5, "target_zone": 0.25, "attribute_gain": 3},
+                {"name": "Master", "exp_multiplier": 2.5, "target_zone": 0.18, "attribute_gain": 5}
             ],
             "special_rewards": {
                 "perfect_score": {"cursed_energy": 180, "effect": {"name": "Domain Authority", "duration": 3, "boost_type": "all_stats", "boost_amount": 8}}
@@ -386,7 +386,9 @@ class TimingBar(View):
         self.target_zone = target_zone  # Size of the target zone (0.0-1.0)
         self.position = 0.0  # 0.0 to 1.0 representing position on bar
         self.direction = 1  # 1 for right, -1 for left
-        self.speed = 0.05  # How fast the indicator moves per step
+        self.base_speed = 0.025  # Base movement speed
+        self.speed = self.base_speed  # Current speed (can vary)
+        self.acceleration = 0.0005  # Slight acceleration for smoothness
         self.task = None
         self.stopped = False
 
@@ -398,7 +400,7 @@ class TimingBar(View):
     async def start(self, interaction: discord.Interaction):
         # Initial render
         self.position = 0.0
-        await interaction.response.send_message(
+        await interaction.edit_original_response(
             content=self.render_bar(),
             view=self
         )
@@ -408,35 +410,50 @@ class TimingBar(View):
 
     def render_bar(self) -> str:
         """Render a text-based timing bar"""
-        bar_length = 20
+        bar_length = 30  # Even longer for smoother movement
         target_start = int((0.5 - self.target_zone/2) * bar_length)
         target_end = int((0.5 + self.target_zone/2) * bar_length)
 
         # Create the bar with target zone
-        bar = ["□"] * bar_length
+        bar = ["⬛"] * bar_length
         for i in range(target_start, target_end+1):
-            bar[i] = "■"
+            if i < len(bar):
+                bar[i] = "🟩"
 
-        # Add the indicator
-        indicator_pos = min(bar_length-1, int(self.position * bar_length))
+        # Add the indicator with smooth positioning
+        indicator_pos = min(bar_length-1, max(0, int(self.position * bar_length)))
+        
+        # Add trailing effect for smoother visual
+        if indicator_pos > 0 and bar[indicator_pos-1] not in ["🟩"]:
+            bar[indicator_pos-1] = "🟡"  # Trail effect
+        
         bar[indicator_pos] = "🔴"
 
-        return f"⏱️ Stop the indicator in the target zone!\n\n|{''.join(bar)}|"
+        # Progress indicator
+        progress = f"{int(self.position * 100):3d}%"
+        zone_info = f"Target: {int(self.target_zone * 100)}% | Position: {progress}"
+        
+        return f"🎯 Stop the red ball in the green zone!\n{zone_info}\n\n|{''.join(bar)}|"
 
     async def animate(self, interaction: discord.Interaction):
         """Animate the timing bar"""
         try:
             while not self.stopped:
+                # Slightly vary speed for more natural movement
+                self.speed = self.base_speed + (self.acceleration * abs(self.position - 0.5))
+                
                 # Update position
                 self.position += self.speed * self.direction
 
-                # Change direction if hitting edge
+                # Change direction if hitting edge with slight bounce effect
                 if self.position >= 1.0:
                     self.position = 1.0
                     self.direction = -1
+                    self.speed = self.base_speed  # Reset speed at edges
                 elif self.position <= 0.0:
                     self.position = 0.0
                     self.direction = 1
+                    self.speed = self.base_speed  # Reset speed at edges
 
                 # Update the message
                 try:
@@ -446,8 +463,8 @@ class TimingBar(View):
                     self.stopped = True
                     break
 
-                # Delay between frames
-                await asyncio.sleep(0.1)
+                # Ultra-smooth animation with high frame rate
+                await asyncio.sleep(0.025)
         except asyncio.CancelledError:
             # Task was cancelled, clean up
             self.stopped = True
@@ -518,10 +535,10 @@ class QuizButton(Button):
 # PRECISION MINIGAME - Track and click moving targets
 class MovingTargetButton(Button):
     def __init__(self, is_active: bool, position: Tuple[int, int], parent_view):
-        # Set button appearance
+        # Set button appearance with proper labels
         super().__init__(
-            label="◯" if is_active else " ",
-            style=discord.ButtonStyle.green if is_active else discord.ButtonStyle.secondary,
+            label="🔴" if is_active else "⬜",
+            style=discord.ButtonStyle.danger if is_active else discord.ButtonStyle.secondary,
             row=position[0]  # Use row as Y coordinate
         )
 
@@ -554,6 +571,7 @@ class TrainingMinigameView(View):
         self.training_type = training_type
         self.training_data = training_data
         self.data_manager = data_manager
+        self.training_in_progress = False  # Prevent multiple training sessions
 
         # Get difficulty settings
         self.difficulty_levels = training_data["difficulty_levels"]
@@ -588,6 +606,14 @@ class TrainingMinigameView(View):
 
     async def start_callback(self, interaction: discord.Interaction):
         """Start the training minigame"""
+        # Prevent multiple training sessions
+        if self.training_in_progress:
+            await interaction.response.send_message(
+                "Training is already in progress!", ephemeral=True)
+            return
+
+        self.training_in_progress = True
+        
         # Remove the start and cancel buttons
         self.clear_items()
 
@@ -605,9 +631,16 @@ class TrainingMinigameView(View):
 
         # Add callback for difficulty selection
         async def difficulty_callback(interaction: discord.Interaction):
-            # Get selected difficulty
-            selected_idx = int(interaction.data["values"][0])
-            self.current_difficulty = self.difficulty_levels[selected_idx]
+            # Get selected difficulty with error handling
+            try:
+                if not interaction.data or "values" not in interaction.data:
+                    await interaction.response.send_message("Error: No difficulty selected.", ephemeral=True)
+                    return
+                selected_idx = int(interaction.data["values"][0])
+                self.current_difficulty = self.difficulty_levels[selected_idx]
+            except (KeyError, IndexError, ValueError) as e:
+                await interaction.response.send_message(f"Error selecting difficulty: {e}", ephemeral=True)
+                return
 
             # Remove the select menu
             self.clear_items()
@@ -656,7 +689,14 @@ class TrainingMinigameView(View):
 
         for round_num in range(1, rounds + 1):
             # Create a grid of buttons (one target, rest are misses)
-            grid_size = 3  # 3x3 grid
+            # Grid size increases with difficulty
+            if time_window >= 4.0:  # Basic
+                grid_size = 3  # 3x3 grid
+            elif time_window >= 3.0:  # Advanced
+                grid_size = 4  # 4x4 grid
+            else:  # Master
+                grid_size = 4  # Keep at 4x4 for fairness
+            
             target_x = random.randint(0, grid_size - 1)
             target_y = random.randint(0, grid_size - 1)
 
@@ -733,8 +773,8 @@ class TrainingMinigameView(View):
                 view=display_view
             )
 
-            # Wait before hiding the sequence
-            await asyncio.sleep(sequence_length * 0.8)  # Longer sequences get more time
+            # Wait before hiding the sequence - increased time for better memorization
+            await asyncio.sleep(sequence_length * 1.2)  # More time for memorization
 
             # Hide the sequence and show a "Get ready" message
             await interaction.edit_original_response(
@@ -954,9 +994,18 @@ class TrainingMinigameView(View):
     async def run_precision_minigame(self, interaction: discord.Interaction):
         """Run the precision targeting minigame"""
         # Set up minigame parameters
-        target_count = self.current_difficulty.get("targets", 3)
-        grid_size = 4  # 4x4 grid
-        time_per_target = 2.0  # seconds
+        target_count = self.current_difficulty.get("targets", 4)
+        
+        # Grid size and time scale with difficulty
+        if target_count <= 4:  # Basic
+            grid_size = 3  # 3x3 grid
+            time_per_target = 3.0  # +1 second for all difficulties
+        elif target_count <= 6:  # Advanced
+            grid_size = 4  # 4x4 grid
+            time_per_target = 3.0  # +1 second
+        else:  # Master
+            grid_size = 4  # Keep 4x4 for Master (more targets, same space = harder)
+            time_per_target = 3.0  # +1 second
 
         self.target_count = target_count
         self.hits = 0
@@ -979,7 +1028,7 @@ class TrainingMinigameView(View):
             # Show the grid
             self.round_complete = False
             await interaction.edit_original_response(
-                content=f"Target {target_idx+1}/{target_count} - Hit the highlighted target!",
+                content=f"🎯 Target {target_idx+1}/{target_count} - Hit the red target!\nGrid: {grid_size}x{grid_size} | Time: {time_per_target}s",
                 view=target_view
             )
 
@@ -999,7 +1048,7 @@ class TrainingMinigameView(View):
 
             # Short pause between targets
             if target_idx < target_count - 1 and self.round_complete:
-                await asyncio.sleep(0.8)
+                await asyncio.sleep(1.0)
 
         # Convert hits to score for consistency with other minigames
         self.score = self.hits
@@ -1036,20 +1085,11 @@ class TrainingMinigameView(View):
             energy_gain = self.current_difficulty.get("energy_gain", 5)
 
         # Apply the gains
-        levelup_threshold = 100 * self.player_data.class_level
         old_level = self.player_data.class_level
 
-        # Update XP
-        self.player_data.class_exp += exp_gain
-
-        # Check for level up
-        leveled_up = False
-        while self.player_data.class_exp >= levelup_threshold:
-            self.player_data.class_exp -= levelup_threshold
-            self.player_data.class_level += 1
-            self.player_data.skill_points += 3
-            levelup_threshold = 100 * self.player_data.class_level
-            leveled_up = True
+        # Update XP using proper method that handles Double XP events
+        exp_result = self.player_data.add_exp(exp_gain, data_manager=self.data_manager)
+        leveled_up = exp_result["leveled_up"]
 
         # Apply attribute gains if applicable
         if attribute_gain > 0:
@@ -1068,11 +1108,30 @@ class TrainingMinigameView(View):
         if success_percent == 100 and "special_rewards" in self.training_data and "perfect_score" in self.training_data["special_rewards"]:
             special_rewards = self.training_data["special_rewards"]["perfect_score"]
 
-            # Apply gold reward if present (previously cursed_energy)
-            if "cursed_energy" in special_rewards:
-                # Convert cursed_energy rewards to gold
-                gold_reward = special_rewards["cursed_energy"]
-                self.player_data.gold += gold_reward
+            # Apply gold reward if present
+            if "gold" in special_rewards:
+                base_gold_reward = special_rewards["gold"]
+                # Apply gold multiplier from active events
+                from utils import apply_gold_multiplier
+                gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
+                
+                self.player_data.add_gold(gold_reward)
+                # Track gold earned for achievements
+                if not hasattr(self.player_data, "gold_earned"):
+                    self.player_data.gold_earned = 0
+                self.player_data.gold_earned += gold_reward
+            # Legacy support for old cursed_energy rewards (redirect to gold)
+            elif "cursed_energy" in special_rewards:
+                base_gold_reward = special_rewards["cursed_energy"]
+                # Apply gold multiplier from active events
+                from utils import apply_gold_multiplier
+                gold_reward = apply_gold_multiplier(base_gold_reward, self.data_manager)
+                
+                self.player_data.add_gold(gold_reward)
+                # Track gold earned for achievements
+                if not hasattr(self.player_data, "gold_earned"):
+                    self.player_data.gold_earned = 0
+                self.player_data.gold_earned += gold_reward
 
             # Apply effect if present
             if "effect" in special_rewards:
@@ -1108,8 +1167,32 @@ class TrainingMinigameView(View):
             self.player_data.advanced_training_completed = 0
         self.player_data.advanced_training_completed += 1
 
+        # Update quest progress for training completion
+        from achievements import QuestManager
+        quest_manager = QuestManager(self.data_manager)
+        
+        # Collect quest completion messages
+        quest_messages = []
+        
+        # Update daily training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "daily_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update weekly training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "weekly_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+        
+        # Update long-term training quests
+        completed_quests = quest_manager.update_quest_progress(self.player_data, "total_training")
+        for quest in completed_quests:
+            quest_messages.append(quest_manager.create_quest_completion_message(quest))
+
         # Check for achievements
-        new_achievements = self.data_manager.check_player_achievements(self.player_data)
+        from achievements import AchievementTracker
+        achievement_tracker = AchievementTracker(self.data_manager)
+        new_achievements = achievement_tracker.check_achievements(self.player_data)
 
         # Save player data
         self.data_manager.save_data()
@@ -1174,12 +1257,21 @@ class TrainingMinigameView(View):
                 inline=False
             )
 
-        # Add experience
+        # Add experience with Double XP event display
+        exp_text = f"**EXP Gained:** {exp_result['adjusted_exp']}"
+        if exp_result["event_multiplier"] > 1.0:
+            exp_text = f"**EXP Gained:** {exp_gain} → {exp_result['adjusted_exp']} (🎉 {exp_result['event_name']} {exp_result['event_multiplier']}x!)"
+        
         embed.add_field(
             name="Experience",
-            value=f"**EXP Gained:** {exp_gain}",
+            value=exp_text,
             inline=True
         )
+
+        # Add quest completion messages if any
+        if quest_messages:
+            quest_text = "\n".join(quest_messages)
+            embed.add_field(name="🎯 Quest Progress", value=quest_text, inline=False)
 
         # Add level up notification if applicable
         if leveled_up:
@@ -1189,6 +1281,11 @@ class TrainingMinigameView(View):
                       f"You gained 3 skill points! Use !skills to allocate them.",
                 inline=False
             )
+
+        # Add achievement notifications
+        if new_achievements:
+            achievement_text = "\n".join([f"🏆 **{ach['name']}** - {ach['description']}" for ach in new_achievements])
+            embed.add_field(name="🎉 New Achievements!", value=achievement_text, inline=False)
 
         # Add cooldown info
         embed.add_field(
@@ -1310,13 +1407,36 @@ class AdvancedTrainingView(View):
 
     async def training_select_callback(self, interaction: discord.Interaction):
         """Handle training selection"""
-        # Get selected training
+        # Get selected training with error handling
         try:
+            if not interaction.data or "values" not in interaction.data:
+                await interaction.response.send_message("Error: No training selected.", ephemeral=True)
+                return
             selected_training = interaction.data["values"][0]
             training_data = self.training_options[selected_training]
-        except Exception as e:
+        except (KeyError, IndexError) as e:
             await interaction.response.send_message(f"Error selecting training: {e}", ephemeral=True)
             return
+
+        # Check cooldown before allowing training
+        if hasattr(self.player_data, "training_cooldowns") and selected_training in self.player_data.training_cooldowns:
+            try:
+                cooldown_time = datetime.datetime.fromisoformat(self.player_data.training_cooldowns[selected_training])
+                now = datetime.datetime.now()
+
+                if cooldown_time > now:
+                    # Still on cooldown
+                    time_left = cooldown_time - now
+                    hours = time_left.seconds // 3600
+                    minutes = (time_left.seconds % 3600) // 60
+                    await interaction.response.send_message(
+                        f"❌ {selected_training} is still on cooldown! Wait {hours}h {minutes}m before training again.",
+                        ephemeral=True
+                    )
+                    return
+            except (ValueError, TypeError):
+                # Invalid datetime format, allow training
+                pass
 
         # Create minigame view
         training_view = TrainingMinigameView(

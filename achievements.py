@@ -431,6 +431,15 @@ DAILY_QUESTS = [
         "min_value": 1,
         "max_value": 5,
         "reward": {"exp": lambda v: v * 80, "gold": lambda v: v * 40}
+    },
+    {
+        "id": "daily_pvp",
+        "name": "PVP Daily",
+        "description": "Win {value} PVP battles today",
+        "type": "daily_pvp",
+        "min_value": 1,
+        "max_value": 3,
+        "reward": {"exp": lambda v: v * 100, "gold": lambda v: v * 100}
     }
 ]
 
@@ -471,6 +480,24 @@ WEEKLY_QUESTS = [
         "min_value": 2,
         "max_value": 7,
         "reward": {"exp": lambda v: v * 120, "gold": lambda v: v * 120}
+    },
+    {
+        "id": "weekly_dungeons",
+        "name": "Weekly Explorer",
+        "description": "Complete {value} dungeons this week",
+        "type": "weekly_dungeons",
+        "min_value": 3,
+        "max_value": 10,
+        "reward": {"exp": lambda v: v * 150, "gold": lambda v: v * 150}
+    },
+    {
+        "id": "weekly_wins",
+        "name": "Weekly Warrior",
+        "description": "Win {value} battles this week",
+        "type": "weekly_wins",
+        "min_value": 10,
+        "max_value": 25,
+        "reward": {"exp": lambda v: v * 100, "gold": lambda v: v * 100}
     }
 ]
 
@@ -515,6 +542,22 @@ LONG_TERM_QUESTS = [
         "type": "guild_level",
         "value": 10,
         "reward": {"exp": 5000, "gold": 5000, "special_item": "Guild Banner"}
+    },
+    {
+        "id": "training_master",
+        "name": "Training Master",
+        "description": "Complete 100 training sessions",
+        "type": "total_training",
+        "value": 100,
+        "reward": {"exp": 3000, "gold": 3000, "special_item": "Master Trainer's Certificate"}
+    },
+    {
+        "id": "level_milestone_50",
+        "name": "Elite Adventurer",
+        "description": "Reach level 50",
+        "type": "reach_level",
+        "value": 50,
+        "reward": {"exp": 5000, "gold": 5000, "special_item": "Elite Adventurer's Crown"}
     }
 ]
 
@@ -601,9 +644,9 @@ SPECIAL_EVENTS = [
     # Generic Boss (fallback)
     {
         "id": "special_boss",
-        "name": "World Boss: {boss_name}",
+        "name": "World Boss: Ancient Behemoth",
         "description": "A powerful world boss has appeared! Work together to defeat it for special rewards!",
-        "effect": {"type": "world_boss", "boss_level": lambda avg_lvl: avg_lvl + 20},
+        "effect": {"type": "world_boss", "boss_name": "Ancient Behemoth", "boss_level": lambda avg_lvl: avg_lvl + 20},
         "duration": 0.5  # days (12 hours)
     },
     {
@@ -621,10 +664,17 @@ SPECIAL_EVENTS = [
         "duration": 1  # days
     },
     {
-        "id": "spirit_storm",
-        "name": "Spirit Storm",
-        "description": "A mystical storm of spirits has descended! Increased cursed energy drops by 75%!",
-        "effect": {"type": "cursed_energy_multiplier", "value": 1.75},
+        "id": "fortune_event",
+        "name": "Fortune Event",
+        "description": "A mystical fortune event has occurred! Increased gold drops by 75%!",
+        "effect": {"type": "gold_multiplier", "value": 1.75},
+        "duration": 1  # days
+    },
+    {
+        "id": "gold_rush",
+        "name": "Gold Rush Event",
+        "description": "The legendary Gold Rush is here! All gold rewards are doubled!",
+        "effect": {"type": "gold_multiplier", "value": 2.0},
         "duration": 1  # days
     }
 ]
@@ -639,7 +689,15 @@ class AchievementTracker:
             player.achievements = []
 
         completed_achievements = []
-        for achievement_id in player.achievements:
+        for achievement in player.achievements:
+            # Handle both string IDs and Achievement objects
+            if isinstance(achievement, str):
+                achievement_id = achievement
+            elif hasattr(achievement, 'achievement_id'):
+                achievement_id = achievement.achievement_id
+            else:
+                continue
+                
             if achievement_id in ACHIEVEMENTS:
                 completed_achievements.append({
                     "id": achievement_id,
@@ -649,26 +707,47 @@ class AchievementTracker:
         return completed_achievements
 
     def get_player_achievement_points(self, player: PlayerData) -> int:
-        """Get total achievement points for player"""
-        total_points = 0
+        """Get available achievement points for player (earned minus spent)"""
+        total_earned = 0
 
         if not hasattr(player, "achievements"):
             player.achievements = []
 
-        for achievement_id in player.achievements:
+        for achievement in player.achievements:
+            # Handle both string IDs and Achievement objects
+            if isinstance(achievement, str):
+                achievement_id = achievement
+            elif hasattr(achievement, 'achievement_id'):
+                achievement_id = achievement.achievement_id
+            else:
+                continue
+                
             if achievement_id in ACHIEVEMENTS:
-                total_points += ACHIEVEMENTS[achievement_id].get("points", 0)
+                total_earned += ACHIEVEMENTS[achievement_id].get("points", 0)
 
-        return total_points
+        # Initialize spent_achievement_points if it doesn't exist
+        if not hasattr(player, "spent_achievement_points"):
+            player.spent_achievement_points = 0
+
+        # Return available points (earned minus spent)
+        return total_earned - player.spent_achievement_points
 
     def get_player_available_achievements(self, player: PlayerData) -> List[Dict[str, Any]]:
         """Get a list of player's available (not yet completed) achievements"""
         if not hasattr(player, "achievements"):
             player.achievements = []
 
+        # Get list of completed achievement IDs
+        completed_ids = []
+        for achievement in player.achievements:
+            if isinstance(achievement, str):
+                completed_ids.append(achievement)
+            elif hasattr(achievement, 'achievement_id'):
+                completed_ids.append(achievement.achievement_id)
+
         available_achievements = []
         for achievement_id, achievement in ACHIEVEMENTS.items():
-            if achievement_id not in player.achievements:
+            if achievement_id not in completed_ids:
                 available_achievements.append({
                     "id": achievement_id,
                     **achievement
@@ -690,16 +769,30 @@ class AchievementTracker:
         available_achievements = self.get_player_available_achievements(player)
 
         for achievement in available_achievements:
-            # Skip already earned
-            if achievement["id"] in player.achievements:
+            # Skip already earned - check both string IDs and Achievement objects
+            earned_ids = []
+            for ach in player.achievements:
+                if hasattr(ach, 'achievement_id'):
+                    earned_ids.append(ach.achievement_id)
+                elif isinstance(ach, str):
+                    earned_ids.append(ach)
+            
+            if achievement["id"] in earned_ids:
                 continue
 
             # Check if achievement is completed
             completed = self.check_achievement_completion(player, achievement)
 
             if completed:
-                # Add achievement to player
-                player.achievements.append(achievement["id"])
+                # Create Achievement object and add to player
+                achievement_obj = Achievement(
+                    achievement_id=achievement["id"],
+                    name=achievement["name"],
+                    description=achievement["description"],
+                    reward=achievement.get("reward", {}),
+                    completed_at=datetime.datetime.now()
+                )
+                player.achievements.append(achievement_obj)
 
                 # Award rewards
                 self.award_achievement_rewards(player, achievement)
@@ -815,6 +908,131 @@ class AchievementTracker:
 
         return False
 
+    def get_achievement_progress(self, player: PlayerData, achievement: Dict[str, Any]) -> Dict[str, Any]:
+        """Get current progress for an achievement"""
+        req_type = achievement["requirement"]["type"]
+        req_value = achievement["requirement"]["value"]
+        current_value = 0
+        
+        # Get current value based on requirement type
+        if req_type == "level":
+            current_value = player.class_level
+            
+        elif req_type == "wins":
+            current_value = getattr(player, "wins", 0)
+            
+        elif req_type == "pvp_wins":
+            current_value = getattr(player, "pvp_wins", 0)
+            
+        elif req_type == "dungeons_completed":
+            current_value = getattr(player, "dungeons_completed", 0)
+            
+        elif req_type == "bosses_defeated":
+            current_value = getattr(player, "bosses_defeated", 0)
+            
+        elif req_type == "gold_earned":
+            current_value = getattr(player, "gold_earned", 0)
+            
+        elif req_type == "gold_spent":
+            current_value = getattr(player, "gold_spent", 0)
+            
+        elif req_type == "unique_items":
+            current_value = len(self.get_unique_items(player)) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_weapons":
+            current_value = len(self.get_unique_items_by_type(player, "weapon")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_armor":
+            current_value = len(self.get_unique_items_by_type(player, "armor")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "unique_accessories":
+            current_value = len(self.get_unique_items_by_type(player, "accessory")) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "rare_items":
+            current_value = len(self.get_items_by_rarity(player, ["rare", "epic", "legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "epic_items":
+            current_value = len(self.get_items_by_rarity(player, ["epic", "legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "legendary_items":
+            current_value = len(self.get_items_by_rarity(player, ["legendary", "mythic"])) if hasattr(player, "inventory") else 0
+            
+        elif req_type == "training_completed":
+            current_value = getattr(player, "training_completed", 0)
+            
+        elif req_type == "advanced_training_completed":
+            current_value = getattr(player, "advanced_training_completed", 0)
+            
+        elif req_type == "join_guild":
+            # Binary achievement - either in guild (1) or not (0)
+            if hasattr(self.data_manager, "member_guild_map"):
+                current_value = 1 if player.user_id in self.data_manager.member_guild_map else 0
+            req_value = 1
+            
+        elif req_type == "guild_contributions":
+            current_value = getattr(player, "guild_contributions", 0)
+            
+        elif req_type == "guild_dungeons":
+            current_value = getattr(player, "guild_dungeons", 0)
+            
+        elif req_type == "guild_officer":
+            # Binary achievement - either officer (1) or not (0)
+            current_value = 0
+            if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
+                guild_name = self.data_manager.member_guild_map[player.user_id]
+                if guild_name in self.data_manager.guild_data:
+                    guild_data = self.data_manager.guild_data[guild_name]
+                    current_value = 1 if player.user_id in guild_data.get("officers", []) else 0
+            req_value = 1
+            
+        elif req_type == "guild_leader":
+            # Binary achievement - either leader (1) or not (0)
+            current_value = 0
+            if hasattr(self.data_manager, "member_guild_map") and player.user_id in self.data_manager.member_guild_map:
+                guild_name = self.data_manager.member_guild_map[player.user_id]
+                if guild_name in self.data_manager.guild_data:
+                    guild_data = self.data_manager.guild_data[guild_name]
+                    current_value = 1 if player.user_id == guild_data.get("leader_id") else 0
+            req_value = 1
+            
+        elif req_type == "class_changes":
+            current_value = getattr(player, "class_changes", 0)
+            
+        elif req_type == "daily_claims":
+            current_value = getattr(player, "daily_claims", 0)
+            
+        elif req_type == "quests_completed":
+            current_value = getattr(player, "quests_completed", 0)
+            
+        elif req_type == "achievements_earned":
+            current_value = len(player.achievements) if hasattr(player, "achievements") else 0
+            
+        elif req_type == "achievement_points":
+            current_value = self.get_player_achievement_points(player)
+        
+        # Calculate percentage and create progress bar
+        percentage = min(100, (current_value / req_value) * 100) if req_value > 0 else 100
+        progress_bar = self.create_progress_bar(current_value, req_value)
+        
+        return {
+            "current": current_value,
+            "required": req_value,
+            "percentage": percentage,
+            "progress_bar": progress_bar,
+            "completed": current_value >= req_value
+        }
+
+    def create_progress_bar(self, current: int, maximum: int, length: int = 10) -> str:
+        """Create a text progress bar"""
+        if maximum <= 0:
+            return "█" * length
+            
+        filled = int((current / maximum) * length) if maximum > 0 else 0
+        filled = min(filled, length)
+        empty = length - filled
+        
+        return "█" * filled + "░" * empty
+
     def get_unique_items(self, player: PlayerData) -> List[str]:
         """Get list of unique item names in player inventory"""
         if not hasattr(player, "inventory"):
@@ -859,7 +1077,7 @@ class AchievementTracker:
 
         # Award XP
         if "exp" in reward:
-            player.add_exp(reward["exp"])
+            player.add_exp(reward["exp"], data_manager=self.data_manager)
 
         # Award gold
         if "gold" in reward:
@@ -1081,6 +1299,45 @@ class QuestManager:
 
         return completed_quests
 
+    def create_quest_completion_message(self, quest: Dict[str, Any]) -> str:
+        """Create a formatted message for quest completion"""
+        quest_type_emoji = {
+            "daily_wins": "⚔️",
+            "weekly_wins": "🏆", 
+            "daily_training": "🏋️",
+            "weekly_training": "💪",
+            "daily_dungeons": "🏴‍☠️",
+            "weekly_dungeons": "🗡️",
+            "daily_gold": "💰",
+            "daily_items": "🎁",
+            "weekly_bosses": "👹",
+            "weekly_pvp": "⚔️",
+            "weekly_guild_contribution": "🏰",
+            "total_wins": "🥇",
+            "total_training": "🎯",
+            "total_dungeons": "🗡️"
+        }
+        
+        emoji = quest_type_emoji.get(quest["type"], "✅")
+        
+        # Create reward text
+        reward_text = ""
+        if "reward" in quest:
+            reward = quest["reward"]
+            reward_parts = []
+            
+            if "exp" in reward:
+                reward_parts.append(f"+{reward['exp']} EXP")
+            if "gold" in reward:
+                reward_parts.append(f"+{reward['gold']} Gold")
+            if "special_item" in reward:
+                reward_parts.append(f"Special Item: {reward['special_item']}")
+                
+            if reward_parts:
+                reward_text = f"\n**Rewards:** {', '.join(reward_parts)}"
+        
+        return f"{emoji} **Quest Complete!** {quest['name']}{reward_text}"
+
     def award_quest_rewards(self, player: PlayerData, quest: Dict[str, Any]):
         """Award rewards for completing a quest"""
         if "reward" not in quest:
@@ -1091,32 +1348,19 @@ class QuestManager:
         # Award XP with event multiplier
         if "exp" in reward:
             exp_amount = reward["exp"]
+            # Use the proper event-aware XP method
+            player.add_exp(exp_amount, data_manager=self.data_manager)
 
-            # Apply event multipliers if any
-            if "active_events" in self.data_manager.__dict__:
-                for event_id, event_data in self.data_manager.active_events.items():
-                    if event_data["effect"]["type"] == "exp_multiplier":
-                        exp_amount = int(exp_amount * event_data["effect"]["value"])
-
-            player.add_exp(exp_amount)
-
-        # Award cursed energy with event multiplier
+        # Award gold with event multiplier
         if "gold" in reward:
-            energy_amount = reward["gold"]
+            base_gold_amount = reward["gold"]
 
-            # Apply event multipliers if any
-            if "active_events" in self.data_manager.__dict__:
-                for event_id, event_data in self.data_manager.active_events.items():
-                    if event_data["effect"]["type"] == "gold_multiplier":
-                        energy_amount = int(energy_amount * event_data["effect"]["value"])
+            # Apply gold multiplier from active events
+            from utils import apply_gold_multiplier
+            gold_amount = apply_gold_multiplier(base_gold_amount, self.data_manager)
 
-            # Add to player's cursed energy (the main currency)
-            player.cursed_energy += energy_amount
-
-            # Track gold earned for achievements
-            if not hasattr(player, "gold_earned"):
-                player.gold_earned = 0
-            player.gold_earned += energy_amount
+            # Add to player's gold (the main currency)
+            player.add_gold(gold_amount)
 
         # Award special item if any
         if "special_item" in reward:
@@ -1260,9 +1504,11 @@ class AchievementsView(View):
         self.player_data = player_data
         self.achievement_tracker = achievement_tracker
         self.current_category = "all"
+        self.show_progress_details = False
 
         # Add category selection
         self.add_category_select()
+        self.add_progress_toggle_button()
 
     def add_category_select(self):
         """Add dropdown for achievement category filtering"""
@@ -1286,6 +1532,30 @@ class AchievementsView(View):
         )
         category_select.callback = self.category_callback
         self.add_item(category_select)
+
+    def add_progress_toggle_button(self):
+        """Add button to toggle detailed progress view"""
+        toggle_button = Button(
+            label="Show Progress Details" if not self.show_progress_details else "Hide Progress Details",
+            style=discord.ButtonStyle.secondary,
+            emoji="📊"
+        )
+        toggle_button.callback = self.progress_toggle_callback
+        self.add_item(toggle_button)
+
+    async def progress_toggle_callback(self, interaction: discord.Interaction):
+        """Handle progress toggle button"""
+        self.show_progress_details = not self.show_progress_details
+        
+        # Update button label
+        for item in self.children:
+            if isinstance(item, Button) and item.emoji and item.emoji.name == "📊":
+                item.label = "Show Progress Details" if not self.show_progress_details else "Hide Progress Details"
+                break
+        
+        # Create updated embed
+        embed = self.create_achievements_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     async def category_callback(self, interaction: discord.Interaction):
         """Handle category selection"""
@@ -1341,14 +1611,21 @@ class AchievementsView(View):
                 inline=False
             )
 
-        # Add available achievements
+        # Add available achievements with progress tracking
         if available_achievements:
             available_text = ""
             for achievement in available_achievements[:5]:  # Limit to first 5
                 badge = achievement.get("badge", "🏆")
                 points = achievement.get("points", 0)
+                
+                # Get progress for this achievement
+                progress = self.achievement_tracker.get_achievement_progress(self.player_data, achievement)
+                
                 available_text += f"{badge} **{achievement['name']}** ({points} pts)\n"
-                available_text += f"*{achievement['description']}*\n\n"
+                available_text += f"*{achievement['description']}*\n"
+                
+                # Add progress bar and current/required values
+                available_text += f"Progress: {progress['progress_bar']} {progress['current']}/{progress['required']} ({progress['percentage']:.0f}%)\n\n"
 
             if len(available_achievements) > 5:
                 available_text += f"*And {len(available_achievements) - 5} more...*"
@@ -1631,6 +1908,10 @@ async def achievements_command(ctx, data_manager: DataManager):
             elif reward_type == "server_role":
                 rewards_text += f"Server Role: {amount}\n"
 
+        # Add achievement points to rewards
+        if "points" in achievement:
+            rewards_text += f"Achievement Points: +{achievement['points']}\n"
+
         if rewards_text:
             new_achievement_embed.add_field(
                 name="Rewards",
@@ -1804,10 +2085,29 @@ async def event_command(ctx, data_manager: DataManager, action: str = None, even
 
             @discord.ui.button(label="Start 1-Week Event", style=discord.ButtonStyle.success)
             async def start_event_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-                # Create a select menu to choose an event
-                options = [discord.SelectOption(label=event["name"], value=event["id"], 
-                          description=f"Start a 1-week {event['id']} event") 
-                          for event in SPECIAL_EVENTS]
+                # Create a select menu to choose an event with validation
+                options = []
+                seen_values = set()
+                seen_labels = set()
+                
+                for event in SPECIAL_EVENTS:
+                    # Skip if we've already seen this value or label
+                    if event["id"] in seen_values or event["name"] in seen_labels:
+                        continue
+                    
+                    # Create option with truncated description if needed
+                    description = f"Start a 1-week {event['id']} event"
+                    if len(description) > 100:
+                        description = description[:97] + "..."
+                    
+                    options.append(discord.SelectOption(
+                        label=event["name"][:100],  # Ensure label fits Discord limits
+                        value=event["id"][:100],    # Ensure value fits Discord limits
+                        description=description
+                    ))
+                    
+                    seen_values.add(event["id"])
+                    seen_labels.add(event["name"])
 
                 select = discord.ui.Select(placeholder="Choose an event to start", options=options)
 
