@@ -796,7 +796,7 @@ class DungeonProgressView(View):
         )
 
         # Create battle view
-        battle_view = BattleView(player_entity, enemy_entity, timeout=180)
+        battle_view = BattleView(player_entity, enemy_entity, interaction.user, timeout=180)
         battle_view.data_manager = self.data_manager
 
         battle_msg = await interaction.channel.send(embed=embed, view=battle_view)
