@@ -963,178 +963,6 @@ ADVANCED_SHOP_ITEMS = {
             "value": 1000000,
             "unlock_condition": "Defeat all Divine Bosses across all servers"
         }
-    ],
-
-    # Achievement Points Shop - exclusive items bought with achievement points
-    "achievement": [
-        # Server Roles (150 points each for 5 roles = 750 points)
-        {
-            "name": "Elite Champion Role",
-            "description": "Gain the Elite Champion role on the server. Shows your dedication to the game!",
-            "item_type": "role",
-            "role_id": "1369638671099232327",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 150,
-            "one_time_purchase": True
-        },
-        {
-            "name": "Master Explorer Role",
-            "description": "Gain the Master Explorer role on the server. Perfect for dungeon enthusiasts!",
-            "item_type": "role",
-            "role_id": "1384252094323753012",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 150,
-            "one_time_purchase": True
-        },
-        {
-            "name": "Battle Legend Role",
-            "description": "Gain the Battle Legend role on the server. For those who dominate in combat!",
-            "item_type": "role",
-            "role_id": "1384252156336410775",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 150,
-            "one_time_purchase": True
-        },
-        {
-            "name": "Guild Master Role",
-            "description": "Gain the Guild Master role on the server. Leadership and teamwork recognized!",
-            "item_type": "role",
-            "role_id": "1384252357700882532",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 150,
-            "one_time_purchase": True
-        },
-        {
-            "name": "Achievement Hunter Role",
-            "description": "Gain the Achievement Hunter role on the server. For the most dedicated completionists!",
-            "item_type": "role",
-            "role_id": "1384252267955228835",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 150,
-            "one_time_purchase": True
-        },
-
-        # Profile Tags (49 points each for 10 tags = 490 points)
-        {
-            "name": "🌀 Domain Master Tag",
-            "description": "Display 'Domain Master' on your profile. Mastery of cursed technique domains!",
-            "item_type": "profile_tag",
-            "tag_text": "🌀 Domain Master",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "⚔️ Cursed Warrior Tag",
-            "description": "Display 'Cursed Warrior' on your profile. Elite combat specialist!",
-            "item_type": "profile_tag",
-            "tag_text": "⚔️ Cursed Warrior",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🏛️ Guild Commander Tag",
-            "description": "Display 'Guild Commander' on your profile. Leadership in guild operations!",
-            "item_type": "profile_tag",
-            "tag_text": "🏛️ Guild Commander",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🗝️ Dungeon Conqueror Tag",
-            "description": "Display 'Dungeon Conqueror' on your profile. Master of dungeon exploration!",
-            "item_type": "profile_tag",
-            "tag_text": "🗝️ Dungeon Conqueror",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🎯 Technique Specialist Tag",
-            "description": "Display 'Technique Specialist' on your profile. Expert in cursed techniques!",
-            "item_type": "profile_tag",
-            "tag_text": "🎯 Technique Specialist",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "💰 Trade Mogul Tag",
-            "description": "Display 'Trade Mogul' on your profile. Master of commerce and trading!",
-            "item_type": "profile_tag",
-            "tag_text": "💰 Trade Mogul",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🔮 Spirit Striker Tag",
-            "description": "Display 'Spirit Striker' on your profile. Mastery of Spirit Striker class!",
-            "item_type": "profile_tag",
-            "tag_text": "🔮 Spirit Striker",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "⚡ Flash Rogue Tag",
-            "description": "Display 'Flash Rogue' on your profile. Mastery of Flash Rogue class!",
-            "item_type": "profile_tag",
-            "tag_text": "⚡ Flash Rogue",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🧠 Domain Tactician Tag",
-            "description": "Display 'Domain Tactician' on your profile. Mastery of Domain Tactician class!",
-            "item_type": "profile_tag",
-            "tag_text": "🧠 Domain Tactician",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        },
-        {
-            "name": "🏆 Ascended Champion Tag",
-            "description": "Display 'Ascended Champion' on your profile. Ultimate achievement mastery! The ultimate tag for completionists.",
-            "item_type": "profile_tag",
-            "tag_text": "🏆 Ascended Champion",
-            "rarity": "special",
-            "stats": {},
-            "level_req": 1,
-            "achievement_points": 49,
-            "one_time_purchase": True
-        }
     ]
 }
 
@@ -1168,16 +996,12 @@ class AdvancedShopView(RestrictedView):
             discord.SelectOption(label="Adept (Level 16-30)", value="adept", emoji="🥈"),
             discord.SelectOption(label="Expert (Level 31-50)", value="expert", emoji="🥇"),
             discord.SelectOption(label="Master (Level 51+)", value="master", emoji="👑"),
-            discord.SelectOption(label="Achievement Rewards", value="achievement", emoji="🏆"),
             discord.SelectOption(label="Special Items", value="special", emoji="✨"),
             discord.SelectOption(label="Event Items", value="event", emoji="🎉")
         ]
 
         # Only add secret items if player has the achievement
-        if hasattr(self.player_data, "achievements") and any(
-            (hasattr(a, 'achievement_id') and a.achievement_id == "discover_secret") or 
-            (isinstance(a, dict) and a.get("id") == "discover_secret") 
-            for a in self.player_data.achievements if a):
+        if hasattr(self.player_data, "achievements") and any(a.get("id") == "discover_secret" for a in self.player_data.achievements):
             categories.append(discord.SelectOption(label="Secret Items", value="secret", emoji="🔍"))
 
         # Only add divine items for max level players
@@ -1352,47 +1176,16 @@ class AdvancedShopView(RestrictedView):
             # Get rarity color and emoji
             rarity_info = RARITIES.get(item["rarity"], {"emoji": "⚪", "color": discord.Color.light_grey()})
 
-            # Create buy button based on currency type
+            # Create buy button
             if item.get("locked", False):
                 buy_btn = Button(
-                    label=f"Locked: {item['name']}",
+                    label=f"Locked: {item['name']} ({item['value']} 💰)",
                     style=discord.ButtonStyle.secondary,
                     emoji=rarity_info["emoji"],
                     custom_id=f"buy_{i}",
                     disabled=True
                 )
-            elif "achievement_points" in item:
-                # Achievement points purchase
-                from achievements import AchievementTracker
-                achievement_tracker = AchievementTracker(self.data_manager)
-                player_points = achievement_tracker.get_player_achievement_points(self.player_data)
-                
-                # Check if already purchased for one-time items
-                already_purchased = False
-                if item.get("one_time_purchase", False):
-                    if not hasattr(self.player_data, "purchased_achievement_items"):
-                        self.player_data.purchased_achievement_items = []
-                    already_purchased = item["name"] in self.player_data.purchased_achievement_items
-                
-                if already_purchased:
-                    buy_btn = Button(
-                        label=f"Owned: {item['name']}",
-                        style=discord.ButtonStyle.secondary,
-                        emoji="✅",
-                        custom_id=f"buy_{i}",
-                        disabled=True
-                    )
-                else:
-                    buy_btn = Button(
-                        label=f"Buy: {item['name']} ({item['achievement_points']} 🏆)",
-                        style=discord.ButtonStyle.primary,
-                        emoji=rarity_info["emoji"],
-                        custom_id=f"buy_{i}",
-                        disabled=player_points < item["achievement_points"]
-                    )
-                    buy_btn.callback = self.buy_callback
             else:
-                # Regular gold purchase
                 buy_btn = Button(
                     label=f"Buy: {item['name']} ({item['value']} 💰)",
                     style=discord.ButtonStyle.primary,
@@ -1416,98 +1209,8 @@ class AdvancedShopView(RestrictedView):
         if actual_idx < len(items):
             item_data = items[actual_idx]
 
-            # Handle achievement points purchases
-            if "achievement_points" in item_data:
-                from achievements import AchievementTracker
-                achievement_tracker = AchievementTracker(self.data_manager)
-                player_points = achievement_tracker.get_player_achievement_points(self.player_data)
-                
-                # Check if player has enough achievement points
-                if player_points >= item_data["achievement_points"]:
-                    # Initialize purchased items list if it doesn't exist
-                    if not hasattr(self.player_data, "purchased_achievement_items"):
-                        self.player_data.purchased_achievement_items = []
-                    
-                    # Check if already purchased (for one-time items)
-                    if item_data.get("one_time_purchase", False) and item_data["name"] in self.player_data.purchased_achievement_items:
-                        await interaction.response.send_message("You have already purchased this item!", ephemeral=True)
-                        return
-                    
-                    # Handle different types of achievement rewards
-                    if item_data["item_type"] == "role":
-                        # Add role to player's earned roles list
-                        if not hasattr(self.player_data, "earned_roles"):
-                            self.player_data.earned_roles = []
-                        
-                        role_id = item_data["role_id"]
-                        if role_id not in self.player_data.earned_roles:
-                            self.player_data.earned_roles.append(role_id)
-                        
-                        # Try to assign the role on Discord
-                        try:
-                            guild = interaction.guild
-                            if guild:
-                                role = guild.get_role(int(role_id))
-                                if role:
-                                    await interaction.user.add_roles(role)
-                        except Exception:
-                            pass  # Continue even if role assignment fails
-                        
-                        # Mark as purchased
-                        self.player_data.purchased_achievement_items.append(item_data["name"])
-                        
-                        # Create success message
-                        success_embed = discord.Embed(
-                            title="Role Purchased!",
-                            description=f"You purchased the **{item_data['name']}**!\n\n"
-                                      f"Cost: {item_data['achievement_points']} 🏆\n"
-                                      f"The role has been added to your account.",
-                            color=discord.Color.gold()
-                        )
-                        
-                    elif item_data["item_type"] == "profile_tag":
-                        # Add profile tag to player's collection
-                        if not hasattr(self.player_data, "profile_tags"):
-                            self.player_data.profile_tags = []
-                        
-                        tag_text = item_data["tag_text"]
-                        if tag_text not in self.player_data.profile_tags:
-                            self.player_data.profile_tags.append(tag_text)
-                        
-                        # Mark as purchased
-                        self.player_data.purchased_achievement_items.append(item_data["name"])
-                        
-                        # Create success message
-                        success_embed = discord.Embed(
-                            title="Profile Tag Purchased!",
-                            description=f"You purchased the **{item_data['name']}**!\n\n"
-                                      f"Cost: {item_data['achievement_points']} 🏆\n"
-                                      f"Tag: {tag_text}\n\n"
-                                      f"This will now appear on your profile!",
-                            color=discord.Color.gold()
-                        )
-                    
-                    # Deduct achievement points
-                    if not hasattr(self.player_data, "spent_achievement_points"):
-                        self.player_data.spent_achievement_points = 0
-                    self.player_data.spent_achievement_points += item_data["achievement_points"]
-                    
-                    # Save data
-                    self.data_manager.save_data()
-                    
-                    # Update shop view
-                    self.update_buttons()
-                    await interaction.response.edit_message(embed=success_embed, view=self)
-                    return
-                else:
-                    await interaction.response.send_message(
-                        f"You need {item_data['achievement_points']} achievement points but only have {player_points}!", 
-                        ephemeral=True
-                    )
-                    return
-
-            # Handle regular gold purchases
-            elif self.player_data.gold >= item_data.get("value", 0):
+            # Check if player has enough gold
+            if self.player_data.gold >= item_data["value"]:
                 # Create the item
                 from data_models import Item
 
@@ -1631,7 +1334,6 @@ class AdvancedShopView(RestrictedView):
             "adept": {"name": "Adept Shop", "description": "Quality equipment for experienced adventurers (Level 16-30)", "color": discord.Color.purple()},
             "expert": {"name": "Expert Shop", "description": "Exceptional equipment for elite adventurers (Level 31-50)", "color": discord.Color.gold()},
             "master": {"name": "Master Shop", "description": "Legendary equipment for master adventurers (Level 51+)", "color": discord.Color.red()},
-            "achievement": {"name": "Achievement Rewards", "description": "Exclusive roles and profile tags earned with achievement points", "color": discord.Color.gold()},
             "special": {"name": "Special Items", "description": "Unique and powerful items with special effects", "color": discord.Color.teal()},
             "event": {"name": "Event Shop", "description": "Limited-time items from special events", "color": discord.Color.orange()},
             "secret": {"name": "Secret Shop", "description": "Rare items unlocked through special achievements", "color": discord.Color.dark_gray()},
@@ -1640,22 +1342,12 @@ class AdvancedShopView(RestrictedView):
 
         info = category_info.get(self.current_category, {"name": "Shop", "description": "Buy items", "color": discord.Color.blue()})
 
-        # Create the embed with appropriate currency display
-        if self.current_category == "achievement":
-            from achievements import AchievementTracker
-            achievement_tracker = AchievementTracker(self.data_manager)
-            player_points = achievement_tracker.get_player_achievement_points(self.player_data)
-            embed = discord.Embed(
-                title=info["name"],
-                description=f"{info['description']}\nAchievement Points: {player_points} 🏆",
-                color=info["color"]
-            )
-        else:
-            embed = discord.Embed(
-                title=info["name"],
-                description=f"{info['description']}\nGold: {self.player_data.gold} 💰",
-                color=info["color"]
-            )
+        # Create the embed
+        embed = discord.Embed(
+            title=info["name"],
+            description=f"{info['description']}\nGold: {self.player_data.gold} 💰",
+            color=info["color"]
+        )
 
         # Add filter info
         filter_text = "All Items"
@@ -1676,22 +1368,12 @@ class AdvancedShopView(RestrictedView):
             inline=True
         )
 
-        # Add balance info based on category
-        if self.current_category == "achievement":
-            from achievements import AchievementTracker
-            achievement_tracker = AchievementTracker(self.data_manager)
-            player_points = achievement_tracker.get_player_achievement_points(self.player_data)
-            embed.add_field(
-                name="Your Achievement Points",
-                value=f"{player_points} 🏆",
-                inline=True
-            )
-        else:
-            embed.add_field(
-                name="Your Gold",
-                value=f"{self.player_data.gold} 💰",
-                inline=True
-            )
+        # Add balance info
+        embed.add_field(
+            name="Your Gold",
+            value=f"{self.player_data.gold} 💰",
+            inline=True
+        )
 
         # Add items on current page
         start_idx = self.current_page * self.items_per_page
@@ -1713,12 +1395,11 @@ class AdvancedShopView(RestrictedView):
 
                 # Format item stats
                 stats_text = ""
-                if "stats" in item and item["stats"]:
-                    for stat, value in item["stats"].items():
-                        stats_text += f"{stat.capitalize()}: +{value}, "
+                for stat, value in item["stats"].items():
+                    stats_text += f"{stat.capitalize()}: +{value}, "
 
-                    if stats_text:
-                        stats_text = stats_text[:-2]  # Remove trailing comma and space
+                if stats_text:
+                    stats_text = stats_text[:-2]  # Remove trailing comma and space
 
                 # Add special effect
                 special_effect = item.get("special_effect", None)
@@ -1726,32 +1407,8 @@ class AdvancedShopView(RestrictedView):
                     effect_desc = SPECIAL_EFFECTS.get(special_effect, {}).get("description", "Special effect")
                     stats_text += f"\nEffect: {effect_desc}"
 
-                # Handle achievement points items
-                if "achievement_points" in item:
-                    # Check if already purchased
-                    already_purchased = False
-                    if item.get("one_time_purchase", False):
-                        if not hasattr(self.player_data, "purchased_achievement_items"):
-                            self.player_data.purchased_achievement_items = []
-                        already_purchased = item["name"] in getattr(self.player_data, "purchased_achievement_items", [])
-                    
-                    if already_purchased:
-                        title = f"{i+1}. {rarity_emoji} ✅ {item['name']} (Owned)"
-                    else:
-                        title = f"{i+1}. {rarity_emoji} {item['name']}"
-                    
-                    value = f"**Price:** {item['achievement_points']} 🏆\n"
-                    value += f"*{item['description']}*\n"
-                    
-                    # Add type-specific info
-                    if item["item_type"] == "role":
-                        value += f"**Type:** Discord Server Role\n"
-                    elif item["item_type"] == "profile_tag":
-                        value += f"**Type:** Profile Tag\n"
-                        value += f"**Tag:** {item.get('tag_text', 'N/A')}\n"
-                
                 # Handle locked items
-                elif item.get("locked", False):
+                if item.get("locked", False):
                     title = f"{i+1}. {rarity_emoji} {type_emoji} {item['name']} (Locked)"
                     value = f"**Level Required:** {item['level_req']} (You: {self.player_data.class_level})\n"
                     value += f"**Price:** {item['value']} 💰\n"

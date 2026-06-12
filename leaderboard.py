@@ -45,23 +45,7 @@ class LeaderboardView(View):
             discord.SelectOption(label="Bosses Defeated",
                                  value="bosses_defeated",
                                  description="Sort by bosses defeated",
-                                 default=self.category == "bosses_defeated"),
-            discord.SelectOption(label="Combat Rating",
-                                 value="combat_rating",
-                                 description="Sort by overall combat performance",
-                                 default=self.category == "combat_rating"),
-            discord.SelectOption(label="Guild Contribution",
-                                 value="guild_contribution",
-                                 description="Sort by guild activity points",
-                                 default=self.category == "guild_contribution"),
-            discord.SelectOption(label="Achievement Points",
-                                 value="achievement_points",
-                                 description="Sort by total achievement points",
-                                 default=self.category == "achievement_points"),
-            discord.SelectOption(label="Weekly Active",
-                                 value="weekly_active",
-                                 description="Most active players this week",
-                                 default=self.category == "weekly_active")
+                                 default=self.category == "bosses_defeated")
         ]
 
         category_select = Select(placeholder="Select category",
@@ -90,15 +74,15 @@ class LeaderboardView(View):
                 self.category = values[0]
                 self.page = 0  # Reset to first page on category change
 
-        embed = await self.create_leaderboard_embed()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(
+            embed=self.create_leaderboard_embed(), view=self)
 
     async def prev_page_callback(self, interaction: discord.Interaction):
         """Handle previous page button"""
         if self.page > 0:
             self.page -= 1
-        embed = await self.create_leaderboard_embed()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(
+            embed=self.create_leaderboard_embed(), view=self)
 
     async def next_page_callback(self, interaction: discord.Interaction):
         """Handle next page button"""
@@ -107,8 +91,8 @@ class LeaderboardView(View):
 
         if self.page < max_pages - 1:
             self.page += 1
-        embed = await self.create_leaderboard_embed()
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.response.edit_message(
+            embed=self.create_leaderboard_embed(), view=self)
 
     def get_sorted_players(self) -> List[tuple]:
         """Get players sorted by the selected category"""
@@ -134,7 +118,7 @@ class LeaderboardView(View):
         # Sort in descending order by the value
         return sorted(players, key=operator.itemgetter(2), reverse=True)
 
-    async def create_leaderboard_embed(self) -> discord.Embed:
+    def create_leaderboard_embed(self) -> discord.Embed:
         """Create the leaderboard embed"""
         category_display = {
             "level": "Level",
@@ -185,38 +169,22 @@ class LeaderboardView(View):
                 value_display = str(value)
 
             # Try to get username from discord, or fall back to player ID
-            username = f"Player {user_id}"
+            username = f"User {user_id}"
             try:
                 if self.bot:
-                    # Convert user_id to int if it's a string
-                    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
-                    user = self.bot.get_user(user_id_int)
+                    user = self.bot.get_user(int(user_id))
                     if user:
-                        username = user.display_name or user.name
-                    else:
-                        # Try to fetch user if not in cache
-                        try:
-                            user = await self.bot.fetch_user(user_id_int)
-                            if user:
-                                username = user.display_name or user.name
-                        except:
-                            # If fetch fails, keep the fallback name
-                            pass
+                        username = user.display_name
             except (ValueError, TypeError, AttributeError):
-                # If there's any error converting user_id or finding the user, keep fallback
+                # If there's any error converting user_id or finding the user, just use the ID
                 pass
 
-            # Build the value string conditionally
-            value_parts = [f"**{category_display.get(self.category, 'Level')}:** {value_display}"]
-            value_parts.append(f"**Class:** {player.class_name or 'None'}")
-            
-            # Only show level if we're not already sorting by level
-            if self.category != "level":
-                value_parts.append(f"**Level:** {player.class_level}")
-            
             embed.add_field(
                 name=f"{medal}Rank #{rank}: {username}",
-                value="\n".join(value_parts),
+                value=
+                f"**{category_display.get(self.category, 'Level')}:** {value_display}\n"
+                f"**Class:** {player.class_name or 'None'}\n"
+                f"**Level:** {player.class_level}",
                 inline=False)
 
         total_players = len(sorted_players)
@@ -243,6 +211,6 @@ async def leaderboard_command(ctx,
 
     # Pass the bot instance to the view so it can look up usernames
     view = LeaderboardView(data_manager, category=category.lower(), bot=ctx.bot)
-    embed = await view.create_leaderboard_embed()
+    embed = view.create_leaderboard_embed()
 
     await ctx.send(embed=embed, view=view)

@@ -30,27 +30,21 @@ class Guild:
             "bank_level": 1,
             "member_capacity": 1,
             "exp_boost": 1,
-            "gold_boost": 1
+            "cursed_energy_boost": 1  # Renamed from gold_boost
         }
 
         # Perks based on guild level
         self.perks = {
             # Level 1
-            1: {"name": "United We Stand", "description": "Guild members gain +2% XP when adventuring together"},
+            1: {"name": "United We Stand", "description": "Guild members gain +1% XP when adventuring together"},
             # Level 2
-            2: {"name": "Shared Resources", "description": "15% chance for extra item drops when in guild parties"},
+            2: {"name": "Shared Resources", "description": "10% chance for extra item drops when in guild parties"},
             # Level 3
-            3: {"name": "Guild Tactics", "description": "Guild members deal +3% damage in dungeons"},
+            3: {"name": "Guild Tactics", "description": "Guild members deal +2% damage in dungeons"},
             # Level 5
-            5: {"name": "Brotherhood", "description": "Guild members gain +8% gold when adventuring together"},
-            # Level 7
-            7: {"name": "Combat Synergy", "description": "Guild members restore +2 energy per turn in PvP battles"},
+            5: {"name": "Brotherhood", "description": "Guild members gain +5% cursed energy when adventuring together"},
             # Level 10
-            10: {"name": "Elite Force", "description": "Guild members gain +10% to all stats in guild raids"},
-            # Level 15
-            15: {"name": "Legendary Status", "description": "Guild members have 5% chance to avoid death in dungeons"},
-            # Level 20
-            20: {"name": "Master Guild", "description": "All guild perks are doubled in effectiveness"}
+            10: {"name": "Elite Force", "description": "Guild members gain +5% to all stats in guild raids"}
         }
 
         # Guild weekly challenges
@@ -617,16 +611,6 @@ class GuildManager:
         contribution_points = contribution_amount // 10
         guild.daily_contributions[today][str(player_id)] += contribution_points
 
-        # Update quest progress for guild contribution
-        try:
-            from achievements import QuestManager
-            player_data = self.data_manager.get_player(player_id)
-            if player_data:
-                quest_manager = QuestManager(self.data_manager)
-                quest_manager.update_quest_progress(player_data, "weekly_guild_contribution", contribution_amount)
-        except (ImportError, AttributeError):
-            pass  # QuestManager not available, skip quest tracking
-
         # Save data
         self.save_guilds()
 
@@ -906,16 +890,18 @@ class GuildInfoView(RestrictedView):
                             row=row % 3
                         )
 
-                        # Create and assign callback properly
+                        # Store the upgrade_id and cost for this button
+                        upgrade_btn.upgrade_id = upgrade_id
+                        upgrade_btn.cost = next_cost
                         upgrade_btn.callback = self.make_upgrade_callback(upgrade_id, next_cost)
                         self.add_item(upgrade_btn)
                         row += 1
 
             def make_upgrade_callback(self, upgrade_id, cost):
-                async def upgrade_callback(interaction):
+                async def upgrade_callback(btn_interaction):
                     # Check if guild has enough gold
                     if self.guild.bank < cost:
-                        await interaction.response.send_message(
+                        await btn_interaction.response.send_message(
                             f"❌ Not enough gold! This upgrade costs {cost} 💰, but the guild bank only has {self.guild.bank} 💰.",
                             ephemeral=True
                         )
@@ -973,7 +959,7 @@ class GuildInfoView(RestrictedView):
 
                     # Create a new upgrade view with updated buttons
                     new_view = GuildUpgradeView(self.parent_view)
-                    await interaction.response.edit_message(embed=upgrades_embed, view=new_view)
+                    await btn_interaction.response.edit_message(embed=upgrades_embed, view=new_view)
 
                 return upgrade_callback
 
@@ -1972,17 +1958,8 @@ class GuildShopView(RestrictedView):
 
         # Increase max members
         self.guild.max_members += 5
-        
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(5000 * 0.2)  # 1000 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
 
-        message = f"✅ Guild capacity increased to {self.guild.max_members} members! Guild gained {exp_reward} XP."
-        if leveled_up:
-            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(f"✅ Guild capacity increased to {self.guild.max_members} members!")
         return True
 
     async def purchase_guild_banner(self, interaction: discord.Interaction):
@@ -1995,16 +1972,7 @@ class GuildShopView(RestrictedView):
             self.guild.upgrades["guild_banner"]["level"] += 1
             self.guild.upgrades["guild_banner"]["bonus"] += 0.01
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(2500 * 0.2)  # 500 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
-        message = f"✅ Guild Banner purchased! Members now get +{self.guild.upgrades['guild_banner']['bonus'] * 100}% XP bonus. Guild gained {exp_reward} XP."
-        if leveled_up:
-            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(f"✅ Guild Banner purchased! Members now get +{self.guild.upgrades['guild_banner']['bonus'] * 100}% XP bonus.")
         return True
 
     async def purchase_storage_expansion(self, interaction: discord.Interaction):
@@ -2016,16 +1984,7 @@ class GuildShopView(RestrictedView):
             # Add more slots
             self.guild.upgrades["storage"]["slots"] += 10
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(3000 * 0.2)  # 600 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
-        message = f"✅ Guild storage expanded! Total slots: {self.guild.upgrades['storage']['slots']}. Guild gained {exp_reward} XP."
-        if leveled_up:
-            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(f"✅ Guild storage expanded! Total slots: {self.guild.upgrades['storage']['slots']}")
         return True
 
     async def purchase_xp_boost(self, interaction: discord.Interaction):
@@ -2037,16 +1996,7 @@ class GuildShopView(RestrictedView):
             "expires": expiration.isoformat()
         }
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(7500 * 0.2)  # 1500 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
-        message = "✅ Guild XP Boost active for 7 days! All guild XP earned will be increased by 30%. Guild gained {} XP.".format(exp_reward)
-        if leveled_up:
-            message += " 🎉 Guild leveled up to level {}!".format(self.guild.level)
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message("✅ Guild XP Boost active for 7 days! All guild XP earned will be increased by 30%.")
         return True
 
     async def purchase_material_crate(self, interaction: discord.Interaction):
@@ -2068,17 +2018,8 @@ class GuildShopView(RestrictedView):
             else:
                 self.guild.upgrades["storage_items"][material] = quantity
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(4000 * 0.2)  # 800 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
         materials_list = ", ".join([f"{random.randint(3, 8)}x {m}" for m in random.sample(materials, 3)])
-        message = f"✅ Material Crate purchased! Added to guild storage: {materials_list} and more! Guild gained {exp_reward} XP."
-        if leveled_up:
-            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(f"✅ Material Crate purchased! Added to guild storage: {materials_list} and more!")
         return True
 
     async def purchase_emblem_customization(self, interaction: discord.Interaction):
@@ -2086,16 +2027,7 @@ class GuildShopView(RestrictedView):
         # Allow customization of guild emblem
         self.guild.upgrades["custom_emblem"] = True
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(1000 * 0.2)  # 200 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
-        message = "✅ Guild Emblem Customization purchased! Use `!guild emblem` to customize your guild's emblem. Guild gained {} XP.".format(exp_reward)
-        if leveled_up:
-            message += " 🎉 Guild leveled up to level {}!".format(self.guild.level)
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message("✅ Guild Emblem Customization purchased! Use `!guild emblem` to customize your guild's emblem.")
         return True
 
     async def purchase_dungeon_key(self, interaction: discord.Interaction):
@@ -2117,16 +2049,7 @@ class GuildShopView(RestrictedView):
             "rewards_multiplier": 1.5
         }
 
-        # Award guild experience for purchase (20% of item cost)
-        exp_reward = int(6000 * 0.2)  # 1200 exp
-        leveled_up = self.guild.add_exp(exp_reward)
-        self.guild_manager.save_guilds()
-
-        message = f"✅ Special Guild Dungeon Key purchased! '{dungeon}' is now available for 24 hours with 50% bonus rewards. Guild gained {exp_reward} XP. Start with `!guild dungeon`!"
-        if leveled_up:
-            message += f" 🎉 Guild leveled up to level {self.guild.level}!"
-
-        await interaction.response.send_message(message)
+        await interaction.response.send_message(f"✅ Special Guild Dungeon Key purchased! '{dungeon}' is now available for 24 hours with 50% bonus rewards. Start with `!guild dungeon`!")
         return True
 
 class GuildTeamDungeonView(View):

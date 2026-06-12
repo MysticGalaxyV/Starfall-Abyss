@@ -576,33 +576,7 @@ class ItemActionView(View):
             # Determine the slot based on item type
             slot = None
             if self.inventory_item.item.item_type == "weapon":
-                # Check for dual wielding capability
-                from utils import can_dual_wield
-                
-                if self.player_data.class_name and can_dual_wield(self.player_data.class_name):
-                    # For dual wielding classes, check both weapon slots
-                    # Ensure weapon2 key exists in equipped_items
-                    if "weapon2" not in self.player_data.equipped_items:
-                        self.player_data.equipped_items["weapon2"] = None
-                    
-                    if not self.player_data.equipped_items["weapon"]:
-                        slot = "weapon"
-                    elif not self.player_data.equipped_items["weapon2"]:
-                        slot = "weapon2"
-                    else:
-                        # Both slots full, replace main hand weapon
-                        slot = "weapon"
-                else:
-                    # Single weapon slot for non-dual wielding classes
-                    # If they have a weapon in weapon2 slot, unequip it first
-                    if "weapon2" in self.player_data.equipped_items and self.player_data.equipped_items["weapon2"]:
-                        for inv_item in self.player_data.inventory:
-                            if hasattr(inv_item.item, "item_id") and inv_item.item.item_id == self.player_data.equipped_items["weapon2"]:
-                                inv_item.equipped = False
-                                break
-                        self.player_data.equipped_items["weapon2"] = None
-                    
-                    slot = "weapon"
+                slot = "weapon"
             elif self.inventory_item.item.item_type == "armor":
                 slot = "armor"
             elif self.inventory_item.item.item_type == "accessory":
@@ -620,10 +594,8 @@ class ItemActionView(View):
                 self.inventory_item.equipped = True
                 self.player_data.equipped_items[slot] = self.inventory_item.item.item_id
 
-                # Display appropriate slot name
-                slot_display = "main hand" if slot == "weapon" else ("off hand" if slot == "weapon2" else slot)
                 await interaction.response.edit_message(
-                    content=f"✅ {self.inventory_item.item.name} has been equipped as your {slot_display}.",
+                    content=f"✅ {self.inventory_item.item.name} has been equipped as your {slot}.",
                     view=None
                 )
             else:
@@ -936,48 +908,13 @@ class InventoryView(RestrictedView):
                 inline=False
             )
 
-        # Add equipped items summary with dual weapon support
-        from utils import can_dual_wield
-        
-        equipped_text_lines = []
-        
-        # Display weapons with dual wield support
-        main_weapon_id = self.player_data.equipped_items.get("weapon")
-        off_weapon_id = self.player_data.equipped_items.get("weapon2")
-        
-        if main_weapon_id:
-            for item in self.player_data.inventory:
-                if hasattr(item.item, "item_id") and item.item.item_id == main_weapon_id:
-                    # Clean up tool names by removing "Cursed Tool:" prefix
-                    clean_name = item.item.name.replace("Cursed Tool: ", "")
-                    equipped_text_lines.append(f"**Main Hand**: {clean_name}")
-                    break
-        
-        if self.player_data.class_name and can_dual_wield(self.player_data.class_name) and off_weapon_id:
-            for item in self.player_data.inventory:
-                if hasattr(item.item, "item_id") and item.item.item_id == off_weapon_id:
-                    # Clean up tool names by removing "Cursed Tool:" prefix
-                    clean_name = item.item.name.replace("Cursed Tool: ", "")
-                    equipped_text_lines.append(f"**Off Hand**: {clean_name}")
-                    break
-        
-        # Display other equipment
-        armor_id = self.player_data.equipped_items.get("armor")
-        accessory_id = self.player_data.equipped_items.get("accessory")
-        
-        if armor_id:
-            for item in self.player_data.inventory:
-                if hasattr(item.item, "item_id") and item.item.item_id == armor_id:
-                    equipped_text_lines.append(f"**Armor**: {item.item.name}")
-                    break
-        
-        if accessory_id:
-            for item in self.player_data.inventory:
-                if hasattr(item.item, "item_id") and item.item.item_id == accessory_id:
-                    equipped_text_lines.append(f"**Accessory**: {item.item.name}")
-                    break
-        
-        equipped_text = "\n".join(equipped_text_lines) if equipped_text_lines else "None"
+        # Add equipped items summary
+        equipped_items = [item for item in self.player_data.inventory if item.equipped]
+
+        if equipped_items:
+            equipped_text = "\n".join([f"**{item.item.item_type.title()}**: {item.item.name}" for item in equipped_items])
+        else:
+            equipped_text = "None"
 
         embed.add_field(
             name="🔆 Equipped Items",

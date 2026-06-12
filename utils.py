@@ -1,7 +1,6 @@
 import discord
 import random
-from typing import Dict, List, Any, Optional
-import time
+from typing import Dict, List, Any
 
 # Game constants
 STARTER_CLASSES = {
@@ -42,8 +41,7 @@ STARTER_CLASSES = {
         "abilities": {
             "active": "Shadowstep",
             "passive": "First Strike"
-        },
-        "dual_wield": True
+        }
     }
 }
 
@@ -114,8 +112,7 @@ ADVANCED_CLASSES = {
         "requirements": {
             "base_class": "Flash Rogue",
             "level": 10
-        },
-        "dual_wield": True
+        }
     },
     "Limitless Sorcerer": {
         "role": "Special",
@@ -138,18 +135,6 @@ ADVANCED_CLASSES = {
 
 # Merge starter and advanced classes for easy access
 GAME_CLASSES = {**STARTER_CLASSES, **ADVANCED_CLASSES}
-
-def can_dual_wield(class_name: str) -> bool:
-    """Check if a class can dual wield weapons"""
-    # Check starter classes
-    if class_name in STARTER_CLASSES:
-        return STARTER_CLASSES[class_name].get("dual_wield", False)
-    
-    # Check advanced classes
-    if class_name in ADVANCED_CLASSES:
-        return ADVANCED_CLASSES[class_name].get("dual_wield", False)
-    
-    return False
 
 # Game skills and abilities
 GAME_SKILLS = {
@@ -452,52 +437,3 @@ def create_embed(title: str, description: str, color: discord.Color = discord.Co
     )
     embed.set_footer(text="Cursed RPG • Type !help for commands")
     return embed
-
-def get_active_gold_multiplier(data_manager) -> Dict[str, Any]:
-    """Get the current gold multiplier from active events with event info"""
-    try:
-        from achievements import QuestManager
-        quest_manager = QuestManager(data_manager)
-        
-        # Check for active events with gold multipliers
-        active_events = quest_manager.get_active_events()
-        multiplier = 1.0
-        event_name = None
-        
-        for event in active_events:
-            effect = event.get("effect", {})
-            if effect.get("type") == "gold_multiplier":
-                event_multiplier = effect.get("value", 1.0)
-                # Apply the highest multiplier (don't stack)
-                if event_multiplier > multiplier:
-                    multiplier = event_multiplier
-                    event_name = event.get("name", "Unknown Event")
-        
-        return {
-            "multiplier": multiplier,
-            "event_name": event_name,
-            "has_event": multiplier > 1.0
-        }
-    except:
-        # Return default multiplier if there's any error
-        return {
-            "multiplier": 1.0,
-            "event_name": None,
-            "has_event": False
-        }
-
-def apply_gold_multiplier(base_gold: int, data_manager) -> int:
-    """Apply active gold multiplier events to base gold amount"""
-    event_info = get_active_gold_multiplier(data_manager)
-    multiplier = event_info["multiplier"]
-    return int(base_gold * multiplier)
-
-def get_gold_multiplier_display(base_gold: int, data_manager) -> str:
-    """Get a formatted display string for gold with event multiplier info"""
-    event_info = get_active_gold_multiplier(data_manager)
-    adjusted_gold = int(base_gold * event_info["multiplier"])
-    
-    if event_info["has_event"]:
-        return f"{base_gold} → {adjusted_gold} Gold (🎉 {event_info['event_name']} {event_info['multiplier']}x!)"
-    else:
-        return f"{adjusted_gold} Gold"
